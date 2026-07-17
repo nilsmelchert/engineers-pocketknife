@@ -1,0 +1,632 @@
+import { useMemo, useState } from 'react'
+import { useT } from '../i18n'
+import { TeX } from '../components/TeX'
+import { ImageView } from '../components/ImageView'
+import { InfoBox, Readout, Section, Slider } from '../components/ui'
+import {
+  boardCorners,
+  distortNormalized,
+  fmt,
+  m4MulChain,
+  m4MulP,
+  m4RotX,
+  m4RotY,
+  m4RotZ,
+  m4Trans,
+  mulberry32,
+  projectCamPoint,
+  deg2rad,
+  type Distortion,
+  type Intrinsics,
+} from '../lib/math'
+
+const W = 640
+const H = 480
+
+// ---------------------------------------------------------------- texts
+
+const T = {
+  en: {
+    kicker: 'Module 2',
+    title: 'Camera Calibration',
+    intro:
+      'Module 1 assumed we know K. In reality every camera–lens combination is unique: focal length, principal point and lens distortion must be measured. Calibration estimates them from images of a known pattern — usually a checkerboard.',
+    whyTitle: 'What calibration estimates — and why it matters',
+    why1: 'Calibration recovers two groups of parameters from a handful of checkerboard photos:',
+    whyList: [
+      'Intrinsics K (fx, fy, cx, cy) — needed to turn pixels into metric viewing rays. Without them, no measurement, no 3D reconstruction, no augmented reality.',
+      'Distortion coefficients (k1, k2, k3, p1, p2) — real lenses bend straight lines. Any geometric algorithm downstream assumes these bends have been removed.',
+      'As a by-product, the pose [R|t] of the board in every image — proof that the model explains the observations.',
+    ],
+    why2:
+      'The quality metric is the reprojection error: project the known board corners through the estimated model and measure the pixel distance to the detected corners.',
+    distTitle: 'Interactive: lens distortion',
+    dist1:
+      'The pinhole model maps straight lines to straight lines. Real lenses do not. The standard Brown–Conrady model describes the deviation in normalized image coordinates — radial terms (k1, k2, k3) that grow with distance from the center, plus tangential terms (p1, p2) from lens–sensor misalignment:',
+    dist2:
+      'Drag the sliders and watch a perfect grid deform. Barrel distortion (k1 < 0) is typical for wide-angle lenses, pincushion (k1 > 0) for telephoto. If k1 and k2 have opposite signs you get the wavy “mustache” shape.',
+    presets: 'Presets',
+    presetNames: ['none', 'barrel', 'pincushion', 'mustache', 'tangential'],
+    distGrid: 'Distorted view of a perfectly straight grid',
+    zhangTitle: "Zhang's method in a nutshell",
+    zhang1:
+      'The classic algorithm (Zhang, 2000) needs only a flat pattern with precisely known geometry, viewed from several orientations. The key insight: because all board points lie in a plane, each image is related to the board by a 3×3 homography H, and each H constrains the intrinsics:',
+    zhangSteps: [
+      'Detect the inner corners of the checkerboard in every image (sub-pixel accurate).',
+      'Estimate a homography H per view from the known board coordinates ↔ detected pixels.',
+      'Each H gives two linear constraints on the image of the absolute conic ω = K⁻ᵀK⁻¹; with ≥ 3 views, solve for K in closed form.',
+      'Recover each view’s [R|t] from H and K.',
+      'Refine everything — K, distortion, all poses — jointly by minimizing the reprojection error (bundle adjustment, Levenberg–Marquardt).',
+    ],
+    zhang2:
+      'The closed-form solution only provides the starting point; the numbers you actually use come from the final nonlinear refinement.',
+    capTitle: 'Interactive: capture good calibration views',
+    cap1: 'This is a virtual calibration session. Pose the checkerboard in front of the camera and capture views. The checklist tells you when your dataset would produce a trustworthy calibration — try to make it fully green.',
+    capWhy:
+      'Why these rules? Corner coverage constrains the distortion polynomial where it is largest (image borders). Tilted views constrain the focal length (a frontal board is nearly scale-ambiguous). Many views average out detection noise.',
+    capScene: 'Virtual camera view',
+    capPose: 'Board pose',
+    capDist: 'distance',
+    capOx: 'offset x',
+    capOy: 'offset y',
+    capTiltX: 'tilt around x',
+    capTiltY: 'tilt around y',
+    capRotZ: 'in-plane rotation',
+    capBtn: 'Capture view',
+    capRandom: 'Random pose',
+    capReset: 'Reset session',
+    capNotVisible: 'Board partially outside the image — corners could not be detected.',
+    capViews: 'views',
+    capCoverage: 'coverage',
+    capTilted: 'tilted views',
+    checklist: 'Dataset checklist',
+    checks: [
+      'at least 10 views',
+      'image coverage ≥ 70 %',
+      'at least 3 strongly tilted views (≥ 20°)',
+      'borders & corners of the image covered (≥ 60 %)',
+    ],
+    reprojTitle: 'Interactive: reprojection error',
+    reproj1:
+      'After optimization, the calibration reports its residual: the RMS distance between detected corners (cyan) and corners reprojected through the model (amber). Error vectors are drawn ×15. Two effects mix in practice:',
+    reprojList: [
+      'Detection noise — random, irreducible; sub-pixel corner detectors reach ~0.1 px.',
+      'Model error — systematic, e.g. a wrong focal length pushes corners radially outward/inward. If arrows form a pattern instead of random directions, your model (or dataset) is bad.',
+    ],
+    noiseLbl: 'detection noise σ',
+    modelLbl: 'focal length error',
+    rms: 'RMS error',
+    reproj2:
+      'Rule of thumb: a good calibration of a normal camera lands well below 0.5 px RMS — but a low RMS with a badly covered dataset proves nothing: the model can overfit where you did look, and be wrong where you did not.',
+    tipsTitle: 'Practice: doing it with OpenCV',
+    tipsList: [
+      'Print the board on stiff, flat material — a bent board violates the planarity assumption.',
+      'Fill the whole image over the session, tilt up to ~45°, avoid motion blur (short exposure).',
+      'Fix the focus (and zoom!) — changing either changes K.',
+      'Check the residual pattern per image, not only the global RMS; drop bad frames.',
+      'For wide-angle / fisheye lenses use the appropriate model (cv2.fisheye or a rational model).',
+    ],
+  },
+  de: {
+    kicker: 'Modul 2',
+    title: 'Kamerakalibrierung',
+    intro:
+      'Modul 1 hat K als bekannt vorausgesetzt. In Wirklichkeit ist jede Kamera-Objektiv-Kombination einzigartig: Brennweite, Hauptpunkt und Verzeichnung müssen gemessen werden. Die Kalibrierung schätzt sie aus Bildern eines bekannten Musters — meist eines Schachbretts.',
+    whyTitle: 'Was die Kalibrierung schätzt — und warum es wichtig ist',
+    why1: 'Die Kalibrierung rekonstruiert aus einer Handvoll Schachbrettfotos zwei Gruppen von Parametern:',
+    whyList: [
+      'Intrinsik K (fx, fy, cx, cy) — nötig, um Pixel in metrische Sehstrahlen zu verwandeln. Ohne sie keine Messung, keine 3D-Rekonstruktion, kein Augmented Reality.',
+      'Verzeichnungskoeffizienten (k1, k2, k3, p1, p2) — echte Objektive krümmen Geraden. Jeder geometrische Algorithmus danach setzt voraus, dass diese Krümmung entfernt wurde.',
+      'Als Nebenprodukt die Pose [R|t] des Bretts in jedem Bild — der Beleg, dass das Modell die Beobachtungen erklärt.',
+    ],
+    why2:
+      'Das Qualitätsmaß ist der Reprojektionsfehler: Man projiziert die bekannten Brettecken durch das geschätzte Modell und misst den Pixelabstand zu den detektierten Ecken.',
+    distTitle: 'Interaktiv: Objektivverzeichnung',
+    dist1:
+      'Das Lochkameramodell bildet Geraden auf Geraden ab. Echte Objektive nicht. Das Standard-Modell nach Brown–Conrady beschreibt die Abweichung in normierten Bildkoordinaten — radiale Terme (k1, k2, k3), die mit dem Abstand vom Zentrum wachsen, plus tangentiale Terme (p1, p2) durch Dejustage von Linse und Sensor:',
+    dist2:
+      'Bewege die Slider und beobachte, wie sich ein perfektes Gitter verformt. Tonnenverzeichnung (k1 < 0) ist typisch für Weitwinkel, Kissenverzeichnung (k1 > 0) für Tele. Haben k1 und k2 entgegengesetzte Vorzeichen, entsteht die wellige „Schnurrbart“-Form.',
+    presets: 'Voreinstellungen',
+    presetNames: ['keine', 'Tonne', 'Kissen', 'Schnurrbart', 'tangential'],
+    distGrid: 'Verzerrte Ansicht eines perfekt geraden Gitters',
+    zhangTitle: 'Zhangs Methode in Kürze',
+    zhang1:
+      'Der klassische Algorithmus (Zhang, 2000) braucht nur ein ebenes Muster mit exakt bekannter Geometrie, aus mehreren Richtungen betrachtet. Die Kernidee: Weil alle Brettpunkte in einer Ebene liegen, ist jedes Bild über eine 3×3-Homographie H mit dem Brett verknüpft, und jede H liefert Bedingungen an die Intrinsik:',
+    zhangSteps: [
+      'Innere Ecken des Schachbretts in jedem Bild detektieren (subpixelgenau).',
+      'Pro Ansicht eine Homographie H aus bekannten Brettkoordinaten ↔ detektierten Pixeln schätzen.',
+      'Jede H liefert zwei lineare Bedingungen an ω = K⁻ᵀK⁻¹; mit ≥ 3 Ansichten lässt sich K geschlossen lösen.',
+      'Aus H und K die Pose [R|t] jeder Ansicht rekonstruieren.',
+      'Alles gemeinsam verfeinern — K, Verzeichnung, alle Posen — durch Minimierung des Reprojektionsfehlers (Bündelausgleich, Levenberg–Marquardt).',
+    ],
+    zhang2:
+      'Die geschlossene Lösung liefert nur den Startwert; die Zahlen, mit denen man wirklich arbeitet, stammen aus der finalen nichtlinearen Optimierung.',
+    capTitle: 'Interaktiv: gute Kalibrieransichten aufnehmen',
+    cap1: 'Eine virtuelle Kalibriersitzung: Positioniere das Schachbrett vor der Kamera und nimm Ansichten auf. Die Checkliste zeigt, wann der Datensatz eine vertrauenswürdige Kalibrierung ergäbe — versuche, alles grün zu bekommen.',
+    capWhy:
+      'Warum diese Regeln? Abdeckung bis in die Ecken verankert das Verzeichnungspolynom dort, wo es am größten ist (Bildrand). Gekippte Ansichten bestimmen die Brennweite (ein frontales Brett ist nahezu skalenmehrdeutig). Viele Ansichten mitteln das Detektionsrauschen heraus.',
+    capScene: 'Virtuelle Kameraansicht',
+    capPose: 'Brettpose',
+    capDist: 'Abstand',
+    capOx: 'Versatz x',
+    capOy: 'Versatz y',
+    capTiltX: 'Kippung um x',
+    capTiltY: 'Kippung um y',
+    capRotZ: 'Drehung in der Ebene',
+    capBtn: 'Ansicht aufnehmen',
+    capRandom: 'Zufällige Pose',
+    capReset: 'Sitzung zurücksetzen',
+    capNotVisible: 'Brett teilweise außerhalb des Bildes — Ecken nicht detektierbar.',
+    capViews: 'Ansichten',
+    capCoverage: 'Abdeckung',
+    capTilted: 'gekippte Ansichten',
+    checklist: 'Datensatz-Checkliste',
+    checks: [
+      'mindestens 10 Ansichten',
+      'Bildabdeckung ≥ 70 %',
+      'mindestens 3 stark gekippte Ansichten (≥ 20°)',
+      'Ränder & Ecken des Bildes abgedeckt (≥ 60 %)',
+    ],
+    reprojTitle: 'Interaktiv: Reprojektionsfehler',
+    reproj1:
+      'Nach der Optimierung meldet die Kalibrierung ihr Residuum: den RMS-Abstand zwischen detektierten Ecken (cyan) und durch das Modell reprojizierten Ecken (bernstein). Fehlervektoren sind ×15 gezeichnet. In der Praxis mischen sich zwei Effekte:',
+    reprojList: [
+      'Detektionsrauschen — zufällig, nicht vermeidbar; Subpixel-Detektoren erreichen ~0,1 px.',
+      'Modellfehler — systematisch, z. B. schiebt eine falsche Brennweite die Ecken radial nach außen/innen. Bilden die Pfeile ein Muster statt zufälliger Richtungen, ist Modell (oder Datensatz) schlecht.',
+    ],
+    noiseLbl: 'Detektionsrauschen σ',
+    modelLbl: 'Brennweitenfehler',
+    rms: 'RMS-Fehler',
+    reproj2:
+      'Faustregel: Eine gute Kalibrierung einer normalen Kamera liegt deutlich unter 0,5 px RMS — aber ein niedriger RMS mit schlecht abgedecktem Datensatz beweist nichts: Das Modell kann dort überangepasst sein, wo man hingeschaut hat, und falsch, wo nicht.',
+    tipsTitle: 'Praxis: Umsetzung mit OpenCV',
+    tipsList: [
+      'Das Brett auf steifes, ebenes Material drucken — ein gewölbtes Brett verletzt die Ebenheitsannahme.',
+      'Über die Sitzung das ganze Bild füllen, bis ~45° kippen, Bewegungsunschärfe vermeiden (kurze Belichtung).',
+      'Fokus (und Zoom!) fixieren — beides ändert K.',
+      'Das Residuenmuster pro Bild prüfen, nicht nur den globalen RMS; schlechte Aufnahmen verwerfen.',
+      'Für Weitwinkel/Fisheye das passende Modell verwenden (cv2.fisheye oder rationales Modell).',
+    ],
+  },
+}
+
+const OPENCV_SNIPPET = `import cv2, numpy as np, glob
+
+objp = np.zeros((5 * 7, 3), np.float32)
+objp[:, :2] = np.mgrid[0:7, 0:5].T.reshape(-1, 2) * 0.03   # 30 mm squares
+
+objpoints, imgpoints = [], []
+for path in glob.glob("calib/*.png"):
+    gray = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+    ok, corners = cv2.findChessboardCorners(gray, (7, 5))
+    if ok:
+        corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1),
+            (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 1e-3))
+        objpoints.append(objp)
+        imgpoints.append(corners)
+
+rms, K, dist, rvecs, tvecs = cv2.calibrateCamera(
+    objpoints, imgpoints, gray.shape[::-1], None, None)
+print("RMS reprojection error:", rms)   # aim for < 0.5 px`
+
+// ---------------------------------------------------------------- distortion playground
+
+const DIST_PRESETS: Distortion[] = [
+  { k1: 0, k2: 0, k3: 0, p1: 0, p2: 0 },
+  { k1: -0.28, k2: 0.04, k3: 0, p1: 0, p2: 0 },
+  { k1: 0.25, k2: 0.05, k3: 0, p1: 0, p2: 0 },
+  { k1: -0.42, k2: 0.38, k3: 0, p1: 0, p2: 0 },
+  { k1: 0, k2: 0, k3: 0, p1: 0.04, p2: -0.03 },
+]
+
+function DistortionPlayground() {
+  const t = useT(T)
+  const [d, setD] = useState<Distortion>(DIST_PRESETS[1])
+
+  const { curves, straight } = useMemo(() => {
+    const f = 400
+    const cx = W / 2
+    const cy = H / 2
+    const nx = 13
+    const ny = 10
+    const px = (i: number) => 25 + (i * (W - 50)) / (nx - 1)
+    const py = (j: number) => 20 + (j * (H - 40)) / (ny - 1)
+    const map = (u: number, v: number): [number, number] => {
+      const [xd, yd] = distortNormalized((u - cx) / f, (v - cy) / f, d)
+      return [cx + f * xd, cy + f * yd]
+    }
+    const curves: [number, number][][] = []
+    const straight: [number, number][][] = []
+    for (let j = 0; j < ny; j++) {
+      curves.push(Array.from({ length: 40 }, (_, s) => map(25 + (s * (W - 50)) / 39, py(j))))
+      straight.push([
+        [px(0), py(j)],
+        [px(nx - 1), py(j)],
+      ])
+    }
+    for (let i = 0; i < nx; i++) {
+      curves.push(Array.from({ length: 40 }, (_, s) => map(px(i), 20 + (s * (H - 40)) / 39)))
+      straight.push([
+        [px(i), py(0)],
+        [px(i), py(ny - 1)],
+      ])
+    }
+    return { curves, straight }
+  }, [d])
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="lg:col-span-3">
+        <ImageView
+          title={t.distGrid}
+          grid={false}
+          polylines={[
+            ...straight.map((pts) => ({ pts, color: 'rgba(255,255,255,0.10)', width: 1 })),
+            ...curves.map((pts) => ({ pts, color: 'rgba(34,211,238,0.85)', width: 1.4 })),
+          ]}
+        />
+      </div>
+      <div className="card-pad space-y-4 lg:col-span-2">
+        <div>
+          <div className="mb-2 text-[13px] font-medium text-muted">{t.presets}</div>
+          <div className="flex flex-wrap gap-2">
+            {t.presetNames.map((name, i) => (
+              <button key={i} className="btn text-xs" onClick={() => setD(DIST_PRESETS[i])}>
+                {name}
+              </button>
+            ))}
+          </div>
+        </div>
+        <Slider label={<TeX>k_1</TeX>} value={d.k1} min={-0.6} max={0.6} step={0.01} onChange={(v) => setD({ ...d, k1: v })} format={(v) => fmt(v, 2)} />
+        <Slider label={<TeX>k_2</TeX>} value={d.k2} min={-0.6} max={0.6} step={0.01} onChange={(v) => setD({ ...d, k2: v })} format={(v) => fmt(v, 2)} />
+        <Slider label={<TeX>k_3</TeX>} value={d.k3} min={-0.6} max={0.6} step={0.01} onChange={(v) => setD({ ...d, k3: v })} format={(v) => fmt(v, 2)} />
+        <Slider label={<TeX>p_1</TeX>} value={d.p1} min={-0.08} max={0.08} step={0.002} onChange={(v) => setD({ ...d, p1: v })} format={(v) => fmt(v, 3)} accent="#a78bfa" />
+        <Slider label={<TeX>p_2</TeX>} value={d.p2} min={-0.08} max={0.08} step={0.002} onChange={(v) => setD({ ...d, p2: v })} format={(v) => fmt(v, 3)} accent="#a78bfa" />
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- capture lab
+
+const CAP_K: Intrinsics = { fx: 560, fy: 560, s: 0, cx: 320, cy: 240 }
+const BOARD_COLS = 8
+const BOARD_ROWS = 6
+const SQ = 0.04
+const INNER = boardCorners(BOARD_COLS - 1, BOARD_ROWS - 1, SQ)
+const GRID_NX = 10
+const GRID_NY = 8
+
+interface Capture {
+  quad: [number, number][]
+  tilt: number
+}
+
+function pointInQuad(p: [number, number], quad: [number, number][]): boolean {
+  let inside = false
+  for (let i = 0, j = quad.length - 1; i < quad.length; j = i++) {
+    const [xi, yi] = quad[i]
+    const [xj, yj] = quad[j]
+    if (yi > p[1] !== yj > p[1] && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) inside = !inside
+  }
+  return inside
+}
+
+function cellCenters(): [number, number][] {
+  const out: [number, number][] = []
+  for (let r = 0; r < GRID_NY; r++)
+    for (let c = 0; c < GRID_NX; c++)
+      out.push([((c + 0.5) * W) / GRID_NX, ((r + 0.5) * H) / GRID_NY])
+  return out
+}
+const CELLS = cellCenters()
+const BORDER_CELL_IDX = CELLS.map((_, i) => i).filter((i) => {
+  const r = Math.floor(i / GRID_NX)
+  const c = i % GRID_NX
+  return r === 0 || r === GRID_NY - 1 || c === 0 || c === GRID_NX - 1
+})
+
+function CaptureLab() {
+  const t = useT(T)
+  const [dist, setDist] = useState(0.45)
+  const [ox, setOx] = useState(0)
+  const [oy, setOy] = useState(0)
+  const [tiltX, setTiltX] = useState(0)
+  const [tiltY, setTiltY] = useState(0)
+  const [rotZ, setRotZ] = useState(0)
+  const [captures, setCaptures] = useState<Capture[]>([])
+
+  const { corners, quad, allVisible } = useMemo(() => {
+    const pose = m4MulChain(
+      m4Trans(ox, oy, dist),
+      m4RotX(deg2rad(tiltX)),
+      m4RotY(deg2rad(tiltY)),
+      m4RotZ(deg2rad(rotZ)),
+    )
+    const corners = INNER.map((p) => projectCamPoint(CAP_K, m4MulP(pose, p)))
+    const bw = (BOARD_COLS / 2 + 0.35) * SQ
+    const bh = (BOARD_ROWS / 2 + 0.35) * SQ
+    const outline: [number, number, number][] = [
+      [-bw, -bh, 0],
+      [bw, -bh, 0],
+      [bw, bh, 0],
+      [-bw, bh, 0],
+    ]
+    const quad = outline.map((p) => {
+      const pr = projectCamPoint(CAP_K, m4MulP(pose, p))
+      return [pr.u, pr.v] as [number, number]
+    })
+    const allVisible = corners.every((c) => c.z > 0.05 && c.u >= 0 && c.u <= W && c.v >= 0 && c.v <= H)
+    return { corners, quad, allVisible }
+  }, [dist, ox, oy, tiltX, tiltY, rotZ])
+
+  const coverage = useMemo(() => {
+    const counts = CELLS.map(() => 0)
+    for (const cap of captures)
+      CELLS.forEach((c, i) => {
+        if (pointInQuad(c, cap.quad)) counts[i]++
+      })
+    const covered = counts.filter((c) => c > 0).length / CELLS.length
+    const borderCovered =
+      BORDER_CELL_IDX.filter((i) => counts[i] > 0).length / BORDER_CELL_IDX.length
+    return { counts, covered, borderCovered }
+  }, [captures])
+
+  const tilted = captures.filter((c) => c.tilt >= 20).length
+  const checks = [
+    captures.length >= 10,
+    coverage.covered >= 0.7,
+    tilted >= 3,
+    coverage.borderCovered >= 0.6,
+  ]
+
+  const capture = () => {
+    if (!allVisible) return
+    const shot: Capture = { quad, tilt: Math.max(Math.abs(tiltX), Math.abs(tiltY)) }
+    setCaptures((prev) => [...prev, shot])
+  }
+
+  const randomPose = () => {
+    setDist(0.3 + Math.random() * 0.55)
+    setOx((Math.random() - 0.5) * 0.5)
+    setOy((Math.random() - 0.5) * 0.36)
+    setTiltX((Math.random() - 0.5) * 90)
+    setTiltY((Math.random() - 0.5) * 90)
+    setRotZ((Math.random() - 0.5) * 140)
+  }
+
+  return (
+    <div>
+      <div className="grid gap-4 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <ImageView
+            title={t.capScene}
+            points={corners.filter((c) => c.z > 0).map((c) => ({ u: c.u, v: c.v, color: '#22d3ee', r: 3 }))}
+            polylines={[
+              // coverage heatmap of past captures
+              ...coverage.counts
+                .map((n, i) => ({ n, i }))
+                .filter(({ n }) => n > 0)
+                .map(({ n, i }) => {
+                  const r = Math.floor(i / GRID_NX)
+                  const c = i % GRID_NX
+                  const x0 = (c * W) / GRID_NX
+                  const y0 = (r * H) / GRID_NY
+                  return {
+                    pts: [
+                      [x0, y0],
+                      [x0 + W / GRID_NX, y0],
+                      [x0 + W / GRID_NX, y0 + H / GRID_NY],
+                      [x0, y0 + H / GRID_NY],
+                      [x0, y0],
+                    ] as [number, number][],
+                    color: 'rgba(74,222,128,0)',
+                    fill: `rgba(74,222,128,${Math.min(0.08 + n * 0.05, 0.3)})`,
+                    width: 0,
+                  }
+                }),
+              ...captures.map((cap) => ({
+                pts: [...cap.quad, cap.quad[0]],
+                color: 'rgba(255,255,255,0.14)',
+                width: 1,
+              })),
+              { pts: [...quad, quad[0]], color: allVisible ? '#4ade80' : '#f87171', width: 2 },
+            ]}
+          />
+          {!allVisible && <div className="mt-2 text-[13px] text-warn">{t.capNotVisible}</div>}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button className="btn-primary" onClick={capture} disabled={!allVisible} style={{ opacity: allVisible ? 1 : 0.4 }}>
+              📸 {t.capBtn}
+            </button>
+            <button className="btn" onClick={randomPose}>
+              🎲 {t.capRandom}
+            </button>
+            <button className="btn" onClick={() => setCaptures([])}>
+              ↺ {t.capReset}
+            </button>
+          </div>
+        </div>
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          <div className="card-pad">
+            <h3 className="mb-3 text-sm font-bold tracking-wide text-accent uppercase">{t.capPose}</h3>
+            <div className="space-y-3">
+              <Slider label={t.capDist} value={dist} min={0.25} max={1.0} step={0.01} onChange={setDist} format={(v) => `${fmt(v, 2)} m`} />
+              <Slider label={t.capOx} value={ox} min={-0.3} max={0.3} step={0.005} onChange={setOx} format={(v) => `${fmt(v * 100, 0)} cm`} />
+              <Slider label={t.capOy} value={oy} min={-0.22} max={0.22} step={0.005} onChange={setOy} format={(v) => `${fmt(v * 100, 0)} cm`} />
+              <Slider label={t.capTiltX} value={tiltX} min={-55} max={55} step={1} onChange={setTiltX} format={(v) => `${v}°`} accent="#a78bfa" />
+              <Slider label={t.capTiltY} value={tiltY} min={-55} max={55} step={1} onChange={setTiltY} format={(v) => `${v}°`} accent="#a78bfa" />
+              <Slider label={t.capRotZ} value={rotZ} min={-90} max={90} step={1} onChange={setRotZ} format={(v) => `${v}°`} accent="#a78bfa" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Readout label={t.capViews} value={`${captures.length}`} />
+            <Readout label={t.capCoverage} value={fmt(coverage.covered * 100, 0)} unit="%" />
+            <Readout label={t.capTilted} value={`${tilted}`} />
+          </div>
+          <div className="card-pad">
+            <h3 className="mb-2 text-sm font-bold tracking-wide text-muted uppercase">{t.checklist}</h3>
+            <ul className="space-y-1.5 text-[14px]">
+              {t.checks.map((c, i) => (
+                <li key={i} className={checks[i] ? 'text-green-400' : 'text-muted'}>
+                  {checks[i] ? '✓' : '○'} {c}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- reprojection error
+
+function ReprojectionDemo() {
+  const t = useT(T)
+  const [sigma, setSigma] = useState(0.8)
+  const [focalErr, setFocalErr] = useState(0.5)
+
+  const { pairs, rms } = useMemo(() => {
+    const rand = mulberry32(1234)
+    const gauss = () => rand() + rand() + rand() - 1.5 // approx N(0, 0.5²)·... good enough visually
+    const pairs: { det: [number, number]; rep: [number, number] }[] = []
+    let se = 0
+    for (let r = 0; r < 5; r++)
+      for (let c = 0; c < 7; c++) {
+        const u = 80 + c * 80
+        const v = 80 + r * 80
+        const det: [number, number] = [u + gauss() * sigma * 2, v + gauss() * sigma * 2]
+        const rep: [number, number] = [
+          320 + (u - 320) * (1 + focalErr / 100),
+          240 + (v - 240) * (1 + focalErr / 100),
+        ]
+        se += (det[0] - rep[0]) ** 2 + (det[1] - rep[1]) ** 2
+        pairs.push({ det, rep })
+      }
+    return { pairs, rms: Math.sqrt(se / pairs.length) }
+  }, [sigma, focalErr])
+
+  const SCALE = 15
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="lg:col-span-3">
+        <ImageView grid={false}>
+          {pairs.map((p, i) => {
+            const dx = (p.det[0] - p.rep[0]) * SCALE
+            const dy = (p.det[1] - p.rep[1]) * SCALE
+            return (
+              <g key={i}>
+                <line
+                  x1={p.rep[0]}
+                  y1={p.rep[1]}
+                  x2={p.rep[0] + dx}
+                  y2={p.rep[1] + dy}
+                  stroke="#f87171"
+                  strokeWidth={1.5}
+                />
+                <circle cx={p.det[0]} cy={p.det[1]} r={4} fill="#22d3ee" />
+                <circle cx={p.rep[0]} cy={p.rep[1]} r={3} fill="none" stroke="#fbbf24" strokeWidth={1.5} />
+              </g>
+            )
+          })}
+        </ImageView>
+      </div>
+      <div className="flex flex-col gap-4 lg:col-span-2">
+        <div className="card-pad space-y-4">
+          <Slider label={t.noiseLbl} value={sigma} min={0} max={3} step={0.05} onChange={setSigma} format={(v) => `${fmt(v, 2)} px`} />
+          <Slider label={t.modelLbl} value={focalErr} min={-2} max={2} step={0.05} onChange={setFocalErr} format={(v) => `${fmt(v, 2)} %`} accent="#fbbf24" />
+        </div>
+        <Readout label={t.rms} value={fmt(rms, 2)} unit="px" accent={rms < 0.5 ? '#4ade80' : rms < 1.5 ? '#fbbf24' : '#f87171'} />
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- page
+
+export function CalibrationPage() {
+  const t = useT(T)
+  return (
+    <div className="mx-auto max-w-6xl px-4">
+      <header className="pt-10 pb-2">
+        <div className="text-xs font-semibold tracking-[0.2em] text-accent uppercase">{t.kicker}</div>
+        <h1 className="mt-1 mb-3 text-3xl font-extrabold tracking-tight md:text-4xl">{t.title}</h1>
+        <p className="prose-cv max-w-3xl text-muted">{t.intro}</p>
+      </header>
+
+      <Section id="why" title={t.whyTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.why1}</p>
+          <ul>
+            {t.whyList.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+          <p>{t.why2}</p>
+        </div>
+      </Section>
+
+      <Section id="distortion" title={t.distTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.dist1}</p>
+          <TeX block>{String.raw`\begin{aligned} x_d &= x\,(1 + k_1 r^2 + k_2 r^4 + k_3 r^6) + 2p_1 xy + p_2(r^2 + 2x^2) \\ y_d &= y\,(1 + k_1 r^2 + k_2 r^4 + k_3 r^6) + p_1(r^2 + 2y^2) + 2p_2 xy \end{aligned} \qquad r^2 = x^2 + y^2`}</TeX>
+          <p>{t.dist2}</p>
+        </div>
+        <div className="mt-4">
+          <DistortionPlayground />
+        </div>
+      </Section>
+
+      <Section id="zhang" title={t.zhangTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.zhang1}</p>
+          <TeX block>{String.raw`\lambda\,\tilde{\mathbf{x}} = H\,\begin{bmatrix} X \\ Y \\ 1 \end{bmatrix}, \qquad H = K\,[\,\mathbf{r}_1\;\;\mathbf{r}_2\;\;\mathbf{t}\,]`}</TeX>
+          <ol className="my-3 list-decimal space-y-2 pl-6">
+            {t.zhangSteps.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ol>
+          <p>{t.zhang2}</p>
+        </div>
+      </Section>
+
+      <Section id="capture" title={t.capTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.cap1}</p>
+        </div>
+        <div className="mt-4">
+          <CaptureLab />
+        </div>
+        <InfoBox>{t.capWhy}</InfoBox>
+      </Section>
+
+      <Section id="reprojection" title={t.reprojTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.reproj1}</p>
+          <ul>
+            {t.reprojList.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="mt-4">
+          <ReprojectionDemo />
+        </div>
+        <InfoBox tone="warn">{t.reproj2}</InfoBox>
+      </Section>
+
+      <Section id="opencv" title={t.tipsTitle}>
+        <div className="prose-cv max-w-3xl">
+          <ul>
+            {t.tipsList.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+        </div>
+        <pre className="card mt-4 overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">
+          {OPENCV_SNIPPET}
+        </pre>
+      </Section>
+    </div>
+  )
+}

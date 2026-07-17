@@ -1,0 +1,120 @@
+@import 'tailwindcss';
+@import 'katex/dist/katex.min.css';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --color-bg: #0a0e17;
+  --color-panel: #10141f;
+  --color-ink: #e6eaf2;
+  --color-muted: #8b93a7;
+  --color-accent: #22d3ee;
+  --color-accent2: #a78bfa;
+  --color-warn: #fbbf24;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-bg text-ink font-sans antialiased;
+  background-image:
+    radial-gradient(900px 500px at 15% -10%, rgba(34, 211, 238, 0.07), transparent 60%),
+    radial-gradient(900px 500px at 85% -10%, rgba(167, 139, 250, 0.07), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* ---------- shared primitives ---------- */
+
+.card,
+.card-pad {
+  @apply rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-sm;
+}
+
+.card-pad {
+  @apply p-5 md:p-6;
+}
+
+.btn,
+.btn-primary {
+  @apply inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/15 bg-white/[0.06] px-3 py-1.5 text-sm font-medium text-ink transition hover:border-accent/60 hover:bg-accent/10;
+}
+
+.btn-primary {
+  @apply border-accent/50 bg-accent/15 text-accent hover:bg-accent/25;
+}
+
+.chip {
+  @apply inline-flex items-center rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-0.5 text-xs font-medium text-muted;
+}
+
+.prose-cv {
+  @apply text-[15px] leading-7 text-ink/90;
+}
+.prose-cv p {
+  @apply my-3;
+}
+.prose-cv strong {
+  @apply font-semibold text-ink;
+}
+.prose-cv em {
+  @apply text-accent not-italic;
+}
+.prose-cv code {
+  @apply rounded bg-white/10 px-1.5 py-0.5 font-mono text-[13px] text-accent;
+}
+.prose-cv ul {
+  @apply my-3 list-disc space-y-1.5 pl-6;
+}
+.prose-cv li::marker {
+  color: rgba(34, 211, 238, 0.6);
+}
+
+/* ---------- sliders ---------- */
+
+input[type='range'] {
+  @apply h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/15 outline-none;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #22d3ee, #a78bfa);
+  border: 2px solid #0a0e17;
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.5);
+  transition: transform 0.1s;
+}
+input[type='range']::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+input[type='range']::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #22d3ee, #a78bfa);
+  border: 2px solid #0a0e17;
+  box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.5);
+}
+
+/* ---------- KaTeX on dark ---------- */
+
+.katex {
+  font-size: 1.06em;
+}
+.katex-block {
+  @apply my-4 overflow-x-auto overflow-y-hidden py-2 text-center;
+  scrollbar-width: thin;
+}
+.katex-block .katex-display {
+  margin: 0;
+}
+
+/* ---------- 3D scene labels (drei Html) ---------- */
+
+.frame-label {
+  @apply pointer-events-none rounded-md border border-white/20 bg-black/70 px-1.5 py-0.5 font-mono text-[11px] font-semibold whitespace-nowrap backdrop-blur-sm;
+}
