@@ -97,10 +97,12 @@ export function InfoBox({
 }: {
   title?: ReactNode
   children: ReactNode
-  tone?: 'accent' | 'warn'
+  tone?: 'accent' | 'warn' | 'tip'
 }) {
-  const border = tone === 'accent' ? 'border-accent/40' : 'border-warn/40'
-  const bg = tone === 'accent' ? 'bg-accent/[0.06]' : 'bg-warn/[0.06]'
+  const border =
+    tone === 'accent' ? 'border-accent/40' : tone === 'warn' ? 'border-warn/40' : 'border-green-400/40'
+  const bg =
+    tone === 'accent' ? 'bg-accent/[0.06]' : tone === 'warn' ? 'bg-warn/[0.06]' : 'bg-green-400/[0.05]'
   return (
     <div className={`my-4 rounded-xl border ${border} ${bg} px-4 py-3 text-[14px] leading-6`}>
       {title && <div className="mb-1 font-semibold">{title}</div>}

@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { ImageView } from '../components/ImageView'
-import { InfoBox, Readout, Section, Slider } from '../components/ui'
+import { PageToc } from '../components/PageToc'
+import { InfoBox, Readout, Section, Segmented, Slider } from '../components/ui'
 import {
   boardCorners,
   distortNormalized,
@@ -16,9 +17,11 @@ import {
   m4Trans,
   mulberry32,
   projectCamPoint,
+  undistortNormalized,
   deg2rad,
   type Distortion,
   type Intrinsics,
+  type V3,
 } from '../lib/math'
 
 const W = 640
@@ -49,6 +52,12 @@ const T = {
     presets: 'Presets',
     presetNames: ['none', 'barrel', 'pincushion', 'mustache', 'tangential'],
     distGrid: 'Distorted view of a perfectly straight grid',
+    undistGrid: 'Undistorted image — note the bulging border',
+    undistToggle: ['distorted image', 'after undistortion'],
+    undistText:
+      'The switch shows the cure: undistortion warps the image with the inverse mapping, so lines become straight again. The price is visible at the amber border — the image bulges outward (or inward) and no longer fills a rectangle, which is why undistorted images are usually cropped (OpenCV: getOptimalNewCameraMatrix with its alpha parameter).',
+    tipStraight:
+      'Quick field test for any calibration: photograph a door frame or building edge, undistort the image, and look at the line. Any remaining curvature is uncorrected distortion — human eyes are extremely good at spotting it.',
     zhangTitle: "Zhang's method in a nutshell",
     zhang1:
       'The classic algorithm (Zhang, 2000) needs only a flat pattern with precisely known geometry, viewed from several orientations. The key insight: because all board points lie in a plane, each image is related to the board by a 3×3 homography H, and each H constrains the intrinsics:',
@@ -89,6 +98,17 @@ const T = {
       'at least 3 strongly tilted views (≥ 20°)',
       'borders & corners of the image covered (≥ 60 %)',
     ],
+    capDistNote:
+      'One more realism detail: this virtual lens has mild barrel distortion (k1 = −0.15). Watch the green board outline near the image corners — it bows. Real detections curve exactly like this, and the calibration must explain that bending.',
+    tiltTitle: 'Interactive: why tilted views reveal the focal length',
+    tiltIntro:
+      'The deepest of the capture rules, isolated. Both panels show the same board, and in both the board distance is automatically adjusted as you change f, so the board keeps its image size (the dolly zoom of module 1). Frontal board: the corner pattern stays exactly identical for every f — from such views alone, f is unknowable. Tilted board: near and far edge sit at different depths, one distance cannot compensate both, and the pattern measurably deforms. Foreshortening is the signature that betrays f. Faint dots show the reference at f = 560; red whiskers show how far each corner moved (drawn ×8 to be visible).',
+    tiltF: 'focal length f',
+    tiltFrontal: 'frontal board — distance compensated',
+    tiltTilted: 'board tilted 40° — distance compensated',
+    tiltShift: 'mean corner shift',
+    tiltNote:
+      'This is why the checklist demands tilted views: a dataset of only frontal boards leaves f and the board distances mutually unconstrained — the optimizer of module 3 would face a perfectly flat valley and return an arbitrary answer.',
     reprojTitle: 'Interactive: reprojection error',
     reproj1:
       'After optimization, the calibration reports its residual: the RMS distance between detected corners (cyan) and corners reprojected through the model (amber). Error vectors are drawn ×15. Two effects mix in practice:',
@@ -132,6 +152,12 @@ const T = {
     presets: 'Voreinstellungen',
     presetNames: ['keine', 'Tonne', 'Kissen', 'Schnurrbart', 'tangential'],
     distGrid: 'Verzerrte Ansicht eines perfekt geraden Gitters',
+    undistGrid: 'Entzerrtes Bild — beachte den gewölbten Rand',
+    undistToggle: ['verzerrtes Bild', 'nach Entzerrung'],
+    undistText:
+      'Der Schalter zeigt die Kur: Die Entzerrung verformt das Bild mit der inversen Abbildung, sodass Linien wieder gerade werden. Der Preis ist am bernsteinfarbenen Rand sichtbar — das Bild wölbt sich nach außen (oder innen) und füllt kein Rechteck mehr; deshalb werden entzerrte Bilder meist beschnitten (OpenCV: getOptimalNewCameraMatrix mit dem Alpha-Parameter).',
+    tipStraight:
+      'Schneller Feldtest für jede Kalibrierung: Türrahmen oder Gebäudekante fotografieren, Bild entzerren und die Linie ansehen. Jede verbleibende Krümmung ist unkorrigierte Verzeichnung — menschliche Augen erkennen so etwas extrem gut.',
     zhangTitle: 'Zhangs Methode in Kürze',
     zhang1:
       'Der klassische Algorithmus (Zhang, 2000) braucht nur ein ebenes Muster mit exakt bekannter Geometrie, aus mehreren Richtungen betrachtet. Die Kernidee: Weil alle Brettpunkte in einer Ebene liegen, ist jedes Bild über eine 3×3-Homographie H mit dem Brett verknüpft, und jede H liefert Bedingungen an die Intrinsik:',
@@ -172,6 +198,17 @@ const T = {
       'mindestens 3 stark gekippte Ansichten (≥ 20°)',
       'Ränder & Ecken des Bildes abgedeckt (≥ 60 %)',
     ],
+    capDistNote:
+      'Noch ein Realismus-Detail: Dieses virtuelle Objektiv hat leichte Tonnenverzeichnung (k1 = −0,15). Beobachte den grünen Brettumriss nahe der Bildecken — er wölbt sich. Echte Detektionen krümmen sich genauso, und die Kalibrierung muss diese Biegung erklären.',
+    tiltTitle: 'Interaktiv: Warum gekippte Ansichten die Brennweite verraten',
+    tiltIntro:
+      'Die tiefste der Aufnahmeregeln, isoliert. Beide Panels zeigen dasselbe Brett, und in beiden wird der Brettabstand beim Ändern von f automatisch nachgeführt, sodass das Brett seine Bildgröße behält (der Dolly-Zoom aus Modul 1). Frontales Brett: Das Eckenmuster bleibt für jedes f exakt identisch — aus solchen Ansichten allein ist f unbestimmbar. Gekipptes Brett: Nahe und ferne Kante liegen auf verschiedenen Tiefen, ein Abstand kann nicht beide kompensieren, das Muster verformt sich messbar. Die perspektivische Verkürzung ist die Signatur, die f verrät. Blasse Punkte zeigen die Referenz bei f = 560; rote Fäden, wie weit jede Ecke gewandert ist (×8 gezeichnet, damit es sichtbar wird).',
+    tiltF: 'Brennweite f',
+    tiltFrontal: 'frontales Brett — Abstand kompensiert',
+    tiltTilted: 'Brett um 40° gekippt — Abstand kompensiert',
+    tiltShift: 'mittlere Eckenverschiebung',
+    tiltNote:
+      'Deshalb verlangt die Checkliste gekippte Ansichten: Ein Datensatz aus nur frontalen Brettern lässt f und die Brettabstände gegenseitig unbestimmt — der Optimierer aus Modul 3 sähe ein völlig flaches Tal und lieferte eine beliebige Antwort.',
     reprojTitle: 'Interaktiv: Reprojektionsfehler',
     reproj1:
       'Nach der Optimierung meldet die Kalibrierung ihr Residuum: den RMS-Abstand zwischen detektierten Ecken (cyan) und durch das Modell reprojizierten Ecken (bernstein). Fehlervektoren sind ×15 gezeichnet. In der Praxis mischen sich zwei Effekte:',
@@ -227,8 +264,9 @@ const DIST_PRESETS: Distortion[] = [
 function DistortionPlayground() {
   const t = useT(T)
   const [d, setD] = useState<Distortion>(DIST_PRESETS[1])
+  const [view, setView] = useState<'dist' | 'undist'>('dist')
 
-  const { curves, straight } = useMemo(() => {
+  const { curves, straight, border } = useMemo(() => {
     const f = 400
     const cx = W / 2
     const cy = H / 2
@@ -236,10 +274,18 @@ function DistortionPlayground() {
     const ny = 10
     const px = (i: number) => 25 + (i * (W - 50)) / (nx - 1)
     const py = (j: number) => 20 + (j * (H - 40)) / (ny - 1)
-    const map = (u: number, v: number): [number, number] => {
+    const mapDist = (u: number, v: number): [number, number] => {
       const [xd, yd] = distortNormalized((u - cx) / f, (v - cy) / f, d)
       return [cx + f * xd, cy + f * yd]
     }
+    const mapUndist = (u: number, v: number): [number, number] => {
+      const [x, y] = undistortNormalized((u - cx) / f, (v - cy) / f, d)
+      return [cx + f * x, cy + f * y]
+    }
+    // 'dist': how the sensor records a straight grid. 'undist': the corrected image —
+    // the recorded (distorted) lines become straight again, the image frame warps instead.
+    const map =
+      view === 'dist' ? mapDist : (u: number, v: number) => mapUndist(...mapDist(u, v))
     const curves: [number, number][][] = []
     const straight: [number, number][][] = []
     for (let j = 0; j < ny; j++) {
@@ -256,22 +302,41 @@ function DistortionPlayground() {
         [px(i), py(ny - 1)],
       ])
     }
-    return { curves, straight }
-  }, [d])
+    const border: [number, number][] = []
+    if (view === 'undist') {
+      const S = 32
+      for (let s = 0; s <= S; s++) border.push(mapUndist((s / S) * W, 0))
+      for (let s = 1; s <= S; s++) border.push(mapUndist(W, (s / S) * H))
+      for (let s = 1; s <= S; s++) border.push(mapUndist(W - (s / S) * W, H))
+      for (let s = 1; s <= S; s++) border.push(mapUndist(0, H - (s / S) * H))
+    }
+    return { curves, straight, border }
+  }, [d, view])
 
   return (
     <div className="grid gap-4 lg:grid-cols-5">
       <div className="lg:col-span-3">
         <ImageView
-          title={t.distGrid}
+          title={view === 'dist' ? t.distGrid : t.undistGrid}
           grid={false}
           polylines={[
             ...straight.map((pts) => ({ pts, color: 'rgba(255,255,255,0.10)', width: 1 })),
             ...curves.map((pts) => ({ pts, color: 'rgba(34,211,238,0.85)', width: 1.4 })),
+            ...(border.length
+              ? [{ pts: border, color: 'rgba(251,191,36,0.9)', width: 2 }]
+              : []),
           ]}
         />
       </div>
       <div className="card-pad space-y-4 lg:col-span-2">
+        <Segmented<'dist' | 'undist'>
+          options={[
+            { value: 'dist', label: t.undistToggle[0] },
+            { value: 'undist', label: t.undistToggle[1] },
+          ]}
+          value={view}
+          onChange={setView}
+        />
         <div>
           <div className="mb-2 text-[13px] font-medium text-muted">{t.presets}</div>
           <div className="flex flex-wrap gap-2">
@@ -295,6 +360,14 @@ function DistortionPlayground() {
 // ---------------------------------------------------------------- capture lab
 
 const CAP_K: Intrinsics = { fx: 560, fy: 560, s: 0, cx: 320, cy: 240 }
+// the virtual lens of the capture lab has mild barrel distortion — board edges bow near the borders
+const CAP_DIST: Distortion = { k1: -0.15, k2: 0, k3: 0, p1: 0, p2: 0 }
+
+function capProject(p: V3): { u: number; v: number; z: number } {
+  const [xd, yd] = distortNormalized(p[0] / p[2], p[1] / p[2], CAP_DIST)
+  return { u: CAP_K.fx * xd + CAP_K.cx, v: CAP_K.fy * yd + CAP_K.cy, z: p[2] }
+}
+
 const BOARD_COLS = 8
 const BOARD_ROWS = 6
 const SQ = 0.04
@@ -348,19 +421,28 @@ function CaptureLab() {
       m4RotY(deg2rad(tiltY)),
       m4RotZ(deg2rad(rotZ)),
     )
-    const corners = INNER.map((p) => projectCamPoint(CAP_K, m4MulP(pose, p)))
+    const corners = INNER.map((p) => capProject(m4MulP(pose, p)))
     const bw = (BOARD_COLS / 2 + 0.35) * SQ
     const bh = (BOARD_ROWS / 2 + 0.35) * SQ
-    const outline: [number, number, number][] = [
+    const rim: V3[] = [
       [-bw, -bh, 0],
       [bw, -bh, 0],
       [bw, bh, 0],
       [-bw, bh, 0],
     ]
-    const quad = outline.map((p) => {
-      const pr = projectCamPoint(CAP_K, m4MulP(pose, p))
-      return [pr.u, pr.v] as [number, number]
-    })
+    // sample the outline densely so the lens distortion visibly bends the board edges
+    const quad: [number, number][] = []
+    for (let e = 0; e < 4; e++) {
+      const a = rim[e]
+      const b = rim[(e + 1) % 4]
+      for (let s = 0; s < 8; s++) {
+        const u = s / 8
+        const pr = capProject(
+          m4MulP(pose, [a[0] + u * (b[0] - a[0]), a[1] + u * (b[1] - a[1]), 0]),
+        )
+        quad.push([pr.u, pr.v])
+      }
+    }
     const allVisible = corners.every((c) => c.z > 0.05 && c.u >= 0 && c.u <= W && c.v >= 0 && c.v <= H)
     return { corners, quad, allVisible }
   }, [dist, ox, oy, tiltX, tiltY, rotZ])
@@ -484,6 +566,79 @@ function CaptureLab() {
   )
 }
 
+// ---------------------------------------------------------------- tilt mini-lab
+
+const TILT_F0 = 560
+const TILT_D0 = 0.5
+
+function tiltProject(fv: number, tiltDeg: number) {
+  // board distance auto-compensates with f so the board keeps its image size
+  const dComp = TILT_D0 * (fv / TILT_F0)
+  const pose = m4MulChain(m4Trans(0, 0, dComp), m4RotY(deg2rad(tiltDeg)))
+  const kk: Intrinsics = { fx: fv, fy: fv, s: 0, cx: 320, cy: 240 }
+  return INNER.map((p) => projectCamPoint(kk, m4MulP(pose, p)))
+}
+
+function TiltLab() {
+  const t = useT(T)
+  const [f, setF] = useState(700)
+  const frontRef = useMemo(() => tiltProject(TILT_F0, 0), [])
+  const tiltRef = useMemo(() => tiltProject(TILT_F0, 40), [])
+  const frontCur = useMemo(() => tiltProject(f, 0), [f])
+  const tiltCur = useMemo(() => tiltProject(f, 40), [f])
+
+  const meanShift = (cur: typeof frontRef, ref: typeof frontRef) =>
+    cur.reduce((s, p, i) => s + Math.hypot(p.u - ref[i].u, p.v - ref[i].v), 0) / cur.length
+
+  // corner displacements are a few pixels at most — draw them magnified so they are visible
+  const MAG = 8
+  const panel = (
+    title: string,
+    cur: typeof frontRef,
+    ref: typeof frontRef,
+  ) => (
+    <ImageView title={title} points={cur.map((p) => ({ u: p.u, v: p.v, color: '#22d3ee', r: 3 }))}>
+      {ref.map((p, i) => {
+        const gu = cur[i].u + (p.u - cur[i].u) * MAG
+        const gv = cur[i].v + (p.v - cur[i].v) * MAG
+        return (
+          <g key={i}>
+            <line x1={gu} y1={gv} x2={cur[i].u} y2={cur[i].v} stroke="#f87171" strokeWidth={1.2} />
+            <circle cx={gu} cy={gv} r={2.5} fill="rgba(255,255,255,0.45)" />
+          </g>
+        )
+      })}
+    </ImageView>
+  )
+
+  return (
+    <div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div>
+          {panel(t.tiltFrontal, frontCur, frontRef)}
+          <div className="mt-2">
+            <Readout label={t.tiltShift} value={fmt(meanShift(frontCur, frontRef), 2)} unit="px" accent="#4ade80" />
+          </div>
+        </div>
+        <div>
+          {panel(t.tiltTilted, tiltCur, tiltRef)}
+          <div className="mt-2">
+            <Readout
+              label={t.tiltShift}
+              value={fmt(meanShift(tiltCur, tiltRef), 2)}
+              unit="px"
+              accent="#f87171"
+            />
+          </div>
+        </div>
+      </div>
+      <div className="card-pad mt-4 max-w-xl">
+        <Slider label={t.tiltF} value={f} min={380} max={800} step={5} onChange={setF} format={(v) => `${v} px`} />
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- reprojection error
 
 function ReprojectionDemo() {
@@ -553,6 +708,17 @@ export function CalibrationPage() {
   const t = useT(T)
   return (
     <div className="mx-auto max-w-6xl px-4">
+      <PageToc
+        items={[
+          { id: 'why', label: t.whyTitle },
+          { id: 'distortion', label: t.distTitle },
+          { id: 'zhang', label: t.zhangTitle },
+          { id: 'capture', label: t.capTitle },
+          { id: 'tilt', label: t.tiltTitle },
+          { id: 'reprojection', label: t.reprojTitle },
+          { id: 'opencv', label: t.tipsTitle },
+        ]}
+      />
       <header className="pt-10 pb-2">
         <div className="text-xs font-semibold tracking-[0.2em] text-accent uppercase">{t.kicker}</div>
         <h1 className="mt-1 mb-3 text-3xl font-extrabold tracking-tight md:text-4xl">{t.title}</h1>
@@ -580,6 +746,12 @@ export function CalibrationPage() {
         <div className="mt-4">
           <DistortionPlayground />
         </div>
+        <div className="prose-cv mt-4 max-w-3xl">
+          <p>{t.undistText}</p>
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.tipStraight}
+        </InfoBox>
       </Section>
 
       <Section id="zhang" title={t.zhangTitle}>
@@ -606,11 +778,24 @@ export function CalibrationPage() {
       <Section id="capture" title={t.capTitle}>
         <div className="prose-cv max-w-3xl">
           <p>{t.cap1}</p>
+          <p>{t.capDistNote}</p>
         </div>
         <div className="mt-4">
           <CaptureLab />
         </div>
         <InfoBox>{t.capWhy}</InfoBox>
+      </Section>
+
+      <Section id="tilt" title={t.tiltTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.tiltIntro}</p>
+        </div>
+        <div className="mt-4">
+          <TiltLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.tiltNote}
+        </InfoBox>
       </Section>
 
       <Section id="reprojection" title={t.reprojTitle}>

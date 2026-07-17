@@ -242,6 +242,30 @@ export function distortNormalized(x: number, y: number, d: Distortion): [number,
   return [xd, yd]
 }
 
+/**
+ * Invert the Brown–Conrady model by fixed-point iteration: find the undistorted
+ * normalized coordinates that distort to (xd, yd). Converges quickly for
+ * moderate distortion — the same idea OpenCV's undistortPoints uses.
+ */
+export function undistortNormalized(
+  xd: number,
+  yd: number,
+  d: Distortion,
+  iters = 8,
+): [number, number] {
+  let x = xd
+  let y = yd
+  for (let i = 0; i < iters; i++) {
+    const r2 = x * x + y * y
+    const radial = 1 + d.k1 * r2 + d.k2 * r2 * r2 + d.k3 * r2 * r2 * r2
+    const dx = 2 * d.p1 * x * y + d.p2 * (r2 + 2 * x * x)
+    const dy = d.p1 * (r2 + 2 * y * y) + 2 * d.p2 * x * y
+    x = (xd - dx) / radial
+    y = (yd - dy) / radial
+  }
+  return [x, y]
+}
+
 // ---------------------------------------------------------------- two-view geometry
 
 /** Essential matrix for x_c2 = R x_c1 + t (relates normalized coords: x̂2ᵀ E x̂1 = 0). */

@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { ImageView } from '../components/ImageView'
+import { Heatmap } from '../components/Heatmap'
+import { PageToc } from '../components/PageToc'
 import { InfoBox, Readout, Section, Segmented, Slider } from '../components/ui'
 import { fmt } from '../lib/math'
 import {
@@ -37,8 +39,20 @@ const T = {
     gdTitle: 'Walking downhill: gradient descent',
     gd1: 'The gradient ∇C points in the direction of steepest ascent — so its negative is the locally best downhill direction. Gradient descent repeats one tiny idea: take a small step downhill, re-measure the slope, repeat.',
     gd2: 'The step size α (the learning rate) is the method’s Achilles heel: too small and you crawl for thousands of iterations; too large and you overshoot the valley floor and oscillate — or explode.',
+    gd1dTitle: 'Interactive: gradient descent on a single parameter',
+    gd1dIntro:
+      'Before landscapes, one dimension — where you can see everything. The red dashed line is the tangent at the ball; its slope C′(θ) is the entire information gradient descent uses. Each step moves θ by −α·C′(θ) (the amber arrow at the bottom). Click anywhere to set a new start point.',
+    gd1dHint: 'click to place the start',
+    gd1dReset: 'Reset',
+    gd1dSlope: 'slope C′(θ)',
+    gd1dStep: 'next step −α·C′(θ)',
+    gd1dTry: [
+      'Small α: safe but slow — and notice the steps shrink by themselves near the minimum, because the slope does.',
+      'Large α (≈ 0.3 and up): the ball overshoots the valley floor and bounces between the walls; past the stability limit it flies out of the picture.',
+      'Start left vs. right of the hump: two different minima. Gradient descent has no idea that the left one is deeper — it only ever sees the local slope.',
+    ],
     playTitle: 'Interactive: descent playground',
-    play1: 'Click anywhere on the landscape to drop a start point, choose a method, and run. Paths stay on screen so you can compare methods and settings. The dark basins are minima; ✕ marks the true minimizers.',
+    play1: 'The same game in two dimensions — now the gradient is a direction. Move the mouse over the landscape to feel the downhill field (amber arrow = −∇C), then click to drop a start point, choose a method, and run. Paths stay on screen so you can compare methods and settings. The dark basins are minima; ✕ marks the true minimizers.',
     playTry: [
       'Bowl, GD, α ≈ 0.1 — smooth convergence. Now set α ≈ 1.1: each step overshoots the center and the path explodes. The stability limit is α < 2/λmax, set by the curvature.',
       'Narrow valley, GD — the classic failure: it zigzags across the steep direction while barely moving along the flat one. This is exactly what ill-conditioned (differently scaled) parameters do to calibration.',
@@ -96,6 +110,7 @@ const T = {
     perturb: 'Perturb start',
     reset: 'Reset',
     lmLambda: 'current λ',
+    lmLambdaHist: 'λ per iteration (log scale) — it drops after every accepted step',
     bigTitle: 'The real thing: full bundle adjustment',
     big1: 'The solver above fixed the board poses to keep θ four-dimensional. Real calibration estimates everything jointly: intrinsics (4), distortion (5) and one 6-DoF pose per view — for 20 views, 129 unknowns against ~14,000 residuals. The same LM machinery handles it, thanks to structure:',
     bigList: [
@@ -128,8 +143,20 @@ const T = {
     gdTitle: 'Bergab laufen: Gradientenabstieg',
     gd1: 'Der Gradient ∇C zeigt in Richtung des steilsten Anstiegs — sein Negatives ist also lokal die beste Abstiegsrichtung. Gradientenabstieg wiederholt eine einzige kleine Idee: einen kleinen Schritt bergab gehen, die Steigung neu messen, wiederholen.',
     gd2: 'Die Schrittweite α (Lernrate) ist die Achillesferse des Verfahrens: zu klein, und man kriecht tausende Iterationen; zu groß, und man schießt über den Talboden hinaus und oszilliert — oder explodiert.',
+    gd1dTitle: 'Interaktiv: Gradientenabstieg mit einem einzigen Parameter',
+    gd1dIntro:
+      'Vor den Landschaften eine Dimension — hier sieht man alles. Die rot gestrichelte Linie ist die Tangente am Ball; ihre Steigung C′(θ) ist die gesamte Information, die der Gradientenabstieg nutzt. Jeder Schritt bewegt θ um −α·C′(θ) (der bernsteinfarbene Pfeil unten). Klicke irgendwo hin, um einen neuen Start zu setzen.',
+    gd1dHint: 'klicken, um den Start zu setzen',
+    gd1dReset: 'Zurücksetzen',
+    gd1dSlope: 'Steigung C′(θ)',
+    gd1dStep: 'nächster Schritt −α·C′(θ)',
+    gd1dTry: [
+      'Kleines α: sicher, aber langsam — und beachte, dass die Schritte nahe dem Minimum von selbst kleiner werden, weil die Steigung es tut.',
+      'Großes α (ab ≈ 0,3): Der Ball schießt über den Talboden hinaus und springt zwischen den Wänden hin und her; jenseits der Stabilitätsgrenze fliegt er aus dem Bild.',
+      'Start links vs. rechts des Buckels: zwei verschiedene Minima. Der Gradientenabstieg ahnt nicht, dass das linke tiefer ist — er sieht immer nur die lokale Steigung.',
+    ],
     playTitle: 'Interaktiv: Abstiegs-Spielplatz',
-    play1: 'Klicke irgendwo in die Landschaft, um einen Startpunkt zu setzen, wähle ein Verfahren und starte. Pfade bleiben stehen, damit sich Verfahren und Einstellungen vergleichen lassen. Dunkle Becken sind Minima; ✕ markiert die wahren Minimalstellen.',
+    play1: 'Dasselbe Spiel in zwei Dimensionen — jetzt ist der Gradient eine Richtung. Bewege die Maus über die Landschaft, um das Bergab-Feld zu spüren (bernsteinfarbener Pfeil = −∇C), klicke dann, um einen Startpunkt zu setzen, wähle ein Verfahren und starte. Pfade bleiben stehen, damit sich Verfahren und Einstellungen vergleichen lassen. Dunkle Becken sind Minima; ✕ markiert die wahren Minimalstellen.',
     playTry: [
       'Schüssel, GD, α ≈ 0,1 — glatte Konvergenz. Nun α ≈ 1,1: Jeder Schritt schießt über das Zentrum hinaus, der Pfad explodiert. Die Stabilitätsgrenze α < 2/λmax setzt die Krümmung.',
       'Enges Tal, GD — der klassische Fehlschlag: Zickzack quer zur steilen Richtung, kaum Fortschritt entlang der flachen. Genau das machen schlecht skalierte Parameter bei der Kalibrierung.',
@@ -187,6 +214,7 @@ const T = {
     perturb: 'Start verschieben',
     reset: 'Zurücksetzen',
     lmLambda: 'aktuelles λ',
+    lmLambdaHist: 'λ pro Iteration (log-Skala) — nach jedem akzeptierten Schritt fällt es',
     bigTitle: 'Das echte Ding: vollständiger Bündelausgleich',
     big1: 'Der Löser oben hielt die Brettposen fest, damit θ vierdimensional bleibt. Echte Kalibrierung schätzt alles gemeinsam: Intrinsik (4), Verzeichnung (5) und eine 6-FG-Pose pro Ansicht — bei 20 Ansichten 129 Unbekannte gegen ~14.000 Residuen. Dieselbe LM-Maschinerie schafft das dank Struktur:',
     bigList: [
@@ -224,99 +252,159 @@ sol = least_squares(residuals, x0=[400, 300, 265, 0.0],
                     args=(cam_pts, detected), method="lm")
 print(sol.x, "RMS:", np.sqrt(np.mean(sol.fun**2)))   # ≈ ground truth, ≈ noise σ`
 
-// ================================================================ heatmap
+// ================================================================ 1D gradient descent intro
 
-const STOPS: [number, [number, number, number]][] = [
-  [0.0, [8, 11, 22]],
-  [0.35, [23, 49, 94]],
-  [0.65, [14, 116, 144]],
-  [0.85, [34, 211, 238]],
-  [1.0, [224, 242, 254]],
-]
+const F1D = (x: number) => 0.3 * x ** 4 - 1.5 * x * x + 0.4 * x + 2.6
+const G1D = (x: number) => 1.2 * x ** 3 - 3 * x + 0.4
 
-function colormap(t: number): [number, number, number] {
-  const tt = Math.min(1, Math.max(0, t))
-  for (let i = 1; i < STOPS.length; i++) {
-    if (tt <= STOPS[i][0]) {
-      const [t0, c0] = STOPS[i - 1]
-      const [t1, c1] = STOPS[i]
-      const u = (tt - t0) / (t1 - t0)
-      return [0, 1, 2].map((k) => Math.round(c0[k] + u * (c1[k] - c0[k]))) as [number, number, number]
-    }
-  }
-  return STOPS[STOPS.length - 1][1]
-}
+const G1_W = 560
+const G1_H = 300
+const G1_XR: Vec2 = [-2.35, 2.35]
 
-interface HeatmapProps {
-  w: number
-  h: number
-  xr: Vec2
-  yr: Vec2
-  cost: (x: number, y: number) => number
-  ckey: string
-  onPick?: (x: number, y: number) => void
-  children?: ReactNode
-  title?: ReactNode
-}
+function Gd1D() {
+  const t = useT(T)
+  const [theta, setTheta] = useState(-0.35)
+  const [trail, setTrail] = useState<number[]>([-0.35])
+  const [lr, setLr] = useState(0.08)
+  const [running, setRunning] = useState(false)
+  const trailRef = useRef(trail)
+  trailRef.current = trail
 
-/** Canvas cost-landscape heatmap (posterized → contour bands) with an SVG overlay. */
-function Heatmap({ w, h, xr, yr, cost, ckey, onPick, children, title }: HeatmapProps) {
-  const ref = useRef<HTMLCanvasElement>(null)
-  const NX = 150
-  const NY = Math.round((NX * h) / w)
-
-  useEffect(() => {
-    const canvas = ref.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')!
-    const vals = new Float64Array(NX * NY)
+  const yRange = useMemo(() => {
     let mn = Infinity
     let mx = -Infinity
-    for (let j = 0; j < NY; j++)
-      for (let i = 0; i < NX; i++) {
-        const x = xr[0] + ((i + 0.5) / NX) * (xr[1] - xr[0])
-        const y = yr[0] + ((j + 0.5) / NY) * (yr[1] - yr[0])
-        const v = cost(x, y)
-        vals[j * NX + i] = v
-        if (v < mn) mn = v
-        if (v > mx) mx = v
-      }
-    const img = ctx.createImageData(NX, NY)
-    for (let p = 0; p < NX * NY; p++) {
-      let t = Math.log1p(vals[p] - mn) / Math.log1p(mx - mn)
-      t = Math.floor(t * 16) / 16 // posterize → contour-band look
-      const [r, g, b] = colormap(t)
-      img.data[p * 4] = r
-      img.data[p * 4 + 1] = g
-      img.data[p * 4 + 2] = b
-      img.data[p * 4 + 3] = 255
+    for (let i = 0; i <= 200; i++) {
+      const v = F1D(G1_XR[0] + (i / 200) * (G1_XR[1] - G1_XR[0]))
+      mn = Math.min(mn, v)
+      mx = Math.max(mx, v)
     }
-    ctx.putImageData(img, 0, 0)
+    return [mn - 0.4, mx + 0.4] as Vec2
+  }, [])
+
+  const mx = (x: number) => ((x - G1_XR[0]) / (G1_XR[1] - G1_XR[0])) * G1_W
+  const my = (y: number) => G1_H - 24 - ((y - yRange[0]) / (yRange[1] - yRange[0])) * (G1_H - 40)
+
+  const curve = Array.from({ length: 160 }, (_, i) => {
+    const x = G1_XR[0] + (i / 159) * (G1_XR[1] - G1_XR[0])
+    return `${mx(x)},${my(F1D(x))}`
+  }).join(' ')
+
+  const step = (): boolean => {
+    const cur = trailRef.current
+    const th = cur[cur.length - 1]
+    const next = th - lr * G1D(th)
+    setTrail([...cur, next])
+    setTheta(next)
+    if (!isFinite(next) || Math.abs(next) > 6 || Math.abs(G1D(next)) < 1e-4 || cur.length > 200) {
+      setRunning(false)
+      return false
+    }
+    return true
+  }
+
+  useEffect(() => {
+    if (!running) return
+    const iv = setInterval(() => {
+      if (!step()) clearInterval(iv)
+    }, 160)
+    return () => clearInterval(iv)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ckey])
+  }, [running, lr])
+
+  const setStart = (x: number) => {
+    setRunning(false)
+    setTheta(x)
+    setTrail([x])
+  }
+
+  const g = G1D(theta)
+  const inView = Math.abs(theta) <= G1_XR[1]
+  // tangent endpoints in domain space: y = C(θ) + C'(θ)·(x − θ)
+  const tangent = inView
+    ? {
+        p1: [theta - 0.55, F1D(theta) - 0.55 * g] as Vec2,
+        p2: [theta + 0.55, F1D(theta) + 0.55 * g] as Vec2,
+      }
+    : null
+  const nextTheta = theta - lr * g
 
   return (
-    <div className="card overflow-hidden">
-      {title && (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
         <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">
-          {title}
+          C(θ) — {t.gd1dHint}
         </div>
-      )}
-      <div className="relative">
-        <canvas ref={ref} width={NX} height={NY} className="block w-full" style={{ aspectRatio: `${w}/${h}` }} />
         <svg
-          viewBox={`0 0 ${w} ${h}`}
-          className={`absolute inset-0 h-full w-full ${onPick ? 'cursor-crosshair' : ''}`}
+          viewBox={`0 0 ${G1_W} ${G1_H}`}
+          className="block w-full cursor-crosshair touch-none"
           onPointerDown={(e) => {
-            if (!onPick) return
             const rect = e.currentTarget.getBoundingClientRect()
-            const px = ((e.clientX - rect.left) / rect.width) * w
-            const py = ((e.clientY - rect.top) / rect.height) * h
-            onPick(xr[0] + (px / w) * (xr[1] - xr[0]), yr[0] + (py / h) * (yr[1] - yr[0]))
+            const x = G1_XR[0] + ((e.clientX - rect.left) / rect.width) * (G1_XR[1] - G1_XR[0])
+            setStart(x)
           }}
         >
-          {children}
+          <defs>
+            <marker id="gd1dArr" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <path d="M0,1 L7,4 L0,7 z" fill="#fbbf24" />
+            </marker>
+          </defs>
+          <polyline points={curve} fill="none" stroke="#22d3ee" strokeWidth={2.5} />
+          {trail.map(
+            (x, i) =>
+              Math.abs(x) <= G1_XR[1] && (
+                <circle key={i} cx={mx(x)} cy={my(F1D(x))} r={3} fill="#a78bfa" opacity={0.25 + (0.75 * i) / trail.length} />
+              ),
+          )}
+          {tangent && (
+            <line
+              x1={mx(tangent.p1[0])}
+              y1={my(tangent.p1[1])}
+              x2={mx(tangent.p2[0])}
+              y2={my(tangent.p2[1])}
+              stroke="rgba(248,113,113,0.85)"
+              strokeWidth={1.8}
+              strokeDasharray="5 4"
+            />
+          )}
+          {inView && Math.abs(nextTheta) <= G1_XR[1] && (
+            <line
+              x1={mx(theta)}
+              y1={G1_H - 12}
+              x2={mx(nextTheta)}
+              y2={G1_H - 12}
+              stroke="#fbbf24"
+              strokeWidth={2}
+              markerEnd="url(#gd1dArr)"
+            />
+          )}
+          {inView && (
+            <circle cx={mx(theta)} cy={my(F1D(theta))} r={7} fill="#fbbf24" stroke="#0a0e17" strokeWidth={2} />
+          )}
         </svg>
+      </div>
+      <div className="flex flex-col gap-4 lg:col-span-2">
+        <div className="card-pad space-y-4">
+          <Slider label={t.lr} value={lr} min={0.005} max={0.5} step={0.005} onChange={setLr} format={(v) => fmt(v, 3)} />
+          <div className="flex flex-wrap gap-2">
+            <button className="btn-primary" onClick={() => (running ? setRunning(false) : setRunning(true))}>
+              {running ? `⏸ ${t.pause}` : `▶ ${t.run}`}
+            </button>
+            <button className="btn" onClick={step}>
+              {t.step}
+            </button>
+            <button className="btn" onClick={() => setStart(-0.35)}>
+              ↺ {t.gd1dReset}
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.gd1dSlope} value={fmt(g, 2)} accent="#f87171" />
+          <Readout label={t.gd1dStep} value={fmt(-lr * g, 3)} accent="#fbbf24" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label="θ" value={fmt(theta, 3)} />
+          <Readout label={t.fval} value={fmt(F1D(theta), 3)} />
+        </div>
       </div>
     </div>
   )
@@ -347,6 +435,7 @@ function DescentPlayground() {
   const [lamExp, setLamExp] = useState(-1.5)
   const [runs, setRuns] = useState<Run[]>([])
   const [running, setRunning] = useState(false)
+  const [hoverArrow, setHoverArrow] = useState<{ p1: Vec2; p2: Vec2 } | null>(null)
   const runsRef = useRef(runs)
   runsRef.current = runs
 
@@ -425,6 +514,23 @@ function DescentPlayground() {
     setFnKey(k)
     setRuns([])
     setRunning(false)
+    setHoverArrow(null)
+  }
+
+  const handleHover = (x: number, y: number) => {
+    const g = fn.grad(x, y)
+    const n = Math.hypot(g[0], g[1])
+    if (n < 1e-9) return setHoverArrow(null)
+    // small downhill move in domain space, then normalized to a fixed pixel length
+    const a = toPx([x, y])
+    const b = toPx([x - (g[0] / n) * 0.05, y - (g[1] / n) * 0.05])
+    const bn = Math.hypot(b[0] - a[0], b[1] - a[1])
+    if (bn < 1e-9) return setHoverArrow(null)
+    const L = 38
+    setHoverArrow({
+      p1: a,
+      p2: [a[0] + ((b[0] - a[0]) / bn) * L, a[1] + ((b[1] - a[1]) / bn) * L],
+    })
   }
 
   return (
@@ -438,8 +544,29 @@ function DescentPlayground() {
           cost={fn.f}
           ckey={fnKey}
           onPick={startAt}
+          onHover={handleHover}
+          onLeave={() => setHoverArrow(null)}
           title={`C(θ₁, θ₂) — ${t.fnNames[fnKey]}`}
         >
+          <defs>
+            <marker id="negGrad" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+              <path d="M0,1 L7,4 L0,7 z" fill="#fbbf24" />
+            </marker>
+          </defs>
+          {hoverArrow && (
+            <g pointerEvents="none">
+              <circle cx={hoverArrow.p1[0]} cy={hoverArrow.p1[1]} r={3} fill="#fbbf24" />
+              <line
+                x1={hoverArrow.p1[0]}
+                y1={hoverArrow.p1[1]}
+                x2={hoverArrow.p2[0]}
+                y2={hoverArrow.p2[1]}
+                stroke="#fbbf24"
+                strokeWidth={2}
+                markerEnd="url(#negGrad)"
+              />
+            </g>
+          )}
           {fn.minima.map((m, i) => {
             const [mx, my] = toPx(m)
             return (
@@ -532,6 +659,7 @@ interface SolverState {
   th: CalibTheta
   lambda: number
   history: number[]
+  lamHist: number[]
   status: 'idle' | 'running' | 'done' | 'diverged'
 }
 
@@ -549,6 +677,7 @@ function CalibSolverLab() {
     th,
     lambda: 1e-2,
     history: [calibRms(th, obs)],
+    lamHist: [1e-2],
     status: 'idle',
   })
   const [st, setSt] = useState<SolverState>(() => makeInit(CALIB_START))
@@ -578,7 +707,13 @@ function CalibSolverLab() {
       const rms = calibRms(r.th, obs)
       const prev = cur.history[cur.history.length - 1]
       const status = !r.accepted || Math.abs(prev - rms) < 1e-7 ? 'done' : 'running'
-      next = { th: r.th, lambda: r.lambda, history: [...cur.history, rms], status }
+      next = {
+        th: r.th,
+        lambda: r.lambda,
+        history: [...cur.history, rms],
+        lamHist: [...cur.lamHist, r.lambda],
+        status,
+      }
     }
     setSt(next)
     if (next.status !== 'running') {
@@ -756,8 +891,32 @@ function CalibSolverLab() {
             <Readout label={t.iter} value={`${st.history.length - 1}`} />
           </div>
           {method === 'lm' && (
-            <div className="mt-2 text-[12px] text-muted">
-              {t.lmLambda}: <span className="font-mono text-accent2">{st.lambda.toExponential(1)}</span>
+            <div className="mt-2">
+              <div className="text-[12px] text-muted">
+                {t.lmLambda}: <span className="font-mono text-accent2">{st.lambda.toExponential(1)}</span>
+              </div>
+              {st.lamHist.length > 1 && (
+                <>
+                  <svg viewBox="0 0 150 30" className="mt-1 w-full max-w-[220px]">
+                    {st.lamHist.map((l, i) => {
+                      const bw = 150 / st.lamHist.length
+                      const h = Math.max(2, ((Math.log10(l) + 9) / 11) * 28)
+                      return (
+                        <rect
+                          key={i}
+                          x={i * bw}
+                          y={30 - h}
+                          width={Math.max(bw - 1.5, 1.5)}
+                          height={h}
+                          fill="#a78bfa"
+                          opacity={0.85}
+                        />
+                      )
+                    })}
+                  </svg>
+                  <div className="mt-0.5 text-[10.5px] text-muted">{t.lmLambdaHist}</div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -791,6 +950,20 @@ export function OptimizationPage() {
   const t = useT(T)
   return (
     <div className="mx-auto max-w-6xl px-4">
+      <PageToc
+        items={[
+          { id: 'cost', label: t.costTitle },
+          { id: 'gd', label: t.gdTitle },
+          { id: 'gd1d', label: t.gd1dTitle },
+          { id: 'playground', label: t.playTitle },
+          { id: 'conditioning', label: t.condTitle },
+          { id: 'newton', label: t.newtonTitle },
+          { id: 'solver', label: t.solverTitle },
+          { id: 'bundle', label: t.bigTitle },
+          { id: 'choosing', label: t.whenTitle },
+          { id: 'code', label: t.codeTitle },
+        ]}
+      />
       <header className="pt-10 pb-2">
         <div className="text-xs font-semibold tracking-[0.2em] text-accent uppercase">{t.kicker}</div>
         <h1 className="mt-1 mb-3 text-3xl font-extrabold tracking-tight md:text-4xl">{t.title}</h1>
@@ -811,6 +984,22 @@ export function OptimizationPage() {
           <TeX block>{String.raw`\theta_{t+1} \;=\; \theta_t \;-\; \alpha\, \nabla C(\theta_t)`}</TeX>
           <p>{t.gd2}</p>
         </div>
+      </Section>
+
+      <Section id="gd1d" title={t.gd1dTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.gd1dIntro}</p>
+        </div>
+        <div className="mt-4">
+          <Gd1D />
+        </div>
+        <InfoBox title="⚡ Try it">
+          <ul className="my-1 list-disc space-y-1 pl-5">
+            {t.gd1dTry.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+        </InfoBox>
       </Section>
 
       <Section id="playground" title={t.playTitle}>

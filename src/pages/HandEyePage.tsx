@@ -1,13 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { ImageView } from '../components/ImageView'
+import { PageToc } from '../components/PageToc'
 import { InfoBox, Readout, Section, Segmented, Slider } from '../components/ui'
 import {
   AxesTriad,
   CameraFrustumViz,
   Checkerboard3D,
   FrameLink,
+  Polyline,
+  Quad,
   Scene3D,
   SegmentMesh,
 } from '../components/three/helpers'
@@ -27,8 +30,10 @@ import {
   m4RotY,
   m4Trans,
   m4t,
+  norm,
   projectPoint,
   rotX,
+  sub,
   type Intrinsics,
   type M4,
   type Pose,
@@ -105,6 +110,15 @@ const T = {
     modeToHand: 'Eye-to-hand',
     joints: 'Robot joints',
     j: 'joint',
+    wave: 'Wave the robot',
+    waveStop: 'Stop waving',
+    waveHint: 'Let the robot move by itself and watch the chain below: B spins, A·X·B does not.',
+    ghostTitle: 'The X-detector: a wrong hand-eye reveals itself through motion',
+    ghostText:
+      'The red ghost frame is where the system believes the board to be — computed through the chain A·X̃·B with a deliberately perturbed mount X̃. At ε = 0 the ghost sits exactly on the real board, for every robot pose: a correct X closes the loop always. Now perturb ε and move the joints (or let the robot wave): the ghost drifts, and it drifts differently for every pose. This inconsistency across poses is exactly the signal a hand-eye solver exploits — and the reason it needs diverse motions.',
+    ghostEps: 'perturbation ε of X',
+    ghostErr: 'ghost vs. real board',
+    ghostOnlyInhand: 'The ghost demo runs in the eye-in-hand configuration — switch above.',
     camView: 'Camera view (board-pose measurement B)',
     notVisible: 'Board not (fully) in view — move the robot until the camera sees it.',
     chainTitle: 'Live transform chain',
@@ -129,6 +143,7 @@ const T = {
     axzb2: 'This is the robot-world hand-eye problem: it solves both unknowns simultaneously — the mount X and the camera’s (or board’s) place in the world Z. OpenCV ships both: cv2.calibrateHandEye for AX = XB and cv2.calibrateRobotWorldHandEye for AX = ZB.',
     practTitle: 'Practice: getting a good hand-eye calibration',
     practList: [
+      'Degenerate motion sets exist: if all rotation axes of your movements are parallel, a whole family of X explains the data equally well — translation along that axis stays undetermined. The ghost demo above shows the flip side: only diverse motion exposes a wrong X.',
       'Rotate! Pure translations contribute nothing to the rotation part of X. Use large, diverse rotations (≥ 30°) about different axes.',
       'Collect 15–30 pose pairs with the board well spread in the camera image.',
       'The robot poses must be accurate — flex, backlash and un-synchronized capture times corrupt A.',
@@ -168,6 +183,15 @@ const T = {
     modeToHand: 'Eye-to-Hand',
     joints: 'Robotergelenke',
     j: 'Gelenk',
+    wave: 'Roboter winken lassen',
+    waveStop: 'Stopp',
+    waveHint: 'Lass den Roboter selbst fahren und beobachte die Kette unten: B rotiert, A·X·B nicht.',
+    ghostTitle: 'Der X-Detektor: Ein falsches Hand-Auge verrät sich durch Bewegung',
+    ghostText:
+      'Der rote Geisterrahmen zeigt, wo das System das Brett vermutet — berechnet über die Kette A·X̃·B mit einer absichtlich gestörten Montage X̃. Bei ε = 0 sitzt der Geist exakt auf dem echten Brett, für jede Roboterpose: Ein korrektes X schließt die Schleife immer. Störe nun ε und bewege die Gelenke (oder lass den Roboter winken): Der Geist driftet — und zwar für jede Pose anders. Genau diese Inkonsistenz über die Posen ist das Signal, das ein Hand-Auge-Löser ausnutzt — und der Grund, warum er vielfältige Bewegungen braucht.',
+    ghostEps: 'Störung ε von X',
+    ghostErr: 'Geist vs. echtes Brett',
+    ghostOnlyInhand: 'Die Geist-Demo läuft in der Eye-in-Hand-Konfiguration — oben umschalten.',
     camView: 'Kamerabild (Brettposen-Messung B)',
     notVisible: 'Brett nicht (vollständig) im Bild — bewege den Roboter, bis die Kamera es sieht.',
     chainTitle: 'Transformationskette, live',
@@ -192,6 +216,7 @@ const T = {
     axzb2: 'Das ist das Robot-World-Hand-Auge-Problem: Es löst beide Unbekannte gleichzeitig — die Montage X und den Ort der Kamera (bzw. des Bretts) in der Welt Z. OpenCV bietet beides: cv2.calibrateHandEye für AX = XB und cv2.calibrateRobotWorldHandEye für AX = ZB.',
     practTitle: 'Praxis: eine gute Hand-Auge-Kalibrierung',
     practList: [
+      'Es gibt degenerierte Bewegungsmengen: Sind alle Rotationsachsen der Bewegungen parallel, erklärt eine ganze Familie von X die Daten gleich gut — die Translation entlang dieser Achse bleibt unbestimmt. Die Geist-Demo oben zeigt die Kehrseite: Nur vielfältige Bewegung entlarvt ein falsches X.',
       'Rotieren! Reine Translationen tragen nichts zum Rotationsanteil von X bei. Nutze große, vielfältige Rotationen (≥ 30°) um verschiedene Achsen.',
       '15–30 Posenpaare sammeln, mit dem Brett gut über das Kamerabild verteilt.',
       'Die Roboterposen müssen stimmen — Nachgiebigkeit, Spiel und unsynchronisierte Aufnahmezeitpunkte verfälschen A.',
@@ -231,6 +256,24 @@ export function HandEyePage() {
   const [q3, setQ3] = useState(60)
   const [q4, setQ4] = useState(55)
   const [captures, setCaptures] = useState<CapturedPair[]>([])
+  const [waving, setWaving] = useState(false)
+  const [eps, setEps] = useState(0)
+  const waveRef = useRef({ q1: 0, q2: 45, q4: 55, t: 0 })
+
+  useEffect(() => {
+    if (!waving) return
+    waveRef.current = { q1, q2, q4, t: 0 }
+    const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, Math.round(v)))
+    const iv = setInterval(() => {
+      const b = waveRef.current
+      b.t += 0.05
+      setQ1(clamp(b.q1 + 20 * Math.sin(b.t), -50, 50))
+      setQ2(clamp(b.q2 + 8 * Math.sin(b.t * 1.7 + 1), 15, 75))
+      setQ4(clamp(b.q4 + 12 * Math.sin(b.t * 2.3 + 2), 15, 85))
+    }, 40)
+    return () => clearInterval(iv)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waving])
 
   const fk = useMemo(
     () => forwardKinematics(deg2rad(q1), deg2rad(q2), deg2rad(q3), deg2rad(q4)),
@@ -281,6 +324,25 @@ export function HandEyePage() {
     return m4Diff(m4Mul(Arel, X), m4Mul(X, Brel))
   }, [captures, mode])
 
+  // ghost board: the loop closed with a deliberately wrong mount X̃ (eye-in-hand only)
+  const ghostActive = mode === 'inhand' && Math.abs(eps) > 1e-6
+  const XTil = useMemo(
+    () => m4MulChain(X_MOUNT, m4RotX(deg2rad(eps * 15)), m4Trans(eps * 0.05, 0, eps * 0.03)),
+    [eps],
+  )
+  const ghostPose = m4MulChain(A, XTil, B)
+  const ghostErrV = norm(sub(m4t(ghostPose), m4t(boardWorld)))
+  const GW = ((8 + 1.2) * BOARD_SQ) / 2
+  const GH = ((6 + 1.2) * BOARD_SQ) / 2
+  const ghostCorners: V3[] = (
+    [
+      [-GW, -GH, 0],
+      [GW, -GH, 0],
+      [GW, GH, 0],
+      [-GW, GH, 0],
+    ] as V3[]
+  ).map((p) => m4MulP(ghostPose, p))
+
   const camC = m4t(camWorld)
   const gripC = m4t(fk.G)
   const boardC = m4t(boardWorld)
@@ -295,6 +357,16 @@ export function HandEyePage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4">
+      <PageToc
+        items={[
+          { id: 'setups', label: t.setupTitle },
+          { id: 'lab', label: t.labTitle },
+          { id: 'capture', label: t.capTitle },
+          { id: 'axxb', label: t.mathTitle },
+          { id: 'axzb', label: t.axzbTitle },
+          { id: 'practice', label: t.practTitle },
+        ]}
+      />
       <header className="pt-10 pb-2">
         <div className="text-xs font-semibold tracking-[0.2em] text-accent uppercase">{t.kicker}</div>
         <h1 className="mt-1 mb-3 text-3xl font-extrabold tracking-tight md:text-4xl">{t.title}</h1>
@@ -363,6 +435,12 @@ export function HandEyePage() {
             {/* camera + board */}
             <CameraFrustumViz k={CAM_K} w={W} h={H} pose={camPose} depth={0.18} color="#fbbf24" label="cam" />
             <Checkerboard3D pose={boardWorld} cols={8} rows={6} square={BOARD_SQ} />
+            {ghostActive && (
+              <group>
+                <Polyline points={[...ghostCorners, ghostCorners[0]]} color="#f87171" lineWidth={2.5} />
+                <Quad corners={ghostCorners} color="#f87171" opacity={0.16} />
+              </group>
+            )}
             {mode === 'tohand' && (
               <SegmentMesh from={[TRIPOD_POS[0], 0, TRIPOD_POS[2]]} to={TRIPOD_POS} radius={0.02} color="#5b6478" />
             )}
@@ -388,6 +466,10 @@ export function HandEyePage() {
                 <Slider label={`${t.j} 3`} value={q3} min={20} max={95} step={1} onChange={setQ3} format={(v) => `${v}°`} />
                 <Slider label={`${t.j} 4`} value={q4} min={15} max={85} step={1} onChange={setQ4} format={(v) => `${v}°`} />
               </div>
+              <button className="btn mt-4" onClick={() => setWaving(!waving)}>
+                {waving ? `⏸ ${t.waveStop}` : `🤖 ${t.wave}`}
+              </button>
+              <p className="mt-2 text-[12px] leading-5 text-muted">{t.waveHint}</p>
             </div>
             <ImageView
               title={t.camView}
@@ -419,6 +501,33 @@ export function HandEyePage() {
               accent="#fbbf24"
             />
           </div>
+        </div>
+
+        <div className="card-pad mt-4">
+          <h3 className="mb-2 text-sm font-bold tracking-wide text-red-400 uppercase">{t.ghostTitle}</h3>
+          <p className="mb-4 max-w-3xl text-[14px] leading-6 text-ink/85">{t.ghostText}</p>
+          {mode === 'inhand' ? (
+            <div className="grid items-center gap-4 md:grid-cols-2">
+              <Slider
+                label={t.ghostEps}
+                value={eps}
+                min={-1}
+                max={1}
+                step={0.01}
+                onChange={setEps}
+                format={(v) => fmt(v, 2)}
+                accent="#f87171"
+              />
+              <Readout
+                label={t.ghostErr}
+                value={fmt(ghostErrV * 100, 1)}
+                unit="cm"
+                accent={ghostErrV < 0.005 ? '#4ade80' : '#f87171'}
+              />
+            </div>
+          ) : (
+            <div className="text-[13px] text-warn">{t.ghostOnlyInhand}</div>
+          )}
         </div>
 
         <InfoBox title="🔍">

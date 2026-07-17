@@ -3,8 +3,9 @@ import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { MatrixView } from '../components/MatrixView'
 import { ImageView } from '../components/ImageView'
+import { PageToc } from '../components/PageToc'
 import { InfoBox, Readout, Section, Slider } from '../components/ui'
-import { CameraFrustumViz, Polyline, Scene3D } from '../components/three/helpers'
+import { CameraFrustumViz, Polyline, Quad, Scene3D } from '../components/three/helpers'
 import {
   add,
   cameraCenter,
@@ -15,9 +16,12 @@ import {
   lookAtCV,
   m3MulV,
   m3T,
+  normalize,
+  pixelToWorld,
   projectPoint,
   relativePose,
   scale,
+  sub,
   type Intrinsics,
   type V3,
 } from '../lib/math'
@@ -31,6 +35,16 @@ const T = {
     title: 'Stereo Calibration & Stereo Vision',
     intro:
       'A single camera destroys depth: every point on a viewing ray lands on the same pixel. A second camera breaks that ambiguity. This module covers the geometry of two views — from stereo extrinsics through epipolar lines to metric depth from disparity.',
+    bridgeTitle: 'The second camera sees the difference',
+    bridge1:
+      'Module 1 ended with an unsolvable puzzle: sliding a point along its viewing ray leaves the left image completely unchanged. Here is the same experiment with one camera added. The left dot still refuses to move — but the right camera watches the point from the side, and its dot slides as the depth changes. The information that camera one destroys is exactly what camera two records.',
+    bridge2:
+      'Note where the right dot slides: always along the same faint line. That is no accident — it is the epipolar line, and it gets its own section below.',
+    bridgeDepth: 'depth along the left ray',
+    bridgeLeftU: 'left pixel',
+    bridgeRightU: 'right pixel uR',
+    tipParallax:
+      'You own a stereo rig: hold a finger in front of your face and wink your left and right eye alternately. The finger jumps against the background, and the closer it is, the bigger the jump. That jump is disparity — your visual system triangulates with a ~6.5 cm baseline all day long.',
     triTitle: 'Interactive: triangulation with two cameras',
     tri1: 'Two identical, perfectly parallel cameras (the rectified case) observe one point. Each camera alone only knows a ray — but the two rays intersect in exactly one place. That intersection is triangulation, and the whole depth signal is the horizontal shift between the two image positions: the disparity d = uL − uR.',
     triTry: [
@@ -48,6 +62,10 @@ const T = {
     pz: 'point depth Z',
     disparity: 'disparity d',
     estDepth: 'Z from d',
+    uncToggle: 'show ±1 px matching error',
+    uncRange: 'depth interval for ±1 px',
+    uncText:
+      'Real matchers locate correspondences with roughly pixel accuracy. Toggle the error wedge: the two thin red rays show where the point would be if the right camera had matched one pixel early or late. Near the cameras the wedge is razor thin; push the point away and watch the same ±1 px open into a huge depth interval.',
     depthFormula: 'The rectified geometry gives the fundamental relation of stereo vision:',
     calibTitle: 'Stereo calibration: the extrinsics between two cameras',
     calib1:
@@ -60,6 +78,16 @@ const T = {
     epiDrag: 'drag the point!',
     epiDepth: 'depth along left ray',
     epiF: 'Current fundamental matrix (computed from K, R, t of this rig):',
+    epi3d: 'And here is the 3D reason for the line. The left pixel fixes a viewing ray (dashed). This ray together with the two camera centers spans a plane — the epipolar plane (translucent). Whatever the depth, the candidate point stays inside this plane; the right camera sees the plane edge-on, and a plane seen edge-on is… a line on the sensor. Drag the point in the left image above and watch the plane tilt with it.',
+    epi3dScene: '3D scene — the epipolar plane, synced with the images above',
+    efTitle: 'Essential vs. fundamental — a quick comparison',
+    efHead: ['', 'Essential E', 'Fundamental F'],
+    efRows: [
+      ['acts on', 'normalized coordinates (K removed)', 'raw pixel coordinates'],
+      ['requires K', 'yes — calibrated cameras', 'no — works uncalibrated'],
+      ['degrees of freedom', '5', '7'],
+      ['can be decomposed into', 'R and t (t up to scale)', 'epipolar lines only'],
+    ],
     rectTitle: 'Rectification: making epipolar lines horizontal',
     rect1:
       'General epipolar lines are slanted — searching along them is awkward. Rectification warps both images with homographies so that both virtual cameras are parallel again: all epipolar lines become horizontal, and corresponding points share the same image row. Every practical stereo matcher runs on rectified images.',
@@ -85,6 +113,16 @@ const T = {
     title: 'Stereokalibrierung & Stereosehen',
     intro:
       'Eine einzelne Kamera zerstört Tiefe: Jeder Punkt auf einem Sehstrahl landet auf demselben Pixel. Eine zweite Kamera bricht diese Mehrdeutigkeit. Dieses Modul behandelt die Geometrie zweier Ansichten — von der Stereo-Extrinsik über Epipolarlinien bis zur metrischen Tiefe aus Disparität.',
+    bridgeTitle: 'Die zweite Kamera sieht den Unterschied',
+    bridge1:
+      'Modul 1 endete mit einem unlösbaren Rätsel: Verschiebt man einen Punkt entlang seines Sehstrahls, bleibt das linke Bild völlig unverändert. Hier ist dasselbe Experiment mit einer zusätzlichen Kamera. Der linke Punkt weigert sich weiterhin, sich zu bewegen — aber die rechte Kamera beobachtet den Punkt von der Seite, und ihr Punkt wandert mit der Tiefe. Genau die Information, die Kamera eins zerstört, zeichnet Kamera zwei auf.',
+    bridge2:
+      'Beachte, wo der rechte Punkt entlangwandert: immer auf derselben blassen Linie. Das ist kein Zufall — es ist die Epipolarlinie, und sie bekommt unten ihren eigenen Abschnitt.',
+    bridgeDepth: 'Tiefe entlang des linken Strahls',
+    bridgeLeftU: 'linkes Pixel',
+    bridgeRightU: 'rechtes Pixel uR',
+    tipParallax:
+      'Du besitzt ein Stereo-Rig: Halte einen Finger vors Gesicht und blinzle abwechselnd mit dem linken und rechten Auge. Der Finger springt vor dem Hintergrund — je näher, desto größer der Sprung. Dieser Sprung ist Disparität; dein Sehsystem trianguliert den ganzen Tag mit ~6,5 cm Basislinie.',
     triTitle: 'Interaktiv: Triangulation mit zwei Kameras',
     tri1: 'Zwei identische, perfekt parallele Kameras (der rektifizierte Fall) beobachten einen Punkt. Jede Kamera allein kennt nur einen Strahl — aber die beiden Strahlen schneiden sich an genau einer Stelle. Dieser Schnitt ist die Triangulation, und das gesamte Tiefensignal steckt im horizontalen Versatz der beiden Bildpositionen: der Disparität d = uL − uR.',
     triTry: [
@@ -102,6 +140,10 @@ const T = {
     pz: 'Punkttiefe Z',
     disparity: 'Disparität d',
     estDepth: 'Z aus d',
+    uncToggle: '±1 px Matchingfehler anzeigen',
+    uncRange: 'Tiefenintervall für ±1 px',
+    uncText:
+      'Echte Matcher finden Korrespondenzen ungefähr pixelgenau. Schalte den Fehlerkeil ein: Die beiden dünnen roten Strahlen zeigen, wo der Punkt läge, wenn die rechte Kamera ein Pixel zu früh oder zu spät gematcht hätte. Nahe den Kameras ist der Keil hauchdünn; schiebe den Punkt weiter weg und sieh zu, wie dasselbe ±1 px zu einem riesigen Tiefenintervall aufklappt.',
     depthFormula: 'Aus der rektifizierten Geometrie folgt die Grundgleichung des Stereosehens:',
     calibTitle: 'Stereokalibrierung: die Extrinsik zwischen zwei Kameras',
     calib1:
@@ -114,6 +156,16 @@ const T = {
     epiDrag: 'Punkt ziehen!',
     epiDepth: 'Tiefe entlang des linken Strahls',
     epiF: 'Aktuelle Fundamentalmatrix (berechnet aus K, R, t dieses Rigs):',
+    epi3d: 'Und hier der 3D-Grund für die Linie. Das linke Pixel legt einen Sehstrahl fest (gestrichelt). Dieser Strahl spannt zusammen mit den beiden Kamerazentren eine Ebene auf — die Epipolarebene (transparent). Egal bei welcher Tiefe: Der Kandidatenpunkt bleibt in dieser Ebene; die rechte Kamera sieht die Ebene von der Kante, und eine Ebene von der Kante gesehen ist… eine Linie auf dem Sensor. Ziehe den Punkt im linken Bild oben und beobachte, wie die Ebene mitkippt.',
+    epi3dScene: '3D-Szene — die Epipolarebene, synchron zu den Bildern oben',
+    efTitle: 'Essentiell vs. fundamental — der schnelle Vergleich',
+    efHead: ['', 'Essentielle E', 'Fundamentale F'],
+    efRows: [
+      ['wirkt auf', 'normierte Koordinaten (K entfernt)', 'rohe Pixelkoordinaten'],
+      ['braucht K', 'ja — kalibrierte Kameras', 'nein — funktioniert unkalibriert'],
+      ['Freiheitsgrade', '5', '7'],
+      ['zerlegbar in', 'R und t (t bis auf Skalierung)', 'nur Epipolarlinien'],
+    ],
     rectTitle: 'Rektifizierung: Epipolarlinien horizontal machen',
     rect1:
       'Allgemeine Epipolarlinien verlaufen schräg — entlang ihnen zu suchen ist unpraktisch. Die Rektifizierung entzerrt beide Bilder mit Homographien, sodass beide virtuellen Kameras wieder parallel stehen: Alle Epipolarlinien werden horizontal, und korrespondierende Punkte teilen dieselbe Bildzeile. Jeder praktische Stereo-Matcher arbeitet auf rektifizierten Bildern.',
@@ -162,6 +214,14 @@ function TriangulationLab() {
   const CL = cameraCenter(poseL)
   const CR = cameraCenter(poseR)
 
+  // ±1 px matching-error wedge: depths if the right match were one pixel off
+  const [showUnc, setShowUnc] = useState(false)
+  const zPlus = d > 1.001 ? (f * b) / (d - 1) : Infinity
+  const zMinus = (f * b) / (d + 1)
+  const Pplus = add(CL, scale(sub(P, CL), zPlus / pz))
+  const Pminus = add(CL, scale(sub(P, CL), zMinus / pz))
+  const wedgeOk = showUnc && isFinite(zPlus)
+
   return (
     <div>
       <div className="grid gap-4 lg:grid-cols-5">
@@ -179,6 +239,14 @@ function TriangulationLab() {
             <sphereGeometry args={[0.05, 24, 24]} />
             <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.4} />
           </mesh>
+          {wedgeOk && (
+            <group>
+              <Polyline points={[CR, Pplus]} color="#f87171" lineWidth={1} opacity={0.85} />
+              <Polyline points={[CR, Pminus]} color="#f87171" lineWidth={1} opacity={0.85} />
+              <Polyline points={[Pminus, Pplus]} color="#fbbf24" lineWidth={4} />
+              <Quad corners={[CR, Pminus, Pplus, Pplus]} color="#f87171" opacity={0.12} />
+            </group>
+          )}
         </Scene3D>
         <div className="card-pad space-y-3.5 lg:col-span-2">
           <Slider label={t.baseline} value={b} min={0.06} max={0.5} step={0.005} onChange={setB} format={(v) => `${fmt(v * 100, 1)} cm`} accent="#4ade80" />
@@ -190,6 +258,23 @@ function TriangulationLab() {
             <Readout label={t.disparity} value={fmt(d, 1)} unit="px" />
             <Readout label={t.estDepth} value={fmt(zEst, 2)} unit="m" accent="#4ade80" />
           </div>
+          <label className="flex cursor-pointer items-center gap-2.5 pt-1 text-[13px] font-medium text-muted select-none">
+            <input
+              type="checkbox"
+              checked={showUnc}
+              onChange={(e) => setShowUnc(e.target.checked)}
+              className="h-4 w-4 accent-red-400"
+            />
+            {t.uncToggle}
+          </label>
+          {showUnc && (
+            <Readout
+              label={t.uncRange}
+              value={isFinite(zPlus) ? `${fmt(zMinus, 2)} … ${fmt(zPlus, 2)}` : `${fmt(zMinus, 2)} … ∞`}
+              unit="m"
+              accent="#f87171"
+            />
+          )}
         </div>
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -219,6 +304,58 @@ const EPI_POSE_R = lookAtCV([0.3, 0, 0], EPI_TARGET)
 const EPI_REL = relativePose(EPI_POSE_L, EPI_POSE_R)
 const EPI_F = fundamental(EPI_K, EPI_K, EPI_REL.R, EPI_REL.t)
 
+/** 3D point on the LEFT camera's viewing ray of pixel (u, v), at camera-z `depth`. */
+function leftRayPoint(u: number, v: number, depth: number): V3 {
+  const yn = (v - EPI_K.cy) / EPI_K.fy
+  const xn = (u - EPI_K.cx) / EPI_K.fx
+  const CL = cameraCenter(EPI_POSE_L)
+  return add(CL, scale(m3MulV(m3T(EPI_POSE_L.R), [xn, yn, 1]), depth))
+}
+
+// ---------------------------------------------------------------- bridge demo
+
+const BRIDGE_PT = { u: 250, v: 205 }
+
+function BridgeDemo() {
+  const t = useT(T)
+  const [depth, setDepth] = useState(2.2)
+  const X = leftRayPoint(BRIDGE_PT.u, BRIDGE_PT.v, depth)
+  const pl = projectPoint(EPI_K, EPI_POSE_L, X)
+  const pr = projectPoint(EPI_K, EPI_POSE_R, X)
+  const seg = useMemo(() => epipolarSegment(EPI_F, BRIDGE_PT.u, BRIDGE_PT.v, W, H), [])
+  const prVisible = pr.z > 0 && pr.u >= 0 && pr.u <= W && pr.v >= 0 && pr.v <= H
+  return (
+    <div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <ImageView title={t.leftImg} points={[{ u: pl.u, v: pl.v, color: '#22d3ee', r: 6 }]} />
+        <ImageView
+          title={t.rightImg}
+          points={prVisible ? [{ u: pr.u, v: pr.v, color: '#fbbf24', r: 6 }] : []}
+          polylines={seg ? [{ pts: seg, color: 'rgba(34,211,238,0.3)', width: 1.5, dash: '5 4' }] : []}
+        />
+      </div>
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <div className="card-pad lg:col-span-2">
+          <Slider
+            label={t.bridgeDepth}
+            value={depth}
+            min={0.9}
+            max={7}
+            step={0.02}
+            onChange={setDepth}
+            format={(v) => `${fmt(v, 2)} m`}
+            accent="#fbbf24"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.bridgeLeftU} value={`(${fmt(pl.u, 0)}, ${fmt(pl.v, 0)})`} />
+          <Readout label={t.bridgeRightU} value={prVisible ? fmt(pr.u, 1) : '—'} unit="px" accent="#fbbf24" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function EpipolarLab() {
   const t = useT(T)
   const [pt, setPt] = useState<{ u: number; v: number }>({ u: 240, v: 190 })
@@ -226,15 +363,20 @@ function EpipolarLab() {
 
   const seg = useMemo(() => epipolarSegment(EPI_F, pt.u, pt.v, W, H), [pt])
 
-  const rightPt = useMemo(() => {
-    // point on the left viewing ray at camera-z `depth`, projected into the right image
-    const yn = (pt.v - EPI_K.cy) / EPI_K.fy
-    const xn = (pt.u - EPI_K.cx) / EPI_K.fx
-    const CL = cameraCenter(EPI_POSE_L)
-    const dirWorld = m3MulV(m3T(EPI_POSE_L.R), [xn, yn, 1])
-    const X = add(CL, scale(dirWorld, depth))
-    return projectPoint(EPI_K, EPI_POSE_R, X)
-  }, [pt, depth])
+  const rightPt = useMemo(
+    () => projectPoint(EPI_K, EPI_POSE_R, leftRayPoint(pt.u, pt.v, depth)),
+    [pt, depth],
+  )
+
+  // geometry for the synced 3D epipolar-plane scene
+  const X = leftRayPoint(pt.u, pt.v, depth)
+  const XfarL = leftRayPoint(pt.u, pt.v, 8)
+  const CL = cameraCenter(EPI_POSE_L)
+  const CR = cameraCenter(EPI_POSE_R)
+  const XfarR = add(CR, scale(normalize(sub(X, CR)), 8))
+  const seg3d = seg
+    ? seg.map(([u, v]) => pixelToWorld(EPI_K, EPI_POSE_R, u, v, 0.42))
+    : null
 
   return (
     <div>
@@ -275,6 +417,29 @@ function EpipolarLab() {
           />
         </div>
       </div>
+      <div className="prose-cv mt-6 max-w-3xl">
+        <p>{t.epi3d}</p>
+      </div>
+      <Scene3D
+        className="mt-4"
+        height={400}
+        camera={{ position: [1.7, 1.5, -1.8], fov: 45 }}
+        target={[0, 0, 1.6]}
+        ground={false}
+        hint={t.epi3dScene}
+      >
+        <CameraFrustumViz k={EPI_K} w={W} h={H} pose={EPI_POSE_L} depth={0.42} color="#22d3ee" label="L" rays={false} points={[{ p: X, color: '#fbbf24' }]} />
+        <CameraFrustumViz k={EPI_K} w={W} h={H} pose={EPI_POSE_R} depth={0.42} color="#a78bfa" label="R" rays={false} points={[{ p: X, color: '#fbbf24' }]} />
+        <Polyline points={[CL, CR]} color="#4ade80" lineWidth={2.5} />
+        <Polyline points={[CL, XfarL]} color="#22d3ee" dashed lineWidth={1.5} opacity={0.9} />
+        <Polyline points={[CR, X]} color="#a78bfa" lineWidth={1.2} opacity={0.7} />
+        <Quad corners={[CL, XfarL, XfarR, CR]} color="#22d3ee" opacity={0.08} />
+        {seg3d && <Polyline points={[seg3d[0], seg3d[1]]} color="#22d3ee" lineWidth={3} />}
+        <mesh position={X}>
+          <sphereGeometry args={[0.045, 20, 20]} />
+          <meshStandardMaterial color="#fbbf24" emissive="#fbbf24" emissiveIntensity={0.4} />
+        </mesh>
+      </Scene3D>
     </div>
   )
 }
@@ -400,11 +565,37 @@ export function StereoPage() {
   const t = useT(T)
   return (
     <div className="mx-auto max-w-6xl px-4">
+      <PageToc
+        items={[
+          { id: 'bridge', label: t.bridgeTitle },
+          { id: 'triangulation', label: t.triTitle },
+          { id: 'stereo-calib', label: t.calibTitle },
+          { id: 'epipolar', label: t.epiTitle },
+          { id: 'rectification', label: t.rectTitle },
+          { id: 'depth', label: t.depthTitle },
+          { id: 'matching', label: t.matchTitle },
+        ]}
+      />
       <header className="pt-10 pb-2">
         <div className="text-xs font-semibold tracking-[0.2em] text-accent uppercase">{t.kicker}</div>
         <h1 className="mt-1 mb-3 text-3xl font-extrabold tracking-tight md:text-4xl">{t.title}</h1>
         <p className="prose-cv max-w-3xl text-muted">{t.intro}</p>
       </header>
+
+      <Section id="bridge" title={t.bridgeTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.bridge1}</p>
+        </div>
+        <div className="mt-4">
+          <BridgeDemo />
+        </div>
+        <div className="prose-cv mt-4 max-w-3xl">
+          <p>{t.bridge2}</p>
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.tipParallax}
+        </InfoBox>
+      </Section>
 
       <Section id="triangulation" title={t.triTitle}>
         <div className="prose-cv max-w-3xl">
@@ -414,6 +605,7 @@ export function StereoPage() {
           <TriangulationLab />
         </div>
         <div className="prose-cv mt-4 max-w-3xl">
+          <p>{t.uncText}</p>
           <p>{t.depthFormula}</p>
           <TeX block>{String.raw`d = u_L - u_R = \frac{f\,b}{Z} \quad\Longleftrightarrow\quad Z = \frac{f\,b}{d}`}</TeX>
         </div>
@@ -431,6 +623,29 @@ export function StereoPage() {
           <p>{t.calib1}</p>
           <p>{t.calib2}</p>
           <TeX block>{String.raw`E = [\mathbf{t}]_\times R, \qquad F = K_2^{-\mathsf T} E\, K_1^{-1}, \qquad \tilde{\mathbf{x}}_2^{\mathsf T} F\, \tilde{\mathbf{x}}_1 = 0`}</TeX>
+        </div>
+        <div className="card mt-4 max-w-2xl overflow-hidden">
+          <div className="border-b border-white/10 px-4 py-2 text-[13px] font-semibold">{t.efTitle}</div>
+          <table className="w-full text-[13.5px]">
+            <thead>
+              <tr className="border-b border-white/10 text-left text-muted">
+                {t.efHead.map((h, i) => (
+                  <th key={i} className="px-4 py-2 font-medium">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {t.efRows.map((row, i) => (
+                <tr key={i} className="border-b border-white/5 last:border-0">
+                  <td className="px-4 py-2 text-muted">{row[0]}</td>
+                  <td className="px-4 py-2 text-accent">{row[1]}</td>
+                  <td className="px-4 py-2 text-accent2">{row[2]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </Section>
 

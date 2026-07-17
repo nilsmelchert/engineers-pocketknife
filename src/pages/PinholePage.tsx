@@ -3,16 +3,22 @@ import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { MatrixView } from '../components/MatrixView'
 import { ImageView, type ImagePoint } from '../components/ImageView'
+import { PageToc } from '../components/PageToc'
 import { InfoBox, Readout, Section, Slider } from '../components/ui'
 import { AxesTriad, CameraFrustumViz, Polyline, Scene3D } from '../components/three/helpers'
 import {
   add,
+  cameraCenter,
   deg2rad,
   fmt,
   lookAtCV,
+  m3MulV,
+  norm,
   pMat,
   projectPoint,
   rad2deg,
+  scale,
+  sub,
   type Intrinsics,
   type V3,
 } from '../lib/math'
@@ -92,6 +98,30 @@ const T = {
     dist: 'distance',
     hfov: 'horizontal FOV',
     vfov: 'vertical FOV',
+    dolly: 'lock subject size (dolly zoom)',
+    dollyText:
+      'With the lock on, pulling the camera back automatically raises f so the house keeps its size in the image — and yet the image still changes: perspective (how much bigger near parts look than far parts) depends on the camera position, while f only magnifies. Filmmakers call this the dolly zoom or “Vertigo effect”. It also previews a calibration pitfall: for a flat, frontal subject, f and distance are almost interchangeable — module 2 shows how tilted views break that ambiguity.',
+    stepTitle: 'Follow one point through the pipeline',
+    stepIntro:
+      'Numbers make the pipeline concrete. Pick a house point and watch its coordinates transform stage by stage — every slider in the lab above updates these numbers live. Notice that exactly one arrow is nonlinear: the division by the depth Z꜀.',
+    stepPick: 'Pick a point:',
+    stWorld: 'world point',
+    stWorldSub: 'Xw  (m)',
+    stCam: 'camera frame',
+    stCamSub: 'Xc = R·Xw + t  (m)',
+    stNorm: 'image plane',
+    stNormSub: '(xn, yn) = (Xc/Zc, Yc/Zc)',
+    stPix: 'pixel',
+    stPixSub: '(u, v)  (px)',
+    depthTitle: 'What projection destroys: depth',
+    depthText:
+      'Slide the orange point along its viewing ray. In 3D it clearly moves — closer to the camera, farther away. But its pixel does not change at all: every point on the ray produces exactly the same image. A single camera cannot tell these points apart; the division by Z has collapsed the depth dimension. Recovering it needs extra knowledge: a known object size, structured light — or a second camera.',
+    depthSlider: 'position along the ray',
+    depthDist: 'distance from camera',
+    depthPixel: 'pixel (u, v)',
+    depthNote:
+      'This ambiguity is the reason stereo vision exists — and the viewing ray you are sliding along will return in module 4 as the epipolar line of this pixel.',
+    tipK: 'A way to remember the split: [R|t] is the tripod (where the camera stands and points), the division by Z paints the world onto a canvas one unit in front of the lens, and K is the ruler that measures this canvas in pixels. Everything camera-specific lives in K; everything about the viewpoint in [R|t].',
     matricesTitle: 'The matrices, live',
     matricesNote:
       'P projects homogeneous world points to homogeneous pixels: λ·(u,v,1)ᵀ = P·(X,Y,Z,1)ᵀ. The λ that gets divided away is exactly the depth in the camera frame.',
@@ -159,6 +189,30 @@ const T = {
     dist: 'Abstand',
     hfov: 'horizontales Sichtfeld',
     vfov: 'vertikales Sichtfeld',
+    dolly: 'Motivgröße fixieren (Dolly-Zoom)',
+    dollyText:
+      'Mit aktivierter Fixierung erhöht das Zurückziehen der Kamera automatisch f, sodass das Haus seine Bildgröße behält — und trotzdem ändert sich das Bild: Die Perspektive (wie viel größer nahe Teile gegenüber fernen wirken) hängt von der Kameraposition ab, während f nur vergrößert. Im Film heißt das Dolly-Zoom oder „Vertigo-Effekt“. Er deutet zugleich eine Kalibrierfalle an: Bei einem flachen, frontalen Motiv sind f und Abstand fast austauschbar — Modul 2 zeigt, wie gekippte Ansichten diese Mehrdeutigkeit brechen.',
+    stepTitle: 'Einen Punkt durch die Pipeline verfolgen',
+    stepIntro:
+      'Zahlen machen die Pipeline konkret. Wähle einen Hauspunkt und beobachte, wie sich seine Koordinaten Stufe für Stufe transformieren — jeder Slider im Labor oben aktualisiert diese Zahlen live. Beachte: Genau ein Pfeil ist nichtlinear — die Division durch die Tiefe Z꜀.',
+    stepPick: 'Punkt wählen:',
+    stWorld: 'Weltpunkt',
+    stWorldSub: 'Xw  (m)',
+    stCam: 'Kamerasystem',
+    stCamSub: 'Xc = R·Xw + t  (m)',
+    stNorm: 'Bildebene',
+    stNormSub: '(xn, yn) = (Xc/Zc, Yc/Zc)',
+    stPix: 'Pixel',
+    stPixSub: '(u, v)  (px)',
+    depthTitle: 'Was die Projektion zerstört: Tiefe',
+    depthText:
+      'Verschiebe den orangen Punkt entlang seines Sehstrahls. In 3D bewegt er sich deutlich — näher zur Kamera, weiter weg. Aber sein Pixel ändert sich überhaupt nicht: Jeder Punkt auf dem Strahl erzeugt exakt dasselbe Bild. Eine einzelne Kamera kann diese Punkte nicht unterscheiden; die Division durch Z hat die Tiefendimension kollabieren lassen. Sie zurückzugewinnen braucht Zusatzwissen: eine bekannte Objektgröße, strukturiertes Licht — oder eine zweite Kamera.',
+    depthSlider: 'Position entlang des Strahls',
+    depthDist: 'Abstand zur Kamera',
+    depthPixel: 'Pixel (u, v)',
+    depthNote:
+      'Diese Mehrdeutigkeit ist der Grund, warum es Stereosehen gibt — und der Sehstrahl, den du hier verschiebst, kehrt in Modul 4 als Epipolarlinie dieses Pixels zurück.',
+    tipK: 'Eine Merkhilfe für die Aufteilung: [R|t] ist das Stativ (wo die Kamera steht und wohin sie schaut), die Division durch Z malt die Welt auf eine Leinwand eine Einheit vor dem Objektiv, und K ist das Lineal, das diese Leinwand in Pixeln vermisst. Alles Kameraspezifische steckt in K, alles über den Standpunkt in [R|t].',
     matricesTitle: 'Die Matrizen, live',
     matricesNote:
       'P projiziert homogene Weltpunkte auf homogene Pixel: λ·(u,v,1)ᵀ = P·(X,Y,Z,1)ᵀ. Das λ, durch das dividiert wird, ist genau die Tiefe im Kamerasystem.',
@@ -241,6 +295,41 @@ function PinholeDiagram({ labels }: { labels: (typeof T)['en']['diagram'] }) {
   )
 }
 
+function StageCard({
+  label,
+  sub,
+  vals,
+  color,
+  digits = 2,
+}: {
+  label: string
+  sub: string
+  vals: number[]
+  color: string
+  digits?: number
+}) {
+  return (
+    <div className="card px-3.5 py-2.5 text-center">
+      <div className="text-[12px] font-semibold">{label}</div>
+      <div className="font-mono text-[10.5px] text-muted">{sub}</div>
+      <div className="mt-1 font-mono text-[13px] font-semibold tabular-nums" style={{ color }}>
+        ({vals.map((v) => fmt(v, digits)).join(', ')})
+      </div>
+    </div>
+  )
+}
+
+function StageArrow({ tex, accent = false }: { tex: string; accent?: boolean }) {
+  return (
+    <div className={`px-0.5 text-center ${accent ? 'text-warn' : 'text-accent'}`}>
+      <div className="text-[13px]">
+        <TeX>{tex}</TeX>
+      </div>
+      <div className="text-lg leading-4">→</div>
+    </div>
+  )
+}
+
 export function PinholePage() {
   const t = useT(T)
 
@@ -252,6 +341,14 @@ export function PinholePage() {
   const [azDeg, setAzDeg] = useState(35)
   const [elDeg, setElDeg] = useState(22)
   const [radius, setRadius] = useState(3.6)
+  const [dolly, setDolly] = useState(false)
+  const [selIdx, setSelIdx] = useState(6)
+  const [rayS, setRayS] = useState(1)
+
+  const onDistance = (v: number) => {
+    if (dolly) setF((prev) => Math.round(Math.min(1400, Math.max(220, prev * (v / radius)))))
+    setRadius(v)
+  }
 
   const k: Intrinsics = useMemo(
     () => ({ fx: f, fy: f * aspect, s: skew, cx, cy }),
@@ -298,12 +395,39 @@ export function PinholePage() {
   const hfov = rad2deg(2 * Math.atan(W / (2 * k.fx)))
   const vfov = rad2deg(2 * Math.atan(H / (2 * k.fy)))
 
+  // pipeline stepper: intermediate values for the selected point
+  const selPt = HOUSE_PTS[selIdx]
+  const selXc = add(m3MulV(pose.R, selPt.p), pose.t)
+  const selXn = selXc[0] / selXc[2]
+  const selYn = selXc[1] / selXc[2]
+  const selU = k.fx * selXn + k.s * selYn + k.cx
+  const selV = k.fy * selYn + k.cy
+
+  // depth-ambiguity demo: point sliding along the viewing ray of house point 6
+  const camC = cameraCenter(pose)
+  const rayBase = HOUSE_PTS[6].p
+  const rayPoint = add(camC, scale(sub(rayBase, camC), rayS))
+  const rayFar = add(camC, scale(sub(rayBase, camC), 2.6))
+  const rayProj = projectPoint(k, pose, rayBase)
+
   const cyan = '#22d3ee'
   const violet = '#a78bfa'
   const amber = '#fbbf24'
 
   return (
     <div className="mx-auto max-w-6xl px-4">
+      <PageToc
+        items={[
+          { id: 'pipeline', label: t.s1Title },
+          { id: 'pinhole', label: t.s2Title },
+          { id: 'lab', label: t.s3Title },
+          { id: 'stepper', label: t.stepTitle },
+          { id: 'depth', label: t.depthTitle },
+          { id: 'intrinsics', label: t.s4Title },
+          { id: 'extrinsics', label: t.s5Title },
+          { id: 'projection-matrix', label: t.s6Title },
+        ]}
+      />
       <header className="pt-10 pb-2">
         <div className="text-xs font-semibold tracking-[0.2em] text-accent uppercase">{t.kicker}</div>
         <h1 className="mt-1 mb-3 text-3xl font-extrabold tracking-tight md:text-4xl">{t.title}</h1>
@@ -402,7 +526,17 @@ export function PinholePage() {
             <div className="space-y-4">
               <Slider label={t.az} value={azDeg} min={-180} max={180} step={1} onChange={setAzDeg} format={(v) => `${v}°`} accent="#a78bfa" />
               <Slider label={t.el} value={elDeg} min={4} max={75} step={1} onChange={setElDeg} format={(v) => `${v}°`} accent="#a78bfa" />
-              <Slider label={t.dist} value={radius} min={2.2} max={7} step={0.05} onChange={setRadius} format={(v) => `${fmt(v, 2)} m`} accent="#a78bfa" />
+              <Slider label={t.dist} value={radius} min={2.2} max={7} step={0.05} onChange={onDistance} format={(v) => `${fmt(v, 2)} m`} accent="#a78bfa" />
+              <label className="flex cursor-pointer items-center gap-2.5 pt-1 text-[13px] font-medium text-muted select-none">
+                <input
+                  type="checkbox"
+                  checked={dolly}
+                  onChange={(e) => setDolly(e.target.checked)}
+                  className="h-4 w-4 accent-cyan-400"
+                />
+                {t.dolly}
+              </label>
+              {dolly && <p className="text-[12.5px] leading-5 text-muted/80">{t.dollyText}</p>}
             </div>
           </div>
         </div>
@@ -457,6 +591,79 @@ export function PinholePage() {
         </InfoBox>
       </Section>
 
+      <Section id="stepper" title={t.stepTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.stepIntro}</p>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="text-[13px] font-medium text-muted">{t.stepPick}</span>
+          {HOUSE_PTS.map((hp, i) => (
+            <button
+              key={i}
+              onClick={() => setSelIdx(i)}
+              className="h-6 w-6 cursor-pointer rounded-full border-2 transition"
+              style={{
+                background: hp.color,
+                borderColor: i === selIdx ? '#ffffff' : 'transparent',
+                opacity: i === selIdx ? 1 : 0.5,
+                transform: i === selIdx ? 'scale(1.2)' : undefined,
+              }}
+            />
+          ))}
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-4">
+          <StageCard label={t.stWorld} sub={t.stWorldSub} vals={[selPt.p[0], selPt.p[1], selPt.p[2]]} color={selPt.color} />
+          <StageArrow tex={String.raw`[R\mid \mathbf{t}]`} />
+          <StageCard label={t.stCam} sub={t.stCamSub} vals={selXc} color={selPt.color} />
+          <StageArrow tex={String.raw`\div\, Z_c`} accent />
+          <StageCard label={t.stNorm} sub={t.stNormSub} vals={[selXn, selYn]} digits={3} color={selPt.color} />
+          <StageArrow tex="K" />
+          <StageCard label={t.stPix} sub={t.stPixSub} vals={[selU, selV]} digits={1} color={selPt.color} />
+        </div>
+      </Section>
+
+      <Section id="depth" title={t.depthTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.depthText}</p>
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-5">
+          <Scene3D
+            className="lg:col-span-3"
+            height={380}
+            camera={{ position: [4.2, 2.6, 5.2], fov: 40 }}
+            target={[0.3, 0.7, 0.6]}
+            hint={t.labScene}
+          >
+            {HOUSE_EDGES.map(([a, b], i) => (
+              <Polyline key={i} points={[HOUSE_PTS[a].p, HOUSE_PTS[b].p]} color="#ffffff" opacity={0.1} lineWidth={1} />
+            ))}
+            <Polyline points={[camC, rayFar]} color="#fb923c" dashed opacity={0.7} lineWidth={1.5} />
+            <mesh position={rayPoint}>
+              <sphereGeometry args={[0.055, 20, 20]} />
+              <meshStandardMaterial color="#fb923c" emissive="#fb923c" emissiveIntensity={0.35} />
+            </mesh>
+            <CameraFrustumViz k={k} w={W} h={H} pose={pose} depth={0.9} points={[{ p: rayPoint, color: '#fb923c' }]} rays={false} />
+          </Scene3D>
+          <div className="flex flex-col gap-4 lg:col-span-2">
+            <ImageView
+              title={t.labImage}
+              points={rayProj.z > 0 ? [{ u: rayProj.u, v: rayProj.v, color: '#fb923c', r: 6 }] : []}
+              polylines={imageEdges}
+            />
+            <div className="card-pad">
+              <Slider label={t.depthSlider} value={rayS} min={0.4} max={2.3} step={0.01} onChange={setRayS} format={(v) => fmt(v, 2)} accent="#fb923c" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Readout label={t.depthDist} value={fmt(norm(sub(rayPoint, camC)), 2)} unit="m" accent="#fb923c" />
+              <Readout label={t.depthPixel} value={`(${fmt(rayProj.u, 1)}, ${fmt(rayProj.v, 1)})`} />
+            </div>
+          </div>
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.depthNote}
+        </InfoBox>
+      </Section>
+
       <Section id="intrinsics" title={t.s4Title}>
         <div className="prose-cv max-w-3xl">
           <p>{t.s4a}</p>
@@ -469,6 +676,9 @@ export function PinholePage() {
           <p>{t.s4b}</p>
           <TeX block>{String.raw`\text{FOV}_x = 2\arctan\!\frac{W}{2 f_x}, \qquad \text{FOV}_y = 2\arctan\!\frac{H}{2 f_y}`}</TeX>
         </div>
+        <InfoBox tone="tip" title="💡">
+          {t.tipK}
+        </InfoBox>
       </Section>
 
       <Section id="extrinsics" title={t.s5Title}>
