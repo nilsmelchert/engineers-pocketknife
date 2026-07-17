@@ -41,8 +41,22 @@ export const MODULES: ModuleDef[] = [
     },
   },
   {
-    path: '/stereo',
+    path: '/optimization',
     num: 3,
+    title: { en: 'Numerical Optimization', de: 'Numerische Optimierung' },
+    short: { en: 'Optimization', de: 'Optimierung' },
+    desc: {
+      en: 'How the parameters are actually found: cost landscapes, gradient descent, momentum, Gauss-Newton and Levenberg–Marquardt — with a live calibration solver.',
+      de: 'Wie die Parameter wirklich gefunden werden: Kostenlandschaften, Gradientenabstieg, Momentum, Gauß-Newton und Levenberg–Marquardt — mit einem live laufenden Kalibrierlöser.',
+    },
+    topics: {
+      en: ['Cost functions', 'Gradient descent', 'Levenberg–Marquardt', 'Bundle adjustment'],
+      de: ['Kostenfunktionen', 'Gradientenabstieg', 'Levenberg–Marquardt', 'Bündelausgleich'],
+    },
+  },
+  {
+    path: '/stereo',
+    num: 4,
     title: { en: 'Stereo Vision', de: 'Stereosehen' },
     short: { en: 'Stereo', de: 'Stereo' },
     desc: {
@@ -56,7 +70,7 @@ export const MODULES: ModuleDef[] = [
   },
   {
     path: '/hand-eye',
-    num: 4,
+    num: 5,
     title: { en: 'Hand-Eye Calibration', de: 'Hand-Auge-Kalibrierung' },
     short: { en: 'Hand-Eye', de: 'Hand-Auge' },
     desc: {

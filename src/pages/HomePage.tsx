@@ -18,7 +18,7 @@ const T = {
     browse: 'All modules',
     pathTitle: 'The learning path',
     pathText:
-      'The four modules build on each other. Module 1 explains how a camera maps 3D to 2D; module 2 shows how to measure that mapping for a real camera; module 3 uses two calibrated cameras to recover 3D; module 4 connects the camera to a robot.',
+      'The five modules build on each other. Module 1 explains how a camera maps 3D to 2D; module 2 shows how to measure that mapping for a real camera; module 3 reveals the numerical optimization engine behind it; module 4 uses two calibrated cameras to recover 3D; module 5 connects the camera to a robot.',
     open: 'Open module',
     madeFor: 'No installation required — everything runs in the browser. Formulas follow the notation of Hartley & Zisserman and the OpenCV documentation.',
   },
@@ -32,7 +32,7 @@ const T = {
     browse: 'Alle Module',
     pathTitle: 'Der Lernpfad',
     pathText:
-      'Die vier Module bauen aufeinander auf. Modul 1 erklärt, wie eine Kamera 3D auf 2D abbildet; Modul 2 zeigt, wie man diese Abbildung für eine echte Kamera vermisst; Modul 3 rekonstruiert mit zwei kalibrierten Kameras 3D; Modul 4 verbindet die Kamera mit einem Roboter.',
+      'Die fünf Module bauen aufeinander auf. Modul 1 erklärt, wie eine Kamera 3D auf 2D abbildet; Modul 2 zeigt, wie man diese Abbildung für eine echte Kamera vermisst; Modul 3 enthüllt den numerischen Optimierungsmotor dahinter; Modul 4 rekonstruiert mit zwei kalibrierten Kameras 3D; Modul 5 verbindet die Kamera mit einem Roboter.',
     open: 'Modul öffnen',
     madeFor: 'Keine Installation nötig — alles läuft im Browser. Die Notation folgt Hartley & Zisserman und der OpenCV-Dokumentation.',
   },

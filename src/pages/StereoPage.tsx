@@ -27,7 +27,7 @@ const H = 480
 
 const T = {
   en: {
-    kicker: 'Module 3',
+    kicker: 'Module 4',
     title: 'Stereo Calibration & Stereo Vision',
     intro:
       'A single camera destroys depth: every point on a viewing ray lands on the same pixel. A second camera breaks that ambiguity. This module covers the geometry of two views — from stereo extrinsics through epipolar lines to metric depth from disparity.',
@@ -81,7 +81,7 @@ const T = {
     ],
   },
   de: {
-    kicker: 'Modul 3',
+    kicker: 'Modul 4',
     title: 'Stereokalibrierung & Stereosehen',
     intro:
       'Eine einzelne Kamera zerstört Tiefe: Jeder Punkt auf einem Sehstrahl landet auf demselben Pixel. Eine zweite Kamera bricht diese Mehrdeutigkeit. Dieses Modul behandelt die Geometrie zweier Ansichten — von der Stereo-Extrinsik über Epipolarlinien bis zur metrischen Tiefe aus Disparität.',

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { ImageView } from '../components/ImageView'
@@ -60,6 +61,8 @@ const T = {
     ],
     zhang2:
       'The closed-form solution only provides the starting point; the numbers you actually use come from the final nonlinear refinement.',
+    zhangLink: 'How does that minimization actually work — and why Levenberg–Marquardt?',
+    zhangLinkBtn: 'Module 3: Numerical Optimization →',
     capTitle: 'Interactive: capture good calibration views',
     cap1: 'This is a virtual calibration session. Pose the checkerboard in front of the camera and capture views. The checklist tells you when your dataset would produce a trustworthy calibration — try to make it fully green.',
     capWhy:
@@ -141,6 +144,8 @@ const T = {
     ],
     zhang2:
       'Die geschlossene Lösung liefert nur den Startwert; die Zahlen, mit denen man wirklich arbeitet, stammen aus der finalen nichtlinearen Optimierung.',
+    zhangLink: 'Wie funktioniert diese Minimierung eigentlich — und warum Levenberg–Marquardt?',
+    zhangLinkBtn: 'Modul 3: Numerische Optimierung →',
     capTitle: 'Interaktiv: gute Kalibrieransichten aufnehmen',
     cap1: 'Eine virtuelle Kalibriersitzung: Positioniere das Schachbrett vor der Kamera und nimm Ansichten auf. Die Checkliste zeigt, wann der Datensatz eine vertrauenswürdige Kalibrierung ergäbe — versuche, alles grün zu bekommen.',
     capWhy:
@@ -588,6 +593,14 @@ export function CalibrationPage() {
           </ol>
           <p>{t.zhang2}</p>
         </div>
+        <InfoBox>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{t.zhangLink}</span>
+            <Link to="/optimization" className="btn-primary text-[13px]">
+              {t.zhangLinkBtn}
+            </Link>
+          </div>
+        </InfoBox>
       </Section>
 
       <Section id="capture" title={t.capTitle}>
