@@ -3,11 +3,13 @@ import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { Derivation } from '../components/Derivation'
 import { PageToc } from '../components/PageToc'
+import { Link } from 'react-router-dom'
 import { InfoBox, Readout, Section, Segmented, Slider } from '../components/ui'
 import { fmt, mulberry32 } from '../lib/math'
 import {
-  attentionMatrix,
+  attentionFull,
   conv2d,
+  conv2dEx,
   KERNELS,
   makeTestImage,
   maxPool2,
@@ -48,6 +50,25 @@ const T = {
     causal: 'causal mask (GPT-style)',
     sharp: 'logit scale (·1/√d)',
     rowSum: 'row sum (softmax)',
+    attMix: 'value mixing: the output token',
+    attMixHint: 'Hover a token above to see how its output is built from the value vectors.',
+    attOut: 'output z',
+    convmechTitle: 'Interactive: stride, padding & receptive field',
+    convmech1: 'The convolution lab above kept the image the same size and stepped one pixel at a time. Two knobs change that — and set the shape of every CNN. Padding adds a border of zeros so edge pixels get a full window (and the output keeps the input size); stride is how far the window jumps each step, halving the resolution at stride 2. Slide the output position to walk the window across the input, and read the output size formula update live.',
+    convmech2: 'Stack such layers and a second thing grows silently: the receptive field — how much of the original image a single deep neuron can see. Each 3×3 layer widens it by 2, so after a few layers one neuron already summarizes a large patch. That growth is why depth lets CNNs go from edges to objects without ever using a giant kernel.',
+    cmStride: 'stride',
+    cmPad: 'padding',
+    cmPadNames: [
+      { value: 'valid', label: 'valid (no pad)' },
+      { value: 'same', label: 'same (pad 1)' },
+    ],
+    cmOutPos: 'output position',
+    cmInput: 'input (window highlighted)',
+    cmOutput: 'output',
+    cmDepth: 'network depth',
+    cmRF: 'receptive field',
+    cmRFView: 'one neuron’s receptive field grows with depth',
+    cmOutSize: 'output size',
     attDerivTitle: 'The attention formula, piece by piece',
     attDeriv: [
       { tex: String.raw`\mathbf{q}_i = W_Q \mathbf{x}_i, \qquad \mathbf{k}_j = W_K \mathbf{x}_j, \qquad \mathbf{v}_j = W_V \mathbf{x}_j`, note: 'Three learned projections of the same embeddings — the only trainable parts. In the demo they are fixed matrices.' },
@@ -74,6 +95,8 @@ const T = {
       'Vision transformers (ViT) cut images into patch tokens and apply exactly the attention above — CNNs and transformers have converged into one toolbox.',
       'Scaling laws: loss falls predictably with parameters, data and compute — the empirical engine behind today’s foundation models.',
     ],
+    vitLink: 'Attention meets pixels: how ViTs see images, and how CLIP joins vision to language.',
+    vitLinkBtn: 'Module ML·5: Vision Transformers & VLMs →',
     codeTitle: 'In practice',
     appTitle: '🏭 In the real world: scratch detection on brushed metal',
     appIntro:
@@ -120,6 +143,25 @@ const T = {
     causal: 'kausale Maske (GPT-Stil)',
     sharp: 'Logit-Skala (·1/√d)',
     rowSum: 'Zeilensumme (Softmax)',
+    attMix: 'Wertemischung: das Ausgabe-Token',
+    attMixHint: 'Fahre oben über ein Token, um zu sehen, wie seine Ausgabe aus den Wertevektoren gebaut wird.',
+    attOut: 'Ausgabe z',
+    convmechTitle: 'Interaktiv: Stride, Padding & rezeptives Feld',
+    convmech1: 'Das Faltungslabor oben hielt das Bild gleich groß und schritt pixelweise. Zwei Regler ändern das — und legen die Form jedes CNN fest. Padding fügt einen Rand aus Nullen hinzu, damit Randpixel ein volles Fenster bekommen (und die Ausgabe die Eingabegröße behält); Stride ist, wie weit das Fenster pro Schritt springt, was bei Stride 2 die Auflösung halbiert. Schiebe die Ausgabeposition, um das Fenster über die Eingabe zu führen, und lies die Ausgabegrößen-Formel live mit.',
+    convmech2: 'Stapelt man solche Schichten, wächst still ein Zweites: das rezeptive Feld — wie viel des Originalbilds ein einzelnes tiefes Neuron sehen kann. Jede 3×3-Schicht verbreitert es um 2, sodass nach wenigen Schichten ein Neuron bereits einen großen Bereich zusammenfasst. Dieses Wachstum ist der Grund, warum Tiefe CNNs von Kanten zu Objekten führt, ohne je einen riesigen Kern zu verwenden.',
+    cmStride: 'Stride',
+    cmPad: 'Padding',
+    cmPadNames: [
+      { value: 'valid', label: 'valid (kein Pad)' },
+      { value: 'same', label: 'same (Pad 1)' },
+    ],
+    cmOutPos: 'Ausgabeposition',
+    cmInput: 'Eingabe (Fenster hervorgehoben)',
+    cmOutput: 'Ausgabe',
+    cmDepth: 'Netztiefe',
+    cmRF: 'rezeptives Feld',
+    cmRFView: 'das rezeptive Feld eines Neurons wächst mit der Tiefe',
+    cmOutSize: 'Ausgabegröße',
     attDerivTitle: 'Die Attention-Formel, Stück für Stück',
     attDeriv: [
       { tex: String.raw`\mathbf{q}_i = W_Q \mathbf{x}_i, \qquad \mathbf{k}_j = W_K \mathbf{x}_j, \qquad \mathbf{v}_j = W_V \mathbf{x}_j`, note: 'Drei gelernte Projektionen derselben Embeddings — die einzigen trainierbaren Teile. In der Demo sind sie feste Matrizen.' },
@@ -146,6 +188,8 @@ const T = {
       'Vision Transformer (ViT) schneiden Bilder in Kachel-Tokens und wenden exakt die obige Attention an — CNNs und Transformer sind zu einem Werkzeugkasten verschmolzen.',
       'Skalierungsgesetze: Der Verlust fällt vorhersagbar mit Parametern, Daten und Rechenleistung — der empirische Motor hinter den heutigen Foundation-Modellen.',
     ],
+    vitLink: 'Attention trifft Pixel: wie ViTs Bilder sehen und wie CLIP Vision mit Sprache verbindet.',
+    vitLinkBtn: 'Modul ML·5: Vision Transformer & VLMs →',
     codeTitle: 'In der Praxis',
     appTitle: '🏭 In der echten Welt: Kratzererkennung auf gebürstetem Metall',
     appIntro:
@@ -343,8 +387,9 @@ function AttentionLab() {
   const [sharp, setSharp] = useState(1)
   const [hover, setHover] = useState<number | null>(null)
 
-  const A = useMemo(() => attentionMatrix(sharp, causal), [sharp, causal])
+  const { A, V, Z } = useMemo(() => attentionFull(sharp, causal), [sharp, causal])
   const n = TOKENS.length
+  const dHead = V[0].length
 
   const AW = 560
   const arcY = 70
@@ -440,6 +485,165 @@ function AttentionLab() {
         </div>
         <Readout label={t.rowSum} value={fmt(rowSum, 3)} accent="#4ade80" />
         <TeX block>{String.raw`\operatorname{Attention}(Q,K,V) = \operatorname{softmax}\!\left(\frac{QK^{\mathsf T}}{\sqrt{d}}\right) V`}</TeX>
+        {/* value mixing panel */}
+        <div className="card-pad">
+          <div className="mb-2 text-[12px] font-medium text-muted">{t.attMix}</div>
+          {hover === null ? (
+            <div className="text-[13px] text-muted">{t.attMixHint}</div>
+          ) : (
+            <div className="space-y-2">
+              {/* stacked contribution bar: each token j contributes A[hover][j] */}
+              <div className="flex h-5 w-full overflow-hidden rounded">
+                {A[hover].map((w, j) =>
+                  w < 0.005 ? null : (
+                    <div
+                      key={j}
+                      title={`${TOKENS[j]}: ${fmt(w, 2)}`}
+                      style={{ width: `${w * 100}%`, background: `hsl(${190 + j * 26}, 75%, 60%)` }}
+                    />
+                  ),
+                )}
+              </div>
+              {/* resulting z vector */}
+              <div className="flex items-end gap-1.5" style={{ height: 52 }}>
+                {Z[hover].map((v, d) => (
+                  <div key={d} className="flex flex-1 flex-col items-center justify-end">
+                    <div
+                      className="w-full rounded-t"
+                      style={{ height: `${Math.min(Math.abs(v) * 40, 46)}px`, background: v >= 0 ? '#22d3ee' : '#f87171' }}
+                    />
+                  </div>
+                ))}
+              </div>
+              <TeX block>{String.raw`\mathbf{z}_{${hover}} = \sum_j A_{${hover}j}\,\mathbf{v}_j \in \mathbb{R}^{${dHead}}`}</TeX>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- conv mechanics lab
+
+const CM_N = 12
+const CM_IMG: number[][] = (() => {
+  const rand = mulberry32(7)
+  return Array.from({ length: CM_N }, () => Array.from({ length: CM_N }, () => 0.2 + rand() * 0.7))
+})()
+const CM_KERNEL = KERNELS.edgeX
+
+function ConvMechLab() {
+  const t = useT(T)
+  const [stride, setStride] = useState(1)
+  const [pad, setPad] = useState<'valid' | 'same'>('same')
+  const [outPos, setOutPos] = useState(0)
+  const [depth, setDepth] = useState(1)
+
+  const padN = pad === 'same' ? 1 : 0
+  const out = useMemo(() => conv2dEx(CM_IMG, CM_KERNEL, { stride, pad: padN }), [stride, padN])
+  const outH = out.length
+  const outW = out[0].length
+  const nOut = outH * outW
+  const oi = Math.min(outPos, nOut - 1)
+  const oy = Math.floor(oi / outW)
+  const ox = oi % outW
+
+  // window origin in input coords (top-left of the 3×3)
+  const winX0 = ox * stride - padN
+  const winY0 = oy * stride - padN
+
+  // receptive field size after `depth` 3×3 layers
+  const rf = 1 + 2 * depth
+
+  const CELL = 20
+  const svgW = CM_N * CELL + 2
+  const svgH = CM_N * CELL + 2
+  const px = (i: number) => i * CELL + 1
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="card overflow-hidden">
+        <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">{t.cmInput}</div>
+        <svg viewBox={`0 0 ${svgW} ${svgH}`} className="block w-full">
+          {CM_IMG.map((row, y) =>
+            row.map((v, x) => {
+              const g = Math.round(v * 255)
+              return <rect key={`${x}-${y}`} x={px(x)} y={px(y)} width={CELL - 1} height={CELL - 1} fill={`rgb(${g},${g},${g})`} />
+            }),
+          )}
+          {/* highlighted window */}
+          {Array.from({ length: 3 }, (_, dy) =>
+            Array.from({ length: 3 }, (_, dx) => {
+              const ix = winX0 + dx
+              const iy = winY0 + dy
+              const oob = ix < 0 || ix >= CM_N || iy < 0 || iy >= CM_N
+              return (
+                <rect
+                  key={`w${dx}-${dy}`}
+                  x={px(ix)}
+                  y={px(iy)}
+                  width={CELL - 1}
+                  height={CELL - 1}
+                  fill={oob ? 'rgba(248,113,113,0.25)' : 'rgba(251,191,36,0.35)'}
+                  stroke="#fbbf24"
+                  strokeWidth={1.2}
+                />
+              )
+            }),
+          )}
+        </svg>
+      </div>
+      <div className="flex flex-col gap-3 self-start">
+        <div className="card overflow-hidden">
+          <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">{t.cmOutput}</div>
+          <svg viewBox={`0 0 ${outW * CELL + 2} ${outH * CELL + 2}`} className="block w-full" style={{ maxWidth: outW * CELL + 2 }}>
+            {out.map((row, y) =>
+              row.map((v, x) => {
+                const g = Math.round(Math.min(1, Math.max(0, Math.abs(v))) * 255)
+                const active = y === oy && x === ox
+                return (
+                  <rect
+                    key={`${x}-${y}`}
+                    x={x * CELL + 1}
+                    y={y * CELL + 1}
+                    width={CELL - 1}
+                    height={CELL - 1}
+                    fill={`rgb(${g},${Math.round(g * 0.7)},${Math.round(g * 0.4)})`}
+                    stroke={active ? '#fbbf24' : 'none'}
+                    strokeWidth={active ? 2 : 0}
+                  />
+                )
+              }),
+            )}
+          </svg>
+        </div>
+        <div className="card-pad space-y-3.5">
+          <div className="flex flex-wrap gap-4">
+            <div>
+              <div className="mb-1.5 text-[12px] text-muted">{t.cmStride}</div>
+              <Segmented options={[{ value: '1', label: '1' }, { value: '2', label: '2' }]} value={`${stride}`} onChange={(v) => { setStride(Number(v)); setOutPos(0) }} />
+            </div>
+            <div>
+              <div className="mb-1.5 text-[12px] text-muted">{t.cmPad}</div>
+              <Segmented options={t.cmPadNames} value={pad} onChange={(v) => { setPad(v as 'valid' | 'same'); setOutPos(0) }} />
+            </div>
+          </div>
+          <Slider label={t.cmOutPos} value={oi} min={0} max={nOut - 1} step={1} onChange={setOutPos} format={(v) => `${v % outW}, ${Math.floor(v / outW)}`} />
+          <Readout label={t.cmOutSize} value={`${outW} × ${outH}`} />
+          <TeX block>{String.raw`\left\lfloor\frac{${CM_N} + 2\cdot${padN} - 3}{${stride}}\right\rfloor + 1 = ${outW}`}</TeX>
+        </div>
+        <div className="card-pad space-y-3">
+          <Slider label={t.cmDepth} value={depth} min={1} max={4} step={1} onChange={setDepth} accent="#a78bfa" />
+          <div className="text-[12px] text-muted">{t.cmRFView}</div>
+          <svg viewBox={`0 0 ${svgW} 44`} className="block w-full">
+            {Array.from({ length: CM_N }, (_, x) => {
+              const inRf = x >= (CM_N - rf) / 2 && x < (CM_N + rf) / 2
+              return <rect key={x} x={px(x)} y={10} width={CELL - 1} height={CELL - 1} fill={inRf ? '#a78bfa' : 'rgba(255,255,255,0.08)'} />
+            })}
+          </svg>
+          <Readout label={t.cmRF} value={`${rf} × ${rf}`} accent="#a78bfa" />
+        </div>
       </div>
     </div>
   )
@@ -640,6 +844,7 @@ export function DeepLearningPage() {
         items={[
           { id: 'bias', label: t.biasTitle },
           { id: 'cnn', label: t.cnnTitle },
+          { id: 'convmech', label: t.convmechTitle },
           { id: 'hierarchy', label: t.hierTitle },
           { id: 'attention', label: t.attTitle },
           { id: 'anatomy', label: t.anatomyTitle },
@@ -669,6 +874,18 @@ export function DeepLearningPage() {
           <CnnLab />
         </div>
         <Derivation title={t.cnnDerivTitle} steps={t.cnnDeriv} />
+      </Section>
+
+      <Section id="convmech" title={t.convmechTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.convmech1}</p>
+        </div>
+        <div className="mt-4">
+          <ConvMechLab />
+        </div>
+        <div className="prose-cv mt-4 max-w-3xl">
+          <p>{t.convmech2}</p>
+        </div>
       </Section>
 
       <Section id="hierarchy" title={t.hierTitle}>
@@ -740,6 +957,14 @@ export function DeepLearningPage() {
             ))}
           </ul>
         </div>
+        <InfoBox tone="accent" title="→">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{t.vitLink}</span>
+            <Link to="/vision-transformers" state={{ scrollTo: 'vitattn' }} className="btn-primary text-[13px]">
+              {t.vitLinkBtn}
+            </Link>
+          </div>
+        </InfoBox>
       </Section>
 
       <Section id="code" title={t.codeTitle}>

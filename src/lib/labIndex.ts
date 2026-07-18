@@ -52,6 +52,7 @@ export const LAB_INDEX: LabEntry[] = [
   { path: '/neural-networks', sectionId: 'backprop', emoji: '🔁', title: { en: 'Backprop visualizer: watch δ flow', de: 'Backprop-Visualisierung: δ fließen sehen' } },
   { path: '/neural-networks', sectionId: 'gradcheck', emoji: '🔍', title: { en: 'Gradient checking', de: 'Gradient Checking' } },
   { path: '/deep-learning', sectionId: 'cnn', emoji: '🖼️', title: { en: 'CNN convolution kernel lab', de: 'CNN-Faltungskern-Labor' } },
+  { path: '/deep-learning', sectionId: 'convmech', emoji: '🪟', title: { en: 'Stride, padding & receptive field', de: 'Stride, Padding & rezeptives Feld' } },
   { path: '/deep-learning', sectionId: 'hierarchy', emoji: '🏗️', title: { en: 'Feature hierarchies', de: 'Merkmalshierarchien' } },
   { path: '/deep-learning', sectionId: 'attention', emoji: '👁️', title: { en: 'Self-attention heatmap', de: 'Self-Attention-Heatmap' } },
   // 🧮 Math

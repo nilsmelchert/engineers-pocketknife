@@ -106,6 +106,37 @@ export const KERNELS: Record<string, number[][]> = {
   ],
 }
 
+/**
+ * General 2D convolution with stride and zero-padding — powers the stride/
+ * padding lab. Output size is ⌊(N + 2·pad − k)/stride⌋ + 1.
+ */
+export function conv2dEx(
+  img: number[][],
+  kernel: number[][],
+  opts: { stride?: number; pad?: number } = {},
+): number[][] {
+  const stride = opts.stride ?? 1
+  const pad = opts.pad ?? 0
+  const H = img.length
+  const Wd = img[0].length
+  const k = kernel.length
+  const outH = Math.floor((H + 2 * pad - k) / stride) + 1
+  const outW = Math.floor((Wd + 2 * pad - k) / stride) + 1
+  const out: number[][] = Array.from({ length: outH }, () => new Array<number>(outW).fill(0))
+  for (let oy = 0; oy < outH; oy++)
+    for (let ox = 0; ox < outW; ox++) {
+      let s = 0
+      for (let ky = 0; ky < k; ky++)
+        for (let kx = 0; kx < k; kx++) {
+          const iy = oy * stride + ky - pad
+          const ix = ox * stride + kx - pad
+          if (iy >= 0 && iy < H && ix >= 0 && ix < Wd) s += img[iy][ix] * kernel[ky][kx]
+        }
+      out[oy][ox] = s
+    }
+  return out
+}
+
 // ---------------------------------------------------------------- toy attention
 
 export const TOKENS = ['the', 'robot', 'picks', 'the', 'red', 'cube']
@@ -141,8 +172,21 @@ const matVec = (M: number[][], v: number[]): number[] =>
  * Returns the row-stochastic attention matrix.
  */
 export function attentionMatrix(scale: number, causal: boolean): number[][] {
+  return attentionFull(scale, causal).A
+}
+
+/**
+ * Full toy attention: returns the projections Q, K, V, the attention matrix A
+ * and the mixed output Z = A·V. Powers the value-mixing panel — the picture the
+ * "output = weighted sum of values" step of the derivation was missing.
+ */
+export function attentionFull(
+  scale: number,
+  causal: boolean,
+): { Q: number[][]; K: number[][]; V: number[][]; A: number[][]; Z: number[][] } {
   const Q = TOY.E.map((e) => matVec(TOY.Wq, e))
   const K = TOY.E.map((e) => matVec(TOY.Wk, e))
+  const V = TOY.E.map((e) => matVec(TOY.Wv, e))
   const n = TOKENS.length
   const A: number[][] = []
   for (let i = 0; i < n; i++) {
@@ -156,5 +200,6 @@ export function attentionMatrix(scale: number, causal: boolean): number[][] {
     const sum = exps.reduce((a, b) => a + b, 0)
     A.push(exps.map((e) => e / sum))
   }
-  return A
+  const Z = A.map((row) => V[0].map((_, d) => row.reduce((s, a, j) => s + a * V[j][d], 0)))
+  return { Q, K, V, A, Z }
 }
