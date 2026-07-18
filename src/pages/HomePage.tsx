@@ -9,7 +9,7 @@ const HeroScene = lazy(() => import('../components/HeroScene'))
 const MINUTES: Record<string, number> = {
   '/camera-matrix': 25, '/calibration': 30, '/optimization': 30, '/stereo': 30, '/hand-eye': 25,
   '/pca': 20, '/kmeans': 20, '/clustering-2': 20, '/ransac': 15,
-  '/ml-basics': 25, '/optimization-advanced': 25, '/neural-networks': 30, '/deep-learning': 25,
+  '/ml-basics': 25, '/optimization-advanced': 25, '/neural-networks': 30, '/deep-learning': 25, '/vision-transformers': 30,
   '/probability': 20, '/svd': 20, '/ode': 15,
   '/fourier': 25, '/control': 20, '/kalman': 25,
   '/kinematics': 20, '/slam': 25,
@@ -25,7 +25,7 @@ const PATHS: { icon: string; name: { en: string; de: string }; modules: string[]
   {
     icon: '🧠',
     name: { en: 'ML Engineer', de: 'ML-Ingenieur:in' },
-    modules: ['/probability', '/ml-basics', '/optimization-advanced', '/neural-networks', '/deep-learning', '/pca', '/ransac'],
+    modules: ['/probability', '/ml-basics', '/optimization-advanced', '/neural-networks', '/deep-learning', '/vision-transformers', '/pca', '/ransac'],
   },
   {
     icon: '🤖',

@@ -239,6 +239,20 @@ export const TRACKS: TrackDef[] = [
           de: ['Faltungen', 'Merkmalshierarchien', 'Self-Attention', 'Transformer'],
         },
       },
+      {
+        path: '/vision-transformers',
+        num: 5,
+        title: { en: 'Vision Transformers & VLMs', de: 'Vision Transformer & VLMs' },
+        short: { en: 'ViT & VLMs', de: 'ViT & VLMs' },
+        desc: {
+          en: 'Attention meets pixels: images as patch tokens, per-patch attention maps, CLIP’s shared image–text space, and the anatomy of a vision-language model.',
+          de: 'Attention trifft Pixel: Bilder als Patch-Tokens, Attention-Karten pro Patch, CLIPs gemeinsamer Bild-Text-Raum und die Anatomie eines Vision-Language-Modells.',
+        },
+        topics: {
+          en: ['Patch tokens', 'Image attention', 'CLIP', 'Vision-language models'],
+          de: ['Patch-Tokens', 'Bild-Attention', 'CLIP', 'Vision-Language-Modelle'],
+        },
+      },
     ],
   },
   {

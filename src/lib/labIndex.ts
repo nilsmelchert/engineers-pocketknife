@@ -55,6 +55,11 @@ export const LAB_INDEX: LabEntry[] = [
   { path: '/deep-learning', sectionId: 'convmech', emoji: '🪟', title: { en: 'Stride, padding & receptive field', de: 'Stride, Padding & rezeptives Feld' } },
   { path: '/deep-learning', sectionId: 'hierarchy', emoji: '🏗️', title: { en: 'Feature hierarchies', de: 'Merkmalshierarchien' } },
   { path: '/deep-learning', sectionId: 'attention', emoji: '👁️', title: { en: 'Self-attention heatmap', de: 'Self-Attention-Heatmap' } },
+  { path: '/vision-transformers', sectionId: 'patchify', emoji: '🧩', title: { en: 'ViT tokenizer: an image as patch tokens', de: 'ViT-Tokenizer: ein Bild als Patch-Tokens' } },
+  { path: '/vision-transformers', sectionId: 'vitattn', emoji: '🔦', title: { en: 'Attention on an image (click a patch)', de: 'Attention auf einem Bild (Patch anklicken)' } },
+  { path: '/vision-transformers', sectionId: 'heads', emoji: '🧠', title: { en: 'Multi-head attention roles', de: 'Rollen der Multi-Head-Attention' } },
+  { path: '/vision-transformers', sectionId: 'clip', emoji: '🧲', title: { en: 'CLIP: drag the shared image–text space', de: 'CLIP: den gemeinsamen Bild-Text-Raum ziehen' } },
+  { path: '/vision-transformers', sectionId: 'vlm', emoji: '🗣️', title: { en: 'Vision-language model pipeline', de: 'Vision-Language-Modell-Pipeline' } },
   // 🧮 Math
   { path: '/probability', sectionId: 'distributions', emoji: '🔔', title: { en: 'Distributions & central limit theorem', de: 'Verteilungen & zentraler Grenzwertsatz' } },
   { path: '/probability', sectionId: 'bayes', emoji: '🩺', title: { en: 'Base-rate trap (Bayes with 1000 dots)', de: 'Basisraten-Falle (Bayes mit 1000 Punkten)' } },
@@ -117,4 +122,5 @@ export const LAB_INDEX: LabEntry[] = [
   { path: '/slam', sectionId: 'application', emoji: '🔋', title: { en: 'Return-to-dock: odometry vs SLAM', de: 'Zurück zur Ladestation: Odometrie vs SLAM' } },
   { path: '/measurement', sectionId: 'application', emoji: '🛡️', title: { en: 'Guard-banding at the tolerance limit', de: 'Guard-Banding an der Toleranzgrenze' } },
   { path: '/metrology-3d', sectionId: 'application', emoji: '⚡', title: { en: 'Inline weld-seam inspection (laser profile)', de: 'Inline-Schweißnahtprüfung (Laserprofil)' } },
+  { path: '/vision-transformers', sectionId: 'application', emoji: '🔎', title: { en: 'Zero-shot defect triage (CLIP-style)', de: 'Zero-Shot-Fehlertriage (CLIP-Stil)' } },
 ]

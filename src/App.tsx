@@ -21,6 +21,7 @@ const KalmanPage = lazy(() => import('./pages/KalmanPage').then((m) => ({ defaul
 const MeasurementPage = lazy(() => import('./pages/MeasurementPage').then((m) => ({ default: m.MeasurementPage })))
 const Metrology3dPage = lazy(() => import('./pages/Metrology3dPage').then((m) => ({ default: m.Metrology3dPage })))
 const DeepLearningPage = lazy(() => import('./pages/DeepLearningPage').then((m) => ({ default: m.DeepLearningPage })))
+const VisionTransformersPage = lazy(() => import('./pages/VisionTransformersPage').then((m) => ({ default: m.VisionTransformersPage })))
 const KinematicsPage = lazy(() => import('./pages/KinematicsPage').then((m) => ({ default: m.KinematicsPage })))
 const RansacPage = lazy(() => import('./pages/RansacPage').then((m) => ({ default: m.RansacPage })))
 const OdePage = lazy(() => import('./pages/OdePage').then((m) => ({ default: m.OdePage })))
@@ -67,6 +68,7 @@ export function App() {
           <Route path="/measurement" element={<MeasurementPage />} />
           <Route path="/metrology-3d" element={<Metrology3dPage />} />
           <Route path="/deep-learning" element={<DeepLearningPage />} />
+          <Route path="/vision-transformers" element={<VisionTransformersPage />} />
           <Route path="/kinematics" element={<KinematicsPage />} />
           <Route path="/ransac" element={<RansacPage />} />
           <Route path="/ode" element={<OdePage />} />
