@@ -49,6 +49,7 @@ export const LAB_INDEX: LabEntry[] = [
   { path: '/optimization-advanced', sectionId: 'lagrange', emoji: '🔗', title: { en: 'Lagrange constraint walk', de: 'Lagrange-Nebenbedingungswanderung' } },
   { path: '/neural-networks', sectionId: 'neuron', emoji: '🧫', title: { en: 'Single-neuron anatomy', de: 'Anatomie eines Neurons' } },
   { path: '/neural-networks', sectionId: 'playground', emoji: '🧠', title: { en: 'Neural-network playground (live training)', de: 'Neuronale-Netze-Spielplatz (Live-Training)' } },
+  { path: '/neural-networks', sectionId: 'backprop', emoji: '🔁', title: { en: 'Backprop visualizer: watch δ flow', de: 'Backprop-Visualisierung: δ fließen sehen' } },
   { path: '/neural-networks', sectionId: 'gradcheck', emoji: '🔍', title: { en: 'Gradient checking', de: 'Gradient Checking' } },
   { path: '/deep-learning', sectionId: 'cnn', emoji: '🖼️', title: { en: 'CNN convolution kernel lab', de: 'CNN-Faltungskern-Labor' } },
   { path: '/deep-learning', sectionId: 'hierarchy', emoji: '🏗️', title: { en: 'Feature hierarchies', de: 'Merkmalshierarchien' } },

@@ -117,6 +117,54 @@ export function mlpGrad(m: Mlp, batch: { x: number[]; y: number }[]): MlpGrads {
   return { dW, db, loss: loss / n }
 }
 
+export interface BackpropTrace {
+  /** pre-activations per layer (zs[l] = layer l+1 pre-activation) */
+  zs: number[][]
+  /** activations, as[0] = input, as[L] = output */
+  as: number[][]
+  /** deltas[l] = δ at weight-layer l; deltas[L-1] is the output delta (p − y) */
+  deltas: number[][]
+  /** per-weight gradients for THIS single sample */
+  dW: number[][][]
+  db: number[][]
+  p: number
+  loss: number
+}
+
+/**
+ * Single-sample forward+backward pass that RETAINS the per-layer deltas that
+ * `mlpGrad` computes and discards — the data behind the interactive backprop
+ * visualizer. Guarantee: its dW equals `mlpGrad(m, [{x, y}]).dW` exactly.
+ */
+export function mlpBackpropTrace(m: Mlp, x: number[], y: number): BackpropTrace {
+  const L = m.W.length
+  const { zs, as } = mlpForward(m, x)
+  const p = as[L][0]
+  const loss = -(y * Math.log(p + EPS) + (1 - y) * Math.log(1 - p + EPS))
+  const dW = m.W.map((Wl) => Wl.map((row) => row.map(() => 0)))
+  const db = m.b.map((bl) => bl.map(() => 0))
+  const deltas: number[][] = m.W.map((Wl) => new Array<number>(Wl.length).fill(0))
+
+  let delta = [p - y]
+  for (let l = L - 1; l >= 0; l--) {
+    deltas[l] = [...delta]
+    for (let j = 0; j < m.W[l].length; j++) {
+      db[l][j] = delta[j]
+      for (let i = 0; i < m.W[l][j].length; i++) dW[l][j][i] = delta[j] * as[l][i]
+    }
+    if (l > 0) {
+      const next = new Array<number>(m.sizes[l]).fill(0)
+      for (let i = 0; i < m.sizes[l]; i++) {
+        let s = 0
+        for (let j = 0; j < m.W[l].length; j++) s += m.W[l][j][i] * delta[j]
+        next[i] = s * ACT[m.act].df(zs[l - 1][i])
+      }
+      delta = next
+    }
+  }
+  return { zs, as, deltas, dW, db, p, loss }
+}
+
 export function mlpEval(m: Mlp, data: { x: number[]; y: number }[]): { loss: number; acc: number } {
   let loss = 0
   let correct = 0

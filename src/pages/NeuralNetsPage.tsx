@@ -11,6 +11,7 @@ import {
   applySgd,
   createAdamState,
   createMlp,
+  mlpBackpropTrace,
   mlpEval,
   mlpGrad,
   mlpNeuron,
@@ -57,6 +58,42 @@ const T = {
     backTitle: 'Backpropagation: the chain rule, industrialized',
     back1: 'Training needs ∂L/∂w for every weight. Backprop computes all of them in one backward sweep: run the network forward, then propagate the error signal δ backward through the same connections, multiplying by local derivatives along the way — the chain rule, applied systematically:',
     back2: 'The cost of all gradients is about twice a forward pass — independent of the parameter count. This is the algorithmic miracle that makes deep learning affordable, and the same trick your autograd framework performs when you call loss.backward().',
+    bpLabIntro: 'Watch every number. This tiny 2-3-2-1 network runs one training sample; step through the phases and see the forward pass fill the neurons left-to-right, then the error signal δ flow right-to-left, thickening each wire by the gradient it carries. Every formula above is shown here with its actual numbers substituted — the chain rule stops being abstract.',
+    bpForward: 'Forward',
+    bpBackward: 'Backward',
+    bpPrev: 'Back',
+    bpNext: 'Next',
+    bpReset: 'Reset',
+    bpShuffle: 'New weights',
+    bpSample: 'sample',
+    bpModeSweep: 'full sweep',
+    bpModeChain: 'one weight',
+    bpMode: 'mode',
+    bpChainHint: 'Click any wire to trace one weight’s gradient through the chain rule.',
+    bpChainPick: 'pick a weight',
+    bpPhaseNames: {
+      input: 'input x',
+      z1: 'pre-activation z⁽¹⁾',
+      a1: 'activation a⁽¹⁾',
+      z2: 'pre-activation z⁽²⁾',
+      a2: 'activation a⁽²⁾',
+      z3: 'output logit z⁽³⁾',
+      p: 'prediction ŷ',
+      loss: 'loss L',
+      d3: 'output error δ⁽³⁾',
+      d2: 'hidden error δ⁽²⁾',
+      d1: 'hidden error δ⁽¹⁾',
+      grad: 'gradients ∂L/∂W',
+    },
+    bpLoss: 'loss L',
+    bpPred: 'prediction ŷ',
+    bpChainVal: '∂L/∂w for the picked weight',
+    bpChainEq: 'chain rule at this weight',
+    bpBpVal: 'backprop',
+    bpFdVal: 'finite difference',
+    bpMatch: 'match',
+    bpMatchYes: '✓ identical',
+    bpLegend: 'node fill = activation · red/cyan tint = δ sign · wire width = |∂L/∂w|',
     checkTitle: 'Interactive: trust but verify — gradient checking',
     check1: 'Is the backward pass right? Compare it against the definition of the derivative: nudge one weight by ±ε and difference the loss. The two numbers below come from a small fixed network: one via backprop, one via finite differences. Slide ε: too large and the truncation error of the approximation shows; too small and floating-point cancellation takes over. The sweet spot around 10⁻⁴ – 10⁻⁵ is where implementers of every deep-learning framework live.',
     checkEps: 'finite-difference ε',
@@ -122,6 +159,42 @@ const T = {
     backTitle: 'Backpropagation: die Kettenregel, industrialisiert',
     back1: 'Training braucht ∂L/∂w für jedes Gewicht. Backprop berechnet alle in einem Rückwärtsdurchlauf: Netz vorwärts auswerten, dann das Fehlersignal δ rückwärts durch dieselben Verbindungen propagieren und unterwegs mit lokalen Ableitungen multiplizieren — die Kettenregel, systematisch angewandt:',
     back2: 'Alle Gradienten kosten etwa das Doppelte eines Vorwärtsdurchlaufs — unabhängig von der Parameterzahl. Das ist das algorithmische Wunder, das Deep Learning bezahlbar macht, und derselbe Trick, den dein Autograd-Framework bei loss.backward() ausführt.',
+    bpLabIntro: 'Beobachte jede Zahl. Dieses winzige 2-3-2-1-Netz verarbeitet ein Trainingsbeispiel; schreite durch die Phasen und sieh, wie der Vorwärtsdurchlauf die Neuronen von links nach rechts füllt, dann das Fehlersignal δ von rechts nach links fließt und jede Leitung um den Gradienten verdickt, den sie trägt. Jede Formel oben wird hier mit ihren tatsächlichen Zahlen gezeigt — die Kettenregel hört auf, abstrakt zu sein.',
+    bpForward: 'Vorwärts',
+    bpBackward: 'Rückwärts',
+    bpPrev: 'Zurück',
+    bpNext: 'Weiter',
+    bpReset: 'Zurücksetzen',
+    bpShuffle: 'Neue Gewichte',
+    bpSample: 'Beispiel',
+    bpModeSweep: 'ganzer Durchlauf',
+    bpModeChain: 'ein Gewicht',
+    bpMode: 'Modus',
+    bpChainHint: 'Klicke eine Leitung, um den Gradienten eines Gewichts durch die Kettenregel zu verfolgen.',
+    bpChainPick: 'Gewicht wählen',
+    bpPhaseNames: {
+      input: 'Eingabe x',
+      z1: 'Vor-Aktivierung z⁽¹⁾',
+      a1: 'Aktivierung a⁽¹⁾',
+      z2: 'Vor-Aktivierung z⁽²⁾',
+      a2: 'Aktivierung a⁽²⁾',
+      z3: 'Ausgabe-Logit z⁽³⁾',
+      p: 'Vorhersage ŷ',
+      loss: 'Verlust L',
+      d3: 'Ausgabefehler δ⁽³⁾',
+      d2: 'verdeckter Fehler δ⁽²⁾',
+      d1: 'verdeckter Fehler δ⁽¹⁾',
+      grad: 'Gradienten ∂L/∂W',
+    },
+    bpLoss: 'Verlust L',
+    bpPred: 'Vorhersage ŷ',
+    bpChainVal: '∂L/∂w für das gewählte Gewicht',
+    bpChainEq: 'Kettenregel an diesem Gewicht',
+    bpBpVal: 'Backprop',
+    bpFdVal: 'finite Differenz',
+    bpMatch: 'Übereinstimmung',
+    bpMatchYes: '✓ identisch',
+    bpLegend: 'Knotenfüllung = Aktivierung · rot/cyan = δ-Vorzeichen · Leitungsbreite = |∂L/∂w|',
     checkTitle: 'Interaktiv: Vertrauen ist gut — Gradient Checking',
     check1: 'Stimmt der Rückwärtsdurchlauf? Vergleiche ihn mit der Definition der Ableitung: Stupse ein Gewicht um ±ε an und differenziere den Verlust. Die beiden Zahlen unten stammen aus einem kleinen festen Netz: eine per Backprop, eine per finiter Differenz. Schiebe ε: zu groß, und der Abschneidefehler der Näherung zeigt sich; zu klein, und die Gleitkomma-Auslöschung übernimmt. Der Sweet Spot um 10⁻⁴ – 10⁻⁵ ist das Zuhause aller Framework-Entwickler.',
     checkEps: 'Finite-Differenzen-ε',
@@ -514,6 +587,255 @@ function Playground() {
   )
 }
 
+// ---------------------------------------------------------------- backprop visualizer
+
+const BP_SIZES = [2, 3, 2, 1]
+const BP_SAMPLES: { x: number[]; y: number }[] = [
+  { x: [0.7, -0.5], y: 1 },
+  { x: [-0.8, 0.4], y: 0 },
+  { x: [0.3, 0.85], y: 1 },
+]
+type BpPhaseKey = 'input' | 'z1' | 'a1' | 'z2' | 'a2' | 'z3' | 'p' | 'loss' | 'd3' | 'd2' | 'd1' | 'grad'
+const BP_PHASES: BpPhaseKey[] = ['input', 'z1', 'a1', 'z2', 'a2', 'z3', 'p', 'loss', 'd3', 'd2', 'd1', 'grad']
+// which weight-layer's output activation each forward phase reveals (as index), and delta index for backward
+const FWD_REVEAL: Partial<Record<BpPhaseKey, number>> = { input: 0, a1: 1, a2: 2, p: 3 }
+const DELTA_REVEAL: Partial<Record<BpPhaseKey, number>> = { d3: 2, d2: 1, d1: 0 }
+
+function BackpropLab() {
+  const t = useT(T)
+  const [seed, setSeed] = useState(3)
+  const [sampleIdx, setSampleIdx] = useState(0)
+  const [phase, setPhase] = useState(0)
+  const [mode, setMode] = useState<'sweep' | 'chain'>('sweep')
+  const [pick, setPick] = useState<{ l: number; i: number; j: number } | null>(null)
+
+  const model = useMemo(() => createMlp(BP_SIZES, 'tanh', seed), [seed])
+  const sample = BP_SAMPLES[sampleIdx]
+  const tr = useMemo(() => mlpBackpropTrace(model, sample.x, sample.y), [model, sample])
+
+  const ph = BP_PHASES[phase]
+  const phaseNames = t.bpPhaseNames as Record<BpPhaseKey, string>
+  const isBackward = phase >= 8
+  // how far forward activations are revealed
+  const revealAs = (() => {
+    let r = -1
+    for (let p = 0; p <= phase; p++) {
+      const rv = FWD_REVEAL[BP_PHASES[p]]
+      if (rv !== undefined) r = Math.max(r, rv)
+    }
+    return r
+  })()
+  const deltaShown = (l: number) => {
+    for (let p = 8; p <= Math.min(phase, 10); p++) {
+      if (DELTA_REVEAL[BP_PHASES[p]] === l) return true
+    }
+    return phase === 11
+  }
+
+  const DW = 520
+  const DH = 300
+  const nodeX = (l: number) => 40 + (l / (BP_SIZES.length - 1)) * (DW - 100)
+  const nodeY = (l: number, i: number) => DH / 2 + (i - (BP_SIZES[l] - 1) / 2) * 56
+
+  const maxGrad = Math.max(...tr.dW.flat(2).map(Math.abs), 1e-6)
+
+  // finite-difference check for the picked weight
+  const fdCheck = useMemo(() => {
+    if (!pick) return null
+    const bp = tr.dW[pick.l][pick.j][pick.i]
+    const eps = 1e-4
+    const perturbed = (d: number) => {
+      const m2 = createMlp(BP_SIZES, 'tanh', seed)
+      m2.W[pick.l][pick.j][pick.i] += d
+      const p = mlpPredict(m2, sample.x)
+      return -(sample.y * Math.log(p + 1e-9) + (1 - sample.y) * Math.log(1 - p + 1e-9))
+    }
+    const fd = (perturbed(eps) - perturbed(-eps)) / (2 * eps)
+    return { bp, fd, deltaJ: tr.deltas[pick.l][pick.j], aI: tr.as[pick.l][pick.i] }
+  }, [pick, tr, seed, sample])
+
+  // formula panel with substituted numbers
+  const formula = (() => {
+    const f = (x: number) => fmt(x, 2)
+    switch (ph) {
+      case 'input':
+        return String.raw`\mathbf{x} = (${f(sample.x[0])},\; ${f(sample.x[1])}), \qquad y = ${sample.y}`
+      case 'z1':
+      case 'z2':
+      case 'z3': {
+        const l = ph === 'z1' ? 0 : ph === 'z2' ? 1 : 2
+        return String.raw`z^{(${l + 1})} = W^{(${l + 1})} a^{(${l})} + b = (${tr.zs[l].map(f).join(',\\; ')})`
+      }
+      case 'a1':
+      case 'a2': {
+        const l = ph === 'a1' ? 1 : 2
+        return String.raw`a^{(${l})} = \tanh\!\big(z^{(${l})}\big) = (${tr.as[l].map(f).join(',\\; ')})`
+      }
+      case 'p':
+        return String.raw`\hat{y} = \sigma\!\big(z^{(3)}\big) = ${f(tr.p)}`
+      case 'loss':
+        return String.raw`L = -\big[y\log\hat{y} + (1-y)\log(1-\hat{y})\big] = ${f(tr.loss)}`
+      case 'd3':
+        return String.raw`\delta^{(3)} = \hat{y} - y = ${f(tr.p)} - ${sample.y} = ${f(tr.deltas[2][0])}`
+      case 'd2':
+        return String.raw`\delta^{(2)} = \big(W^{(3)\mathsf T}\delta^{(3)}\big)\odot\tanh'\!\big(z^{(2)}\big) = (${tr.deltas[1].map(f).join(',\\; ')})`
+      case 'd1':
+        return String.raw`\delta^{(1)} = \big(W^{(2)\mathsf T}\delta^{(2)}\big)\odot\tanh'\!\big(z^{(1)}\big) = (${tr.deltas[0].map(f).join(',\\; ')})`
+      case 'grad':
+        return String.raw`\frac{\partial L}{\partial W^{(l)}_{ji}} = \delta^{(l)}_j\, a^{(l-1)}_i \quad\text{— every wire now carries its gradient}`
+    }
+  })()
+
+  const nodeFill = (l: number, i: number): { fill: string; text: string } => {
+    if (isBackward && l >= 1 && deltaShown(l - 1)) {
+      const d = tr.deltas[l - 1][i]
+      const mag = Math.min(Math.abs(d) * 2.5, 0.85)
+      return { fill: d >= 0 ? `rgba(34,211,238,${mag})` : `rgba(248,113,113,${mag})`, text: fmt(d, 2) }
+    }
+    if (l <= revealAs) {
+      const a = tr.as[l][i]
+      const mag = Math.min(Math.abs(a) * 0.7, 0.8)
+      return { fill: `rgba(167,139,250,${mag})`, text: fmt(a, 2) }
+    }
+    return { fill: 'rgba(255,255,255,0.05)', text: '' }
+  }
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${DW} ${DH}`} className="block w-full">
+          {/* edges */}
+          {model.W.map((Wl, l) =>
+            Wl.map((row, j) =>
+              row.map((_, i) => {
+                const g = tr.dW[l][j][i]
+                const showGrad = phase === 11 || (mode === 'chain' && pick && pick.l === l && pick.i === i && pick.j === j)
+                const picked = mode === 'chain' && pick && pick.l === l && pick.i === i && pick.j === j
+                const width = showGrad ? 0.6 + (Math.abs(g) / maxGrad) * 5 : 1
+                const color = picked ? '#fbbf24' : showGrad ? (g >= 0 ? 'rgba(34,211,238,0.7)' : 'rgba(248,113,113,0.7)') : 'rgba(255,255,255,0.12)'
+                return (
+                  <line
+                    key={`${l}-${j}-${i}`}
+                    x1={nodeX(l)}
+                    y1={nodeY(l, i)}
+                    x2={nodeX(l + 1)}
+                    y2={nodeY(l + 1, j)}
+                    stroke={color}
+                    strokeWidth={width}
+                    style={{ cursor: mode === 'chain' ? 'pointer' : 'default' }}
+                    onClick={() => mode === 'chain' && setPick({ l, i, j })}
+                  />
+                )
+              }),
+            ),
+          )}
+          {/* nodes */}
+          {BP_SIZES.map((n, l) =>
+            Array.from({ length: n }, (_, i) => {
+              const { fill, text } = nodeFill(l, i)
+              return (
+                <g key={`${l}-${i}`}>
+                  <circle cx={nodeX(l)} cy={nodeY(l, i)} r={16} fill={fill} stroke="rgba(255,255,255,0.3)" strokeWidth={1.2} />
+                  {text && (
+                    <text x={nodeX(l)} y={nodeY(l, i) + 4} textAnchor="middle" fill="#e6eaf2" fontSize={11} fontFamily="JetBrains Mono, monospace">
+                      {text}
+                    </text>
+                  )}
+                </g>
+              )
+            }),
+          )}
+        </svg>
+        <div className="border-t border-white/10 px-4 py-2 text-[12px] text-muted">{t.bpLegend}</div>
+      </div>
+
+      <div className="flex flex-col gap-3 self-start lg:col-span-2">
+        {/* phase chips */}
+        <div className="flex flex-wrap gap-1.5">
+          {BP_PHASES.map((p, i) => (
+            <button
+              key={p}
+              onClick={() => setPhase(i)}
+              className={`rounded px-1.5 py-0.5 text-[10.5px] font-mono transition ${
+                i === phase
+                  ? 'bg-accent/25 text-accent'
+                  : i < 8
+                    ? 'bg-white/[0.04] text-muted hover:text-ink'
+                    : 'bg-white/[0.04] text-muted hover:text-ink'
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+        <div className="text-[13px] font-semibold" style={{ color: isBackward ? '#22d3ee' : '#a78bfa' }}>
+          {isBackward ? `◀ ${t.bpBackward}` : `${t.bpForward} ▶`} · {phaseNames[ph]}
+        </div>
+        <div className="card-pad overflow-x-auto">
+          <TeX block>{formula ?? ''}</TeX>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button className="btn" onClick={() => setPhase((p) => Math.max(0, p - 1))}>
+            ◀ {t.bpPrev}
+          </button>
+          <button className="btn-primary" onClick={() => setPhase((p) => Math.min(BP_PHASES.length - 1, p + 1))}>
+            {t.bpNext} ▶
+          </button>
+          <button className="btn" onClick={() => { setPhase(0); setPick(null) }}>
+            ↺ {t.bpReset}
+          </button>
+          <button className="btn" onClick={() => { setSeed((s) => s + 1); setPhase(0); setPick(null) }}>
+            🎲 {t.bpShuffle}
+          </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div>
+            <div className="mb-1 text-[11px] text-muted">{t.bpSample}</div>
+            <Segmented
+              options={BP_SAMPLES.map((_, i) => ({ value: `${i}`, label: `#${i + 1}` }))}
+              value={`${sampleIdx}`}
+              onChange={(v) => { setSampleIdx(Number(v)); setPhase(0); setPick(null) }}
+            />
+          </div>
+          <div>
+            <div className="mb-1 text-[11px] text-muted">{t.bpMode}</div>
+            <Segmented
+              options={[
+                { value: 'sweep', label: t.bpModeSweep },
+                { value: 'chain', label: t.bpModeChain },
+              ]}
+              value={mode}
+              onChange={(v) => setMode(v as 'sweep' | 'chain')}
+            />
+          </div>
+        </div>
+        {mode === 'chain' && (
+          <div className="card-pad">
+            {!fdCheck ? (
+              <div className="text-[13px] text-muted">{t.bpChainHint}</div>
+            ) : (
+              <div className="space-y-2">
+                <TeX block>{String.raw`\frac{\partial L}{\partial w} = \delta_j\, a_i = ${fmt(fdCheck.deltaJ, 3)}\cdot ${fmt(fdCheck.aI, 3)} = ${fmt(fdCheck.bp, 4)}`}</TeX>
+                <div className="grid grid-cols-2 gap-2">
+                  <Readout label={t.bpBpVal} value={fmt(fdCheck.bp, 4)} />
+                  <Readout
+                    label={t.bpFdVal}
+                    value={fmt(fdCheck.fd, 4)}
+                    accent={Math.abs(fdCheck.bp - fdCheck.fd) < 1e-4 ? '#4ade80' : '#fbbf24'}
+                  />
+                </div>
+                <div className="text-[12px]" style={{ color: Math.abs(fdCheck.bp - fdCheck.fd) < 1e-4 ? '#4ade80' : '#fbbf24' }}>
+                  {t.bpMatch}: {Math.abs(fdCheck.bp - fdCheck.fd) < 1e-4 ? t.bpMatchYes : `Δ ${fmt(Math.abs(fdCheck.bp - fdCheck.fd), 6)}`}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- gradient check
 
 function GradCheck() {
@@ -729,6 +1051,10 @@ export function NeuralNetsPage() {
           <p>{t.back1}</p>
           <TeX block>{String.raw`\delta^{(L)} = \hat{y} - y, \qquad \delta^{(l)} = \big(W^{(l+1)\mathsf T}\, \delta^{(l+1)}\big) \odot \varphi'\!\big(z^{(l)}\big), \qquad \frac{\partial L}{\partial W^{(l)}} = \delta^{(l)}\, a^{(l-1)\mathsf T}`}</TeX>
           <p>{t.back2}</p>
+          <p>{t.bpLabIntro}</p>
+        </div>
+        <div className="mt-4">
+          <BackpropLab />
         </div>
       </Section>
 
