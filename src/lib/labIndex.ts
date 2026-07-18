@@ -26,6 +26,7 @@ export const LAB_INDEX: LabEntry[] = [
   { path: '/stereo', sectionId: 'triangulation', emoji: '📡', title: { en: 'Stereo triangulation + uncertainty wedge', de: 'Stereo-Triangulation + Unsicherheitskeil' } },
   { path: '/stereo', sectionId: 'epipolar', emoji: '📏', title: { en: 'Epipolar geometry (drag the point)', de: 'Epipolargeometrie (Punkt ziehen)' } },
   { path: '/stereo', sectionId: 'depth', emoji: '📉', title: { en: 'Disparity → depth curve', de: 'Disparität → Tiefe' } },
+  { path: '/stereo', sectionId: 'matching', emoji: '🧱', title: { en: 'Live block matching: compute a disparity map', de: 'Live-Blockmatching: eine Disparitätskarte berechnen' } },
   { path: '/hand-eye', sectionId: 'lab', emoji: '🦾', title: { en: 'Hand-eye kinematic loop + ghost board', de: 'Hand-Auge-Schleife + Geisterbrett' } },
   { path: '/hand-eye', sectionId: 'capture', emoji: '🤖', title: { en: 'AX = XB pose-pair verification', de: 'AX = XB Posenpaar-Verifikation' } },
   // 📊 Data

@@ -1,15 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { MatrixView } from '../components/MatrixView'
 import { ImageView } from '../components/ImageView'
 import { PageToc } from '../components/PageToc'
-import { InfoBox, Readout, Section, Slider } from '../components/ui'
+import { Derivation } from '../components/Derivation'
+import { InfoBox, Readout, Section, Segmented, Slider } from '../components/ui'
 import { CameraFrustumViz, Polyline, Quad, Scene3D } from '../components/three/helpers'
 import {
   add,
   cameraCenter,
   epipolarSegment,
+  essential,
   fmt,
   fmtSci,
   fundamental,
@@ -25,6 +27,7 @@ import {
   type Intrinsics,
   type V3,
 } from '../lib/math'
+import { blockMatch, costCurve, dispStats, makeStereoPair, SM_MAXD, SM_W, SM_H } from '../lib/stereoMatch'
 
 const W = 640
 const H = 480
@@ -107,6 +110,45 @@ const T = {
       'Occlusions: some pixels are visible in only one camera and have no valid disparity.',
       'Active stereo (projected IR texture, e.g. RealSense) fights the first two problems.',
     ],
+    matchLab1:
+      'Enough theory — here is an actual stereo matcher running in your browser. The left/right pair below is synthetic (a slanted wall, two boxes and a disk, so the true disparity of every pixel is known), and the algorithm is the honest classic: for every left pixel, slide a window along the same row of the right image, score each candidate shift with SAD or SSD, keep the best. The result map is color-coded near-to-far; switch to ground truth or |error| to grade it. Then click any pixel in the disparity map: the cost curve below shows exactly what the matcher saw at that pixel — and why it chose what it chose.',
+    matchLab2:
+      'The three failure modes from the list above are all in this scene. Turn texture down and watch the wall dissolve into noise while its cost curves go flat — no texture, no signal. Look right of each box edge: a band of wrong disparity that no window size fixes — those background pixels are occluded in the right view, there IS no correct match. And sweep the window size: small windows are noisy but sharp, large windows are clean but fatten every object boundary. Forty years of stereo research lives inside these three trade-offs.',
+    matchWin: 'window size',
+    matchTex: 'surface texture',
+    matchNoise: 'sensor noise σ',
+    matchMetric: 'cost metric',
+    matchView: 'map view',
+    matchViewNames: [
+      { value: 'est', label: 'estimated' },
+      { value: 'gt', label: 'ground truth' },
+      { value: 'err', label: '|error|' },
+    ],
+    matchLeftT: 'left image',
+    matchRightT: 'right image',
+    matchDispT: 'disparity map — click a pixel to probe its cost curve',
+    matchMed: 'median error',
+    matchBad: 'bad pixels (>1 px)',
+    matchMs: 'compute time',
+    matchProbe: 'cost curve at the clicked pixel — amber = chosen minimum, green dashed = true disparity',
+    matchProbeHint: 'click the disparity map to probe a pixel',
+    matchOccNote: 'hatched = occluded in the right view (excluded from the statistics)',
+    depthDerivTitle: 'The depth formula, derived',
+    depthDeriv: [
+      { tex: String.raw`\frac{u_L - c_x}{f} = \frac{X}{Z}, \qquad \frac{u_R - c_x}{f} = \frac{X - b}{Z}`, note: 'Two similar-triangle relations: each camera sees the same point, the right one from a viewpoint shifted by the baseline b.' },
+      { tex: String.raw`d \;=\; u_L - u_R \;=\; \frac{f\,b}{Z}`, note: 'Subtract — X cancels. The disparity depends only on depth, baseline and focal length.' },
+      { tex: String.raw`Z = \frac{f\,b}{d}`, note: 'Invert: metric depth from a pixel offset. This one line is the entire business model of every stereo camera.' },
+      { tex: String.raw`\left|\frac{\partial Z}{\partial d}\right| = \frac{f\,b}{d^2} = \frac{Z^2}{f\,b} \;\;\Rightarrow\;\; \Delta Z \approx \frac{Z^2}{f\,b}\,\Delta d`, note: 'Differentiate: a fixed matching error Δd costs depth accuracy growing with Z² — the quadratic degradation the wedge demo above makes visible.' },
+    ],
+    essDerivTitle: 'E = [t]×R from coplanarity',
+    essDeriv: [
+      { tex: String.raw`\hat{\mathbf{x}}_2 \;\sim\; R\,\hat{\mathbf{x}}_1\text{-ray}, \quad \mathbf{t}: \text{ baseline between the centers}`, note: 'Work in normalized coordinates (K removed). The two viewing rays of one 3D point and the baseline vector all lie in one plane — the epipolar plane.' },
+      { tex: String.raw`\hat{\mathbf{x}}_2 \cdot \big(\mathbf{t} \times R\,\hat{\mathbf{x}}_1\big) = 0`, note: 'Coplanarity of three vectors = vanishing triple product. This single scalar equation is the entire epipolar constraint.' },
+      { tex: String.raw`\mathbf{t} \times \mathbf{v} = [\mathbf{t}]_\times \mathbf{v}, \qquad [\mathbf{t}]_\times = \begin{bmatrix} 0 & -t_3 & t_2 \\ t_3 & 0 & -t_1 \\ -t_2 & t_1 & 0 \end{bmatrix}`, note: 'The cross product is a linear map — write it as the skew-symmetric matrix [t]ₓ.' },
+      { tex: String.raw`\hat{\mathbf{x}}_2^{\mathsf T}\, \underbrace{[\mathbf{t}]_\times R}_{E} \,\hat{\mathbf{x}}_1 = 0`, note: 'And the essential matrix falls out. Watch the live readout in the lab above: it stays at machine zero no matter where you drag the point.' },
+      { tex: String.raw`E = U\,\mathrm{diag}(1,1,0)\,V^{\mathsf T} \;\Rightarrow\; 4 \text{ candidate } (R, \mathbf{t}) \text{ pairs}`, note: 'Going backwards (E → R, t) needs an SVD and yields four candidates; the real one is picked by cheirality — reconstructed points must lie in front of both cameras. cv2.recoverPose does exactly this.' },
+    ],
+    epiConstraint: 'x̂₂ᵀ E x̂₁ (live)',
     appTitle: '🏭 In the real world: designing a forklift safety camera',
     appIntro:
       'An autonomous forklift must stop for a 5 cm obstacle — a dropped bolt bin, a pallet corner — before it gets dangerously close. You are the system designer: pick the baseline and the lens, then check the rig against the spec at the required detection range. Two things must hold at that range: the depth error from ±0.5 px of disparity noise must stay below ±5 cm, and the disparity itself must be at least 5 px so the obstacle stands out from matching noise at all. Widen the baseline or lengthen the lens and watch the badge flip — this exact trade-off (baseline vs. housing size vs. range) is fought over in every stereo product meeting.',
@@ -200,6 +242,45 @@ const T = {
       'Verdeckungen: Manche Pixel sieht nur eine Kamera — sie haben keine gültige Disparität.',
       'Aktives Stereo (projizierte IR-Textur, z. B. RealSense) bekämpft die ersten beiden Probleme.',
     ],
+    matchLab1:
+      'Genug Theorie — hier läuft ein echter Stereo-Matcher in deinem Browser. Das Links/Rechts-Paar unten ist synthetisch (eine schräge Wand, zwei Kisten und eine Scheibe, sodass die wahre Disparität jedes Pixels bekannt ist), und der Algorithmus ist der ehrliche Klassiker: Schiebe für jedes linke Pixel ein Fenster entlang derselben Zeile des rechten Bildes, bewerte jeden Kandidaten-Versatz mit SAD oder SSD, behalte den besten. Die Ergebniskarte ist nah-bis-fern farbcodiert; schalte auf Ground Truth oder |Fehler| um, um sie zu benoten. Klicke dann irgendein Pixel in der Disparitätskarte: Die Kostenkurve darunter zeigt exakt, was der Matcher an diesem Pixel gesehen hat — und warum er wählte, was er wählte.',
+    matchLab2:
+      'Die drei Fehlermodi aus der Liste oben stecken alle in dieser Szene. Dreh die Textur herunter und sieh zu, wie die Wand in Rauschen zerfällt, während ihre Kostenkurven flach werden — keine Textur, kein Signal. Schau rechts neben jede Kistenkante: ein Band falscher Disparität, das keine Fenstergröße repariert — diese Hintergrundpixel sind im rechten Bild verdeckt, es GIBT keinen richtigen Match. Und fahre die Fenstergröße durch: Kleine Fenster sind verrauscht, aber scharf; große Fenster sind sauber, aber mästen jede Objektkante. Vierzig Jahre Stereo-Forschung wohnen in diesen drei Zielkonflikten.',
+    matchWin: 'Fenstergröße',
+    matchTex: 'Oberflächentextur',
+    matchNoise: 'Sensorrauschen σ',
+    matchMetric: 'Kostenmetrik',
+    matchView: 'Kartenansicht',
+    matchViewNames: [
+      { value: 'est', label: 'geschätzt' },
+      { value: 'gt', label: 'Ground Truth' },
+      { value: 'err', label: '|Fehler|' },
+    ],
+    matchLeftT: 'linkes Bild',
+    matchRightT: 'rechtes Bild',
+    matchDispT: 'Disparitätskarte — Pixel anklicken, um seine Kostenkurve zu sondieren',
+    matchMed: 'Medianfehler',
+    matchBad: 'schlechte Pixel (>1 px)',
+    matchMs: 'Rechenzeit',
+    matchProbe: 'Kostenkurve am angeklickten Pixel — bernstein = gewähltes Minimum, grün gestrichelt = wahre Disparität',
+    matchProbeHint: 'in die Disparitätskarte klicken, um ein Pixel zu sondieren',
+    matchOccNote: 'schraffiert = im rechten Bild verdeckt (aus der Statistik ausgeschlossen)',
+    depthDerivTitle: 'Die Tiefenformel, hergeleitet',
+    depthDeriv: [
+      { tex: String.raw`\frac{u_L - c_x}{f} = \frac{X}{Z}, \qquad \frac{u_R - c_x}{f} = \frac{X - b}{Z}`, note: 'Zwei Ähnliche-Dreiecke-Beziehungen: Beide Kameras sehen denselben Punkt, die rechte von einem um die Basislinie b verschobenen Standpunkt.' },
+      { tex: String.raw`d \;=\; u_L - u_R \;=\; \frac{f\,b}{Z}`, note: 'Subtrahieren — X kürzt sich. Die Disparität hängt nur von Tiefe, Basislinie und Brennweite ab.' },
+      { tex: String.raw`Z = \frac{f\,b}{d}`, note: 'Invertieren: metrische Tiefe aus einem Pixelversatz. Diese eine Zeile ist das gesamte Geschäftsmodell jeder Stereokamera.' },
+      { tex: String.raw`\left|\frac{\partial Z}{\partial d}\right| = \frac{f\,b}{d^2} = \frac{Z^2}{f\,b} \;\;\Rightarrow\;\; \Delta Z \approx \frac{Z^2}{f\,b}\,\Delta d`, note: 'Differenzieren: Ein fester Matchingfehler Δd kostet Tiefengenauigkeit, die mit Z² wächst — die quadratische Verschlechterung, die der Fehlerkeil oben sichtbar macht.' },
+    ],
+    essDerivTitle: 'E = [t]×R aus Koplanarität',
+    essDeriv: [
+      { tex: String.raw`\hat{\mathbf{x}}_2 \;\sim\; R\,\hat{\mathbf{x}}_1\text{-Strahl}, \quad \mathbf{t}: \text{ Basislinie zwischen den Zentren}`, note: 'Arbeite in normierten Koordinaten (K entfernt). Die beiden Sehstrahlen eines 3D-Punkts und der Basislinienvektor liegen in einer Ebene — der Epipolarebene.' },
+      { tex: String.raw`\hat{\mathbf{x}}_2 \cdot \big(\mathbf{t} \times R\,\hat{\mathbf{x}}_1\big) = 0`, note: 'Koplanarität dreier Vektoren = verschwindendes Spatprodukt. Diese eine skalare Gleichung ist die gesamte Epipolarbedingung.' },
+      { tex: String.raw`\mathbf{t} \times \mathbf{v} = [\mathbf{t}]_\times \mathbf{v}, \qquad [\mathbf{t}]_\times = \begin{bmatrix} 0 & -t_3 & t_2 \\ t_3 & 0 & -t_1 \\ -t_2 & t_1 & 0 \end{bmatrix}`, note: 'Das Kreuzprodukt ist eine lineare Abbildung — schreibe es als schiefsymmetrische Matrix [t]ₓ.' },
+      { tex: String.raw`\hat{\mathbf{x}}_2^{\mathsf T}\, \underbrace{[\mathbf{t}]_\times R}_{E} \,\hat{\mathbf{x}}_1 = 0`, note: 'Und die essentielle Matrix fällt heraus. Beobachte den Live-Messwert im Labor oben: Er bleibt auf Maschinen-Null, egal wohin du den Punkt ziehst.' },
+      { tex: String.raw`E = U\,\mathrm{diag}(1,1,0)\,V^{\mathsf T} \;\Rightarrow\; 4 \text{ Kandidaten } (R, \mathbf{t})`, note: 'Der Rückweg (E → R, t) braucht eine SVD und liefert vier Kandidaten; den echten wählt die Cheiralität — rekonstruierte Punkte müssen vor beiden Kameras liegen. cv2.recoverPose tut genau das.' },
+    ],
+    epiConstraint: 'x̂₂ᵀ E x̂₁ (live)',
     appTitle: '🏭 In der echten Welt: eine Stapler-Sicherheitskamera auslegen',
     appIntro:
       'Ein autonomer Stapler muss vor einem 5-cm-Hindernis stoppen — eine heruntergefallene Schraubenkiste, eine Palettenecke — bevor er gefährlich nah ist. Du bist der Systemdesigner: Wähle Basislinie und Objektiv und prüfe das Rig gegen die Spezifikation bei der geforderten Detektionsreichweite. Zwei Dinge müssen dort gelten: Der Tiefenfehler aus ±0,5 px Disparitätsrauschen muss unter ±5 cm bleiben, und die Disparität selbst muss mindestens 5 px betragen, damit sich das Hindernis überhaupt vom Matchingrauschen abhebt. Verbreitere die Basislinie oder verlängere das Objektiv und sieh das Badge umschlagen — genau dieser Zielkonflikt (Basislinie vs. Gehäusegröße vs. Reichweite) wird in jedem Stereo-Produktmeeting ausgefochten.',
@@ -333,6 +414,7 @@ const EPI_POSE_L = lookAtCV([-0.3, 0, 0], EPI_TARGET)
 const EPI_POSE_R = lookAtCV([0.3, 0, 0], EPI_TARGET)
 const EPI_REL = relativePose(EPI_POSE_L, EPI_POSE_R)
 const EPI_F = fundamental(EPI_K, EPI_K, EPI_REL.R, EPI_REL.t)
+const EPI_E = essential(EPI_REL.R, EPI_REL.t)
 
 /** 3D point on the LEFT camera's viewing ray of pixel (u, v), at camera-z `depth`. */
 function leftRayPoint(u: number, v: number, depth: number): V3 {
@@ -445,6 +527,20 @@ function EpipolarLab() {
             label={<TeX>{String.raw`F =`}</TeX>}
             values={[0, 1, 2].map((r) => [0, 1, 2].map((c) => fmtSci(EPI_F[r * 3 + c])))}
           />
+          <div className="mt-3">
+            <Readout
+              label={t.epiConstraint}
+              value={fmtSci(
+                (() => {
+                  const xh1: V3 = [(pt.u - EPI_K.cx) / EPI_K.fx, (pt.v - EPI_K.cy) / EPI_K.fy, 1]
+                  const xh2: V3 = [(rightPt.u - EPI_K.cx) / EPI_K.fx, (rightPt.v - EPI_K.cy) / EPI_K.fy, 1]
+                  const Ex = m3MulV(EPI_E, xh1)
+                  return xh2[0] * Ex[0] + xh2[1] * Ex[1] + xh2[2] * Ex[2]
+                })(),
+              )}
+              accent="#4ade80"
+            />
+          </div>
         </div>
       </div>
       <div className="prose-cv mt-6 max-w-3xl">
@@ -589,6 +685,171 @@ function DepthPlot() {
   )
 }
 
+// ---------------------------------------------------------------- disparity lab
+
+const DISP_COLORS: [number, [number, number, number]][] = [
+  [0.0, [16, 24, 48]],
+  [0.3, [23, 90, 130]],
+  [0.55, [34, 211, 238]],
+  [0.8, [251, 191, 36]],
+  [1.0, [248, 113, 113]],
+]
+
+function dispColor(t2: number): [number, number, number] {
+  const tt = Math.min(1, Math.max(0, t2))
+  for (let i = 1; i < DISP_COLORS.length; i++) {
+    if (tt <= DISP_COLORS[i][0]) {
+      const [t0, c0] = DISP_COLORS[i - 1]
+      const [t1, c1] = DISP_COLORS[i]
+      const u = (tt - t0) / (t1 - t0)
+      return [0, 1, 2].map((k) => Math.round(c0[k] + u * (c1[k] - c0[k]))) as [number, number, number]
+    }
+  }
+  return DISP_COLORS[DISP_COLORS.length - 1][1]
+}
+
+function StereoCanvas({
+  pixels,
+  title,
+  onPick,
+}: {
+  pixels: (i: number) => [number, number, number]
+  title: string
+  onPick?: (x: number, y: number) => void
+}) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const ctx = ref.current?.getContext('2d')
+    if (!ctx) return
+    const img = ctx.createImageData(SM_W, SM_H)
+    for (let i = 0; i < SM_W * SM_H; i++) {
+      const [r, g, b] = pixels(i)
+      img.data[i * 4] = r
+      img.data[i * 4 + 1] = g
+      img.data[i * 4 + 2] = b
+      img.data[i * 4 + 3] = 255
+    }
+    ctx.putImageData(img, 0, 0)
+  }, [pixels])
+  return (
+    <div className="card overflow-hidden">
+      <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">{title}</div>
+      <canvas
+        ref={ref}
+        width={SM_W}
+        height={SM_H}
+        className="block w-full"
+        style={{ imageRendering: 'pixelated', cursor: onPick ? 'crosshair' : undefined, aspectRatio: `${SM_W}/${SM_H}` }}
+        onPointerDown={(e) => {
+          if (!onPick) return
+          const rect = (e.target as HTMLElement).getBoundingClientRect()
+          onPick(
+            Math.floor(((e.clientX - rect.left) / rect.width) * SM_W),
+            Math.floor(((e.clientY - rect.top) / rect.height) * SM_H),
+          )
+        }}
+      />
+    </div>
+  )
+}
+
+function DisparityLab() {
+  const t = useT(T)
+  const [win, setWin] = useState(9)
+  const [texture, setTexture] = useState(0.8)
+  const [noise, setNoise] = useState(0)
+  const [metric, setMetric] = useState<'sad' | 'ssd'>('sad')
+  const [view, setView] = useState<'est' | 'gt' | 'err'>('est')
+  const [probe, setProbe] = useState<{ x: number; y: number } | null>({ x: 24, y: 32 })
+
+  const scene = useMemo(() => makeStereoPair(texture, noise, 42), [texture, noise])
+  const match = useMemo(() => blockMatch(scene, win, metric), [scene, win, metric])
+  const stats = useMemo(() => dispStats(match.disp, scene, win), [match, scene, win])
+  const curve = useMemo(
+    () => (probe ? costCurve(scene, probe.x, probe.y, win, metric) : null),
+    [scene, probe, win, metric],
+  )
+
+  const grayPix = (src: Float32Array) => (i: number): [number, number, number] => {
+    const v = Math.round(src[i] * 255)
+    return [v, v, v]
+  }
+  const dispPix = (i: number): [number, number, number] => {
+    if (view === 'err') {
+      const e = Math.min(Math.abs(match.disp[i] - scene.trueDisp[i]) / 6, 1)
+      return [Math.round(40 + e * 208), 40, 48]
+    }
+    const d = view === 'gt' ? scene.trueDisp[i] : match.disp[i]
+    let c = dispColor(d / SM_MAXD)
+    if (scene.occluded[i] && (Math.floor(i / SM_W) + (i % SM_W)) % 4 === 0) c = [90, 90, 110]
+    return c
+  }
+
+  const chosen = probe ? match.disp[probe.y * SM_W + probe.x] : 0
+  const trueD = probe ? scene.trueDisp[probe.y * SM_W + probe.x] : 0
+
+  const CW = 460
+  const CH = 170
+  const cmax = curve ? Math.max(...curve, 1e-6) : 1
+  const cx2 = (d: number) => 10 + (d / SM_MAXD) * (CW - 20)
+  const cy2 = (c: number) => CH - 22 - (c / cmax) * (CH - 40)
+
+  return (
+    <div>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <StereoCanvas pixels={grayPix(scene.left)} title={t.matchLeftT} />
+        <StereoCanvas pixels={grayPix(scene.right)} title={t.matchRightT} />
+        <StereoCanvas pixels={dispPix} title={t.matchDispT} onPick={(x, y) => setProbe({ x, y })} />
+      </div>
+      <div className="mt-1 text-[12px] text-muted">{t.matchOccNote}</div>
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.matchWin} value={win} min={3} max={15} step={2} onChange={setWin} format={(v) => `${v}×${v}`} />
+          <Slider label={t.matchTex} value={texture} min={0} max={1} step={0.05} onChange={setTexture} format={(v) => `${fmt(v * 100, 0)} %`} accent="#a78bfa" />
+          <Slider label={t.matchNoise} value={noise} min={0} max={0.1} step={0.005} onChange={setNoise} format={(v) => fmt(v, 3)} accent="#fbbf24" />
+          <div className="flex flex-wrap gap-4">
+            <div>
+              <div className="mb-1.5 text-[12px] text-muted">{t.matchMetric}</div>
+              <Segmented
+                options={[
+                  { value: 'sad', label: 'SAD' },
+                  { value: 'ssd', label: 'SSD' },
+                ]}
+                value={metric}
+                onChange={setMetric}
+              />
+            </div>
+            <div>
+              <div className="mb-1.5 text-[12px] text-muted">{t.matchView}</div>
+              <Segmented options={t.matchViewNames} value={view} onChange={(v) => setView(v as 'est' | 'gt' | 'err')} />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Readout label={t.matchMed} value={fmt(stats.medianErr, 2)} unit="px" accent={stats.medianErr < 1 ? '#4ade80' : '#f87171'} />
+            <Readout label={t.matchBad} value={fmt(stats.badPct, 1)} unit="%" accent={stats.badPct < 10 ? '#4ade80' : '#fbbf24'} />
+            <Readout label={t.matchMs} value={fmt(match.ms, 1)} unit="ms" accent={match.ms < 20 ? '#4ade80' : undefined} />
+          </div>
+        </div>
+        <div className="card overflow-hidden self-start">
+          <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">
+            {probe ? `${t.matchProbe} · (${probe.x}, ${probe.y})` : t.matchProbeHint}
+          </div>
+          {curve && (
+            <svg viewBox={`0 0 ${CW} ${CH}`} className="block w-full">
+              <polyline points={curve.map((c, d) => `${cx2(d)},${cy2(c)}`).join(' ')} fill="none" stroke="#22d3ee" strokeWidth={1.8} />
+              <line x1={cx2(trueD)} y1={12} x2={cx2(trueD)} y2={CH - 22} stroke="#4ade80" strokeDasharray="4 3" strokeWidth={1.5} />
+              <circle cx={cx2(chosen)} cy={cy2(curve[Math.round(chosen)])} r={5} fill="#fbbf24" />
+              <text x={CW - 8} y={CH - 6} textAnchor="end" fill="#8b93a7" fontSize={10.5} fontFamily="JetBrains Mono, monospace">
+                d →
+              </text>
+            </svg>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- application: forklift rig designer
 
 const DISP_MIN = 5 // px
@@ -727,6 +988,7 @@ export function StereoPage() {
           <p>{t.depthFormula}</p>
           <TeX block>{String.raw`d = u_L - u_R = \frac{f\,b}{Z} \quad\Longleftrightarrow\quad Z = \frac{f\,b}{d}`}</TeX>
         </div>
+        <Derivation title={t.depthDerivTitle} steps={t.depthDeriv} />
         <InfoBox title="⚡ Try it">
           <ul className="my-1 list-disc space-y-1 pl-5">
             {t.triTry.map((s, i) => (
@@ -742,6 +1004,7 @@ export function StereoPage() {
           <p>{t.calib2}</p>
           <TeX block>{String.raw`E = [\mathbf{t}]_\times R, \qquad F = K_2^{-\mathsf T} E\, K_1^{-1}, \qquad \tilde{\mathbf{x}}_2^{\mathsf T} F\, \tilde{\mathbf{x}}_1 = 0`}</TeX>
         </div>
+        <Derivation title={t.essDerivTitle} steps={t.essDeriv} />
         <div className="card mt-4 max-w-2xl overflow-hidden">
           <div className="border-b border-white/10 px-4 py-2 text-[13px] font-semibold">{t.efTitle}</div>
           <table className="w-full text-[13.5px]">
@@ -803,6 +1066,13 @@ export function StereoPage() {
               <li key={i}>{s}</li>
             ))}
           </ul>
+          <p>{t.matchLab1}</p>
+        </div>
+        <div className="mt-4">
+          <DisparityLab />
+        </div>
+        <div className="prose-cv mt-4 max-w-3xl">
+          <p>{t.matchLab2}</p>
         </div>
       </Section>
 
