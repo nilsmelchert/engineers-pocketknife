@@ -23,10 +23,9 @@ const T = {
       'The pocketknife keeps growing. These blades are being sharpened next:',
     nextUp: 'next up',
     roadmap: [
-      { icon: '🛰️', name: 'Kalman Filter', desc: 'State estimation & sensor fusion — tracking under uncertainty.', soon: true },
-      { icon: '🌊', name: 'Fourier & Signals', desc: 'FFT intuition, convolution and filtering, visually.', soon: false },
-      { icon: '🎲', name: 'Probability & Bayes', desc: 'Distributions, Bayes’ rule and reasoning under uncertainty.', soon: false },
-      { icon: '🧮', name: 'SVD & Linear Algebra', desc: 'The decomposition behind PCA, least squares and compression.', soon: false },
+      { icon: '🦾', name: 'Robot Kinematics', desc: 'Forward/inverse kinematics, Jacobians and workspace — the robot from the hand-eye module, understood.', soon: true },
+      { icon: '🗺️', name: 'SLAM & EKF', desc: 'Nonlinear Kalman filtering and simultaneous localization and mapping.', soon: false },
+      { icon: '🫧', name: 'GMM & DBSCAN', desc: 'Clustering beyond k-means: soft assignments and density-based groups.', soon: false },
     ],
     madeFor:
       'No installation required — everything runs in the browser. Formulas follow the standard notation of the field (Hartley & Zisserman, Bishop, the OpenCV and scikit-learn docs).',
@@ -45,10 +44,9 @@ const T = {
     roadmapText: 'Das Taschenmesser wächst weiter. Diese Klingen werden als Nächstes geschärft:',
     nextUp: 'als Nächstes',
     roadmap: [
-      { icon: '🛰️', name: 'Kalman-Filter', desc: 'Zustandsschätzung & Sensorfusion — Tracking unter Unsicherheit.', soon: true },
-      { icon: '🌊', name: 'Fourier & Signale', desc: 'FFT-Intuition, Faltung und Filterung, visuell.', soon: false },
-      { icon: '🎲', name: 'Wahrscheinlichkeit & Bayes', desc: 'Verteilungen, Satz von Bayes und Schließen unter Unsicherheit.', soon: false },
-      { icon: '🧮', name: 'SVD & Lineare Algebra', desc: 'Die Zerlegung hinter PCA, Ausgleichsrechnung und Kompression.', soon: false },
+      { icon: '🦾', name: 'Roboterkinematik', desc: 'Vorwärts-/Rückwärtskinematik, Jacobimatrizen und Arbeitsraum — der Roboter aus dem Hand-Auge-Modul, verstanden.', soon: true },
+      { icon: '🗺️', name: 'SLAM & EKF', desc: 'Nichtlineare Kalman-Filterung und simultane Lokalisierung und Kartierung.', soon: false },
+      { icon: '🫧', name: 'GMM & DBSCAN', desc: 'Clustering jenseits von K-Means: weiche Zuordnungen und dichtebasierte Gruppen.', soon: false },
     ],
     madeFor:
       'Keine Installation nötig — alles läuft im Browser. Die Notation folgt den Standards des Fachs (Hartley & Zisserman, Bishop, OpenCV- und scikit-learn-Doku).',

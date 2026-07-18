@@ -197,6 +197,140 @@ export const TRACKS: TrackDef[] = [
       },
     ],
   },
+  {
+    id: 'math',
+    icon: '🧮',
+    title: { en: 'Math Foundations', de: 'Mathematische Grundlagen' },
+    short: { en: 'Math', de: 'Mathe' },
+    blurb: {
+      en: 'The two mathematical power tools behind half of this site: reasoning with uncertainty, and taking matrices apart.',
+      de: 'Die zwei mathematischen Kraftwerkzeuge hinter der halben Seite: Schließen unter Unsicherheit und das Zerlegen von Matrizen.',
+    },
+    modules: [
+      {
+        path: '/probability',
+        num: 1,
+        title: { en: 'Probability & Bayes', de: 'Wahrscheinlichkeit & Bayes' },
+        short: { en: 'Probability', de: 'Wahrscheinlichkeit' },
+        desc: {
+          en: 'Distributions, the central limit theorem, and Bayes’ rule — including the base-rate fallacy, made visible with 1000 dots.',
+          de: 'Verteilungen, der zentrale Grenzwertsatz und der Satz von Bayes — inklusive Basisraten-Trugschluss, sichtbar gemacht mit 1000 Punkten.',
+        },
+        topics: {
+          en: ['Gaussians', 'Central limit theorem', 'Bayes’ rule', 'Bayesian updating'],
+          de: ['Gauß-Verteilungen', 'Zentraler Grenzwertsatz', 'Satz von Bayes', 'Bayessches Lernen'],
+        },
+      },
+      {
+        path: '/svd',
+        num: 2,
+        title: { en: 'SVD & Linear Algebra', de: 'SVD & Lineare Algebra' },
+        short: { en: 'SVD', de: 'SVD' },
+        desc: {
+          en: 'Every matrix is rotate–stretch–rotate: singular values, low-rank approximation and image compression, animated.',
+          de: 'Jede Matrix ist Drehen–Strecken–Drehen: Singulärwerte, Niedrigrang-Approximation und Bildkompression, animiert.',
+        },
+        topics: {
+          en: ['Matrix as transform', 'Singular values', 'Low-rank approximation', 'Compression'],
+          de: ['Matrix als Abbildung', 'Singulärwerte', 'Niedrigrang-Approximation', 'Kompression'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'signals',
+    icon: '🎛️',
+    title: { en: 'Signals & Control', de: 'Signale & Regelung' },
+    short: { en: 'Signals', de: 'Signale' },
+    blurb: {
+      en: 'Systems that live in time: decomposing signals, closing feedback loops, and estimating state from noisy sensors.',
+      de: 'Systeme, die in der Zeit leben: Signale zerlegen, Regelkreise schließen und Zustände aus verrauschten Sensoren schätzen.',
+    },
+    modules: [
+      {
+        path: '/fourier',
+        num: 1,
+        title: { en: 'Fourier & Signals', de: 'Fourier & Signale' },
+        short: { en: 'Fourier', de: 'Fourier' },
+        desc: {
+          en: 'Every signal is a sum of sines: Fourier series, sampling and aliasing, the DFT, filtering in the frequency domain and convolution.',
+          de: 'Jedes Signal ist eine Summe von Sinussen: Fourierreihen, Abtastung und Aliasing, die DFT, Filtern im Frequenzbereich und Faltung.',
+        },
+        topics: {
+          en: ['Fourier series', 'Sampling & aliasing', 'DFT & filtering', 'Convolution'],
+          de: ['Fourierreihen', 'Abtastung & Aliasing', 'DFT & Filterung', 'Faltung'],
+        },
+      },
+      {
+        path: '/control',
+        num: 2,
+        title: { en: 'Control Theory', de: 'Regelungstechnik' },
+        short: { en: 'Control', de: 'Regelung' },
+        desc: {
+          en: 'Feedback makes imprecise systems precise: the PID controller on a real simulated plant, tuning, and the road to instability.',
+          de: 'Rückkopplung macht unpräzise Systeme präzise: der PID-Regler an einer echten simulierten Strecke, Tuning und der Weg in die Instabilität.',
+        },
+        topics: {
+          en: ['Feedback', 'PID control', 'Step response', 'Stability'],
+          de: ['Rückkopplung', 'PID-Regelung', 'Sprungantwort', 'Stabilität'],
+        },
+      },
+      {
+        path: '/kalman',
+        num: 3,
+        title: { en: 'The Kalman Filter', de: 'Das Kalman-Filter' },
+        short: { en: 'Kalman', de: 'Kalman' },
+        desc: {
+          en: 'Fusing a motion model with noisy sensors: predict–update, the Kalman gain, and a filter that chases your mouse.',
+          de: 'Bewegungsmodell und verrauschte Sensoren verschmelzen: Prädiktion–Korrektur, das Kalman-Gain und ein Filter, das deiner Maus hinterherjagt.',
+        },
+        topics: {
+          en: ['Sensor fusion', 'Predict & update', 'Kalman gain', 'Tracking'],
+          de: ['Sensorfusion', 'Prädiktion & Korrektur', 'Kalman-Gain', 'Tracking'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'metrology',
+    icon: '📏',
+    title: { en: 'Measurement & Metrology', de: 'Messtechnik & Metrologie' },
+    short: { en: 'Metrology', de: 'Messtechnik' },
+    blurb: {
+      en: 'What it means to measure: uncertainty as a first-class citizen, and optical 3D measurement built on the calibrated camera.',
+      de: 'Was Messen bedeutet: Unsicherheit als Bürger erster Klasse — und optische 3D-Messtechnik auf Basis der kalibrierten Kamera.',
+    },
+    modules: [
+      {
+        path: '/measurement',
+        num: 1,
+        title: { en: 'Measurement Theory', de: 'Messtheorie' },
+        short: { en: 'Measurement', de: 'Messtheorie' },
+        desc: {
+          en: 'Accuracy vs. precision, error propagation (GUM vs. Monte Carlo), the uncertainty of the mean and honest uncertainty budgets.',
+          de: 'Richtigkeit vs. Präzision, Fehlerfortpflanzung (GUM vs. Monte Carlo), die Unsicherheit des Mittelwerts und ehrliche Messunsicherheitsbudgets.',
+        },
+        topics: {
+          en: ['Accuracy & precision', 'Error propagation', 'GUM', 'Uncertainty budgets'],
+          de: ['Richtigkeit & Präzision', 'Fehlerfortpflanzung', 'GUM', 'Unsicherheitsbudgets'],
+        },
+      },
+      {
+        path: '/metrology-3d',
+        num: 2,
+        title: { en: '3D Optical Metrology', de: 'Optische 3D-Messtechnik' },
+        short: { en: '3D Metrology', de: '3D-Messtechnik' },
+        desc: {
+          en: 'Laser-line triangulation, fringe projection and interferometry — three optical routes to 3D, all standing on camera calibration.',
+          de: 'Laserlinien-Triangulation, Streifenprojektion und Interferometrie — drei optische Wege zu 3D, alle auf Kamerakalibrierung gebaut.',
+        },
+        topics: {
+          en: ['Laser triangulation', 'Fringe projection', 'Interferometry', 'Range vs. resolution'],
+          de: ['Lasertriangulation', 'Streifenprojektion', 'Interferometrie', 'Messbereich vs. Auflösung'],
+        },
+      },
+    ],
+  },
 ]
 
 const UI = {
@@ -306,7 +440,7 @@ export function Layout({ children }: { children: ReactNode }) {
               pocket<span className="text-accent">·</span>knife
             </span>
           </Link>
-          <nav className="ml-2 hidden items-center gap-1 md:flex">
+          <nav className="ml-2 hidden items-center gap-0.5 lg:flex">
             {TRACKS.map((tr) => (
               <TrackMenu key={tr.id} track={tr} />
             ))}

@@ -11,6 +11,13 @@ import { KmeansPage } from './pages/KmeansPage'
 import { MlBasicsPage } from './pages/MlBasicsPage'
 import { OptAdvancedPage } from './pages/OptAdvancedPage'
 import { NeuralNetsPage } from './pages/NeuralNetsPage'
+import { ProbabilityPage } from './pages/ProbabilityPage'
+import { SvdPage } from './pages/SvdPage'
+import { FourierPage } from './pages/FourierPage'
+import { ControlPage } from './pages/ControlPage'
+import { KalmanPage } from './pages/KalmanPage'
+import { MeasurementPage } from './pages/MeasurementPage'
+import { Metrology3dPage } from './pages/Metrology3dPage'
 
 export function App() {
   return (
@@ -27,6 +34,13 @@ export function App() {
         <Route path="/ml-basics" element={<MlBasicsPage />} />
         <Route path="/optimization-advanced" element={<OptAdvancedPage />} />
         <Route path="/neural-networks" element={<NeuralNetsPage />} />
+        <Route path="/probability" element={<ProbabilityPage />} />
+        <Route path="/svd" element={<SvdPage />} />
+        <Route path="/fourier" element={<FourierPage />} />
+        <Route path="/control" element={<ControlPage />} />
+        <Route path="/kalman" element={<KalmanPage />} />
+        <Route path="/measurement" element={<MeasurementPage />} />
+        <Route path="/metrology-3d" element={<Metrology3dPage />} />
         <Route path="*" element={<HomePage />} />
       </Routes>
     </Layout>
