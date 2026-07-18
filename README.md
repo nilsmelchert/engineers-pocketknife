@@ -3,6 +3,11 @@
 An interactive learning hub for engineering essentials — everything runs live in the browser,
 bilingual (English / German, toggle in the navbar).
 
+**Platform features**: ⌘K search across all modules and labs · mobile navigation drawer ·
+local progress tracking with curated learning paths · a [labs index](#) for jumping straight
+to any of the 65+ interactives · bilingual glossary · printable formula cheat sheet ·
+route-based code splitting (initial load ~90 KB gzipped) · installable PWA that works offline.
+
 ## Tracks & modules
 
 **📷 Camera & 3D Vision**
@@ -31,6 +36,7 @@ bilingual (English / German, toggle in the navbar).
 
 **🤖 Robotics**
 1. **Robot Kinematics** — draggable FK/IK arm, workspace analysis, Jacobian manipulability ellipse and singularities
+2. **SLAM & the EKF** — dead-reckoning spaghetti, EKF-SLAM with landmark ellipses, loop closure that snaps the whole map tight, live covariance heatmap
 
 **🎛️ Signals & Control**
 1. **Fourier & Signals** — Fourier series with Gibbs ringing, sampling/aliasing, DFT + low-pass filtering, convolution

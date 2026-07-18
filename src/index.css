@@ -113,6 +113,33 @@ input[type='range']::-moz-range-thumb {
   margin: 0;
 }
 
+/* ---------- print (formula sheet) ---------- */
+
+@media print {
+  body {
+    background: #fff !important;
+    background-image: none !important;
+    color: #111 !important;
+  }
+  .card,
+  .card-pad {
+    border-color: #ccc !important;
+    background: #fff !important;
+    backdrop-filter: none !important;
+  }
+  .card *,
+  .card-pad *,
+  h1,
+  h2,
+  p {
+    color: #111 !important;
+  }
+  .chip {
+    border-color: #bbb !important;
+    color: #444 !important;
+  }
+}
+
 /* ---------- 3D scene labels (drei Html) ---------- */
 
 .frame-label {

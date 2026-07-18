@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link, NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useLangState, useT, type Lang } from '../i18n'
+import { SearchPalette } from './SearchPalette'
+import { toggleCompleted, useProgress } from '../lib/progress'
 
 export interface ModuleDef {
   path: string
@@ -371,6 +373,20 @@ export const TRACKS: TrackDef[] = [
           de: ['Vorwärtskinematik', 'Rückwärtskinematik', 'Jacobimatrix', 'Singularitäten'],
         },
       },
+      {
+        path: '/slam',
+        num: 2,
+        title: { en: 'SLAM & the Extended Kalman Filter', de: 'SLAM & das erweiterte Kalman-Filter' },
+        short: { en: 'SLAM', de: 'SLAM' },
+        desc: {
+          en: 'Mapping while localizing: watch dead reckoning drift into spaghetti, then see EKF-SLAM snap the whole map tight at loop closure.',
+          de: 'Kartieren beim Lokalisieren: Sieh Koppelnavigation zu Spaghetti driften — und EKF-SLAM die ganze Karte beim Schleifenschluss straffen.',
+        },
+        topics: {
+          en: ['Dead reckoning', 'EKF', 'Landmarks', 'Loop closure'],
+          de: ['Koppelnavigation', 'EKF', 'Landmarken', 'Schleifenschluss'],
+        },
+      },
     ],
   },
   {
@@ -422,6 +438,13 @@ const UI = {
     next: 'Next',
     footer:
       'The Engineer’s Pocketknife — interactive essentials: computer vision, data analysis, optimization and machine learning.',
+    labs: 'Labs',
+    glossary: 'Glossary',
+    formulas: 'Formulas',
+    search: 'Search',
+    markDone: 'Mark as completed',
+    done: 'Completed',
+    menu: 'Menu',
   },
   de: {
     home: 'Start',
@@ -429,6 +452,13 @@ const UI = {
     next: 'Weiter',
     footer:
       'The Engineer’s Pocketknife — interaktive Grundlagen: Computer Vision, Datenanalyse, Optimierung und maschinelles Lernen.',
+    labs: 'Labore',
+    glossary: 'Glossar',
+    formulas: 'Formeln',
+    search: 'Suche',
+    markDone: 'Als abgeschlossen markieren',
+    done: 'Abgeschlossen',
+    menu: 'Menü',
   },
 }
 
@@ -502,19 +532,62 @@ export function Layout({ children }: { children: ReactNode }) {
   const t = useT(UI)
   const { lang } = useLangState()
   const location = useLocation()
-
-  useEffect(() => {
-    window.scrollTo({ top: 0 })
-  }, [location.pathname])
+  const navigate = useNavigate()
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const progress = useProgress()
 
   const track = TRACKS.find((tr) => tr.modules.some((m) => m.path === location.pathname))
   const idx = track ? track.modules.findIndex((m) => m.path === location.pathname) : -1
   const prev = track && idx > 0 ? track.modules[idx - 1] : null
   const next = track && idx >= 0 && idx < track.modules.length - 1 ? track.modules[idx + 1] : null
 
+  // scroll to top on navigation — or to a requested section (search/labs deep links)
+  useEffect(() => {
+    setDrawerOpen(false)
+    const target = (location.state as { scrollTo?: string } | null)?.scrollTo
+    if (!target) {
+      window.scrollTo({ top: 0 })
+      return
+    }
+    let tries = 0
+    const iv = setInterval(() => {
+      const el = document.getElementById(target)
+      tries++
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' })
+        clearInterval(iv)
+      } else if (tries > 20) clearInterval(iv)
+    }, 150)
+    return () => clearInterval(iv)
+  }, [location.pathname, location.state])
+
+  // keyboard shortcuts: Cmd/Ctrl+K or '/' → search; ←/→ → prev/next module
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      const typing = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setSearchOpen((o) => !o)
+      } else if (e.key === '/' && !typing && !searchOpen) {
+        e.preventDefault()
+        setSearchOpen(true)
+      } else if (e.key === 'ArrowLeft' && !typing && !searchOpen && prev) {
+        navigate(prev.path)
+      } else if (e.key === 'ArrowRight' && !typing && !searchOpen && next) {
+        navigate(next.path)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [prev, next, searchOpen, navigate])
+
+  const isDone = track && progress.has(location.pathname)
+
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-50 border-b border-white/10 bg-bg/80 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-bg/80 backdrop-blur-md print:hidden">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
           <Link to="/" className="flex items-center gap-2 text-[15px] font-bold tracking-tight">
             <span className="inline-block h-2.5 w-2.5 rounded-sm bg-gradient-to-br from-accent to-accent2" />
@@ -526,17 +599,95 @@ export function Layout({ children }: { children: ReactNode }) {
             {TRACKS.map((tr) => (
               <TrackMenu key={tr.id} track={tr} />
             ))}
+            <NavLink
+              to="/labs"
+              className={({ isActive }) =>
+                `rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition ${
+                  isActive ? 'bg-accent/15 text-accent' : 'text-muted hover:bg-white/5 hover:text-ink'
+                }`
+              }
+            >
+              🧪 {t.labs}
+            </NavLink>
           </nav>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="hidden cursor-pointer items-center gap-2 rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1 text-[12px] text-muted transition hover:border-accent/50 hover:text-ink sm:flex"
+            >
+              🔍 {t.search}
+              <kbd className="rounded border border-white/15 px-1 font-mono text-[10px]">⌘K</kbd>
+            </button>
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="cursor-pointer rounded-lg border border-white/15 bg-white/[0.04] px-2 py-1 text-[13px] sm:hidden"
+              aria-label={t.search}
+            >
+              🔍
+            </button>
             <LangSwitch />
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="cursor-pointer rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1 text-[15px] lg:hidden"
+              aria-label={t.menu}
+            >
+              ☰
+            </button>
           </div>
         </div>
       </header>
 
+      {/* mobile drawer */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-[90] lg:hidden" onPointerDown={() => setDrawerOpen(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className="absolute inset-y-0 right-0 w-80 max-w-[85vw] overflow-y-auto border-l border-white/10 bg-[#0d1119] p-4"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {TRACKS.map((tr) => (
+              <div key={tr.id} className="mb-4">
+                <div className="mb-1.5 text-[11px] font-semibold tracking-wider text-muted uppercase">
+                  {tr.icon} {tr.title[lang]}
+                </div>
+                {tr.modules.map((m) => (
+                  <NavLink
+                    key={m.path}
+                    to={m.path}
+                    className={({ isActive }) =>
+                      `block rounded-lg px-3 py-1.5 text-[13.5px] ${
+                        isActive ? 'bg-accent/15 text-accent' : 'text-ink/85 hover:bg-white/5'
+                      }`
+                    }
+                  >
+                    <span className="mr-1.5 font-mono text-[11px] opacity-50">{m.num}</span>
+                    {m.short[lang]}
+                    {progress.has(m.path) && <span className="ml-1.5 text-[11px] text-green-400">✓</span>}
+                  </NavLink>
+                ))}
+              </div>
+            ))}
+            <div className="mt-5 border-t border-white/10 pt-3">
+              {[
+                { to: '/labs', label: `🧪 ${t.labs}` },
+                { to: '/glossary', label: `📖 ${t.glossary}` },
+                { to: '/formulas', label: `🧾 ${t.formulas}` },
+              ].map((l) => (
+                <NavLink key={l.to} to={l.to} className="block rounded-lg px-3 py-1.5 text-[13.5px] text-ink/85 hover:bg-white/5">
+                  {l.label}
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
+
       <main>{children}</main>
 
       {track && (
-        <div className="mx-auto flex max-w-6xl items-stretch justify-between gap-4 px-4 pb-10">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 pb-10 print:hidden">
           {prev ? (
             <Link to={prev.path} className="btn">
               ← {t.prev}: {prev.short[lang]}
@@ -546,6 +697,12 @@ export function Layout({ children }: { children: ReactNode }) {
               ← {t.home}
             </Link>
           )}
+          <button
+            onClick={() => toggleCompleted(location.pathname)}
+            className={`btn ${isDone ? 'border-green-400/50 bg-green-400/10 text-green-400' : ''}`}
+          >
+            {isDone ? `✓ ${t.done}` : `○ ${t.markDone}`}
+          </button>
           {next ? (
             <Link to={next.path} className="btn-primary">
               {t.next}: {next.short[lang]} →
@@ -558,8 +715,15 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      <footer className="border-t border-white/10 py-8 text-center text-[13px] text-muted">
-        <div className="mx-auto max-w-6xl px-4">{t.footer}</div>
+      <footer className="border-t border-white/10 py-8 text-center text-[13px] text-muted print:hidden">
+        <div className="mx-auto max-w-6xl space-y-2 px-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
+            <Link to="/labs" className="hover:text-ink">🧪 {t.labs}</Link>
+            <Link to="/glossary" className="hover:text-ink">📖 {t.glossary}</Link>
+            <Link to="/formulas" className="hover:text-ink">🧾 {t.formulas}</Link>
+          </div>
+          <div>{t.footer}</div>
+        </div>
       </footer>
     </div>
   )

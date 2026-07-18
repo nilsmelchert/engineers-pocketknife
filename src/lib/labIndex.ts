@@ -1,0 +1,88 @@
+/**
+ * Registry of every interactive lab on the site — powers the /labs index page
+ * and section-level search results. sectionId matches the Section id on the page.
+ */
+
+export interface LabEntry {
+  path: string
+  sectionId: string
+  emoji: string
+  title: { en: string; de: string }
+}
+
+export const LAB_INDEX: LabEntry[] = [
+  // 📷 Vision
+  { path: '/camera-matrix', sectionId: 'lab', emoji: '📽️', title: { en: 'Projection lab (3D → image)', de: 'Projektionslabor (3D → Bild)' } },
+  { path: '/camera-matrix', sectionId: 'stepper', emoji: '🔢', title: { en: 'Pipeline stepper: one point, live numbers', de: 'Pipeline-Stepper: ein Punkt, live Zahlen' } },
+  { path: '/camera-matrix', sectionId: 'depth', emoji: '🌫️', title: { en: 'Depth ambiguity along the viewing ray', de: 'Tiefenmehrdeutigkeit entlang des Sehstrahls' } },
+  { path: '/calibration', sectionId: 'distortion', emoji: '🥽', title: { en: 'Lens distortion & undistortion', de: 'Verzeichnung & Entzerrung' } },
+  { path: '/calibration', sectionId: 'capture', emoji: '📸', title: { en: 'Virtual calibration capture session', de: 'Virtuelle Kalibrier-Aufnahmesitzung' } },
+  { path: '/calibration', sectionId: 'tilt', emoji: '📐', title: { en: 'Why tilted views reveal focal length', de: 'Warum gekippte Ansichten die Brennweite verraten' } },
+  { path: '/calibration', sectionId: 'reprojection', emoji: '🎯', title: { en: 'Reprojection error anatomy', de: 'Anatomie des Reprojektionsfehlers' } },
+  { path: '/optimization', sectionId: 'gd1d', emoji: '⛷️', title: { en: '1D gradient descent with tangent', de: '1D-Gradientenabstieg mit Tangente' } },
+  { path: '/optimization', sectionId: 'playground', emoji: '🗺️', title: { en: 'Descent playground (GD/momentum/Newton)', de: 'Abstiegs-Spielplatz (GD/Momentum/Newton)' } },
+  { path: '/optimization', sectionId: 'solver', emoji: '🔧', title: { en: 'Live calibration solver (GD vs LM)', de: 'Live-Kalibrierlöser (GD vs LM)' } },
+  { path: '/stereo', sectionId: 'bridge', emoji: '👀', title: { en: 'Second camera breaks depth ambiguity', de: 'Zweite Kamera bricht die Tiefenmehrdeutigkeit' } },
+  { path: '/stereo', sectionId: 'triangulation', emoji: '📡', title: { en: 'Stereo triangulation + uncertainty wedge', de: 'Stereo-Triangulation + Unsicherheitskeil' } },
+  { path: '/stereo', sectionId: 'epipolar', emoji: '📏', title: { en: 'Epipolar geometry (drag the point)', de: 'Epipolargeometrie (Punkt ziehen)' } },
+  { path: '/stereo', sectionId: 'depth', emoji: '📉', title: { en: 'Disparity → depth curve', de: 'Disparität → Tiefe' } },
+  { path: '/hand-eye', sectionId: 'lab', emoji: '🦾', title: { en: 'Hand-eye kinematic loop + ghost board', de: 'Hand-Auge-Schleife + Geisterbrett' } },
+  { path: '/hand-eye', sectionId: 'capture', emoji: '🤖', title: { en: 'AX = XB pose-pair verification', de: 'AX = XB Posenpaar-Verifikation' } },
+  // 📊 Data
+  { path: '/pca', sectionId: 'lab2d', emoji: '🧭', title: { en: 'PCA 2D: axes, eigenvalues, compression', de: 'PCA 2D: Achsen, Eigenwerte, Kompression' } },
+  { path: '/pca', sectionId: 'vsreg', emoji: '⚖️', title: { en: 'PCA vs. regression residuals', de: 'PCA vs. Regressionsresiduen' } },
+  { path: '/pca', sectionId: 'lab3d', emoji: '🥞', title: { en: 'PCA 3D: project onto the best plane', de: 'PCA 3D: Projektion auf die beste Ebene' } },
+  { path: '/pca', sectionId: 'choosek', emoji: '🪜', title: { en: 'Scree plot: choosing k', de: 'Scree-Plot: k wählen' } },
+  { path: '/kmeans', sectionId: 'lab', emoji: '🎨', title: { en: "Lloyd's algorithm stepper + Voronoi", de: 'Lloyd-Stepper + Voronoi' } },
+  { path: '/kmeans', sectionId: 'elbow', emoji: '💪', title: { en: 'Elbow method', de: 'Ellbogenmethode' } },
+  { path: '/clustering-2', sectionId: 'gmm', emoji: '🫧', title: { en: 'GMM / EM with learning ellipses', de: 'GMM / EM mit lernenden Ellipsen' } },
+  { path: '/clustering-2', sectionId: 'dbscan', emoji: '🌌', title: { en: 'DBSCAN density clustering', de: 'DBSCAN-Dichteclustering' } },
+  { path: '/ransac', sectionId: 'lab', emoji: '🗳️', title: { en: 'RANSAC hypothesis voting', de: 'RANSAC-Hypothesenabstimmung' } },
+  // 🧠 ML
+  { path: '/ml-basics', sectionId: 'linreg', emoji: '📈', title: { en: 'Linear regression (click to add points)', de: 'Lineare Regression (Punkte klicken)' } },
+  { path: '/ml-basics', sectionId: 'overfit', emoji: '🎢', title: { en: 'Overfitting U-curve + ridge', de: 'Überanpassungs-U-Kurve + Ridge' } },
+  { path: '/ml-basics', sectionId: 'logreg', emoji: '🚦', title: { en: 'Logistic regression training', de: 'Training der logistischen Regression' } },
+  { path: '/optimization-advanced', sectionId: 'sgd', emoji: '🥴', title: { en: 'SGD with gradient noise', de: 'SGD mit Gradientenrauschen' } },
+  { path: '/optimization-advanced', sectionId: 'race', emoji: '🏁', title: { en: 'Optimizer race: GD vs momentum vs Adam', de: 'Optimierer-Rennen: GD vs Momentum vs Adam' } },
+  { path: '/optimization-advanced', sectionId: 'anneal', emoji: '🔥', title: { en: 'Simulated annealing vs trapped GD', de: 'Simulated Annealing vs gefangener GD' } },
+  { path: '/optimization-advanced', sectionId: 'lagrange', emoji: '🔗', title: { en: 'Lagrange constraint walk', de: 'Lagrange-Nebenbedingungswanderung' } },
+  { path: '/neural-networks', sectionId: 'neuron', emoji: '🧫', title: { en: 'Single-neuron anatomy', de: 'Anatomie eines Neurons' } },
+  { path: '/neural-networks', sectionId: 'playground', emoji: '🧠', title: { en: 'Neural-network playground (live training)', de: 'Neuronale-Netze-Spielplatz (Live-Training)' } },
+  { path: '/neural-networks', sectionId: 'gradcheck', emoji: '🔍', title: { en: 'Gradient checking', de: 'Gradient Checking' } },
+  { path: '/deep-learning', sectionId: 'cnn', emoji: '🖼️', title: { en: 'CNN convolution kernel lab', de: 'CNN-Faltungskern-Labor' } },
+  { path: '/deep-learning', sectionId: 'hierarchy', emoji: '🏗️', title: { en: 'Feature hierarchies', de: 'Merkmalshierarchien' } },
+  { path: '/deep-learning', sectionId: 'attention', emoji: '👁️', title: { en: 'Self-attention heatmap', de: 'Self-Attention-Heatmap' } },
+  // 🧮 Math
+  { path: '/probability', sectionId: 'distributions', emoji: '🔔', title: { en: 'Distributions & central limit theorem', de: 'Verteilungen & zentraler Grenzwertsatz' } },
+  { path: '/probability', sectionId: 'bayes', emoji: '🩺', title: { en: 'Base-rate trap (Bayes with 1000 dots)', de: 'Basisraten-Falle (Bayes mit 1000 Punkten)' } },
+  { path: '/probability', sectionId: 'updating', emoji: '🪙', title: { en: 'Bayesian coin updating', de: 'Bayessches Münz-Updating' } },
+  { path: '/svd', sectionId: 'transformer', emoji: '🌀', title: { en: 'Matrix = rotate · stretch · rotate', de: 'Matrix = Drehen · Strecken · Drehen' } },
+  { path: '/svd', sectionId: 'compression', emoji: '🗜️', title: { en: 'Low-rank image compression', de: 'Niedrigrang-Bildkompression' } },
+  { path: '/ode', sectionId: 'orbit', emoji: '🪐', title: { en: 'Euler vs RK4 energy drift', de: 'Euler vs RK4 Energiedrift' } },
+  { path: '/ode', sectionId: 'stability', emoji: '🧨', title: { en: 'Solver stability cliff', de: 'Stabilitätsklippe des Lösers' } },
+  // 🎛️ Signals
+  { path: '/fourier', sectionId: 'series', emoji: '🌊', title: { en: 'Fourier series builder (Gibbs!)', de: 'Fourierreihen-Baukasten (Gibbs!)' } },
+  { path: '/fourier', sectionId: 'sampling', emoji: '🎡', title: { en: 'Sampling & aliasing', de: 'Abtastung & Aliasing' } },
+  { path: '/fourier', sectionId: 'dft', emoji: '🩻', title: { en: 'DFT spectrum + low-pass filtering', de: 'DFT-Spektrum + Tiefpassfilterung' } },
+  { path: '/fourier', sectionId: 'convolution', emoji: '🧹', title: { en: 'Convolution: the sliding dot product', de: 'Faltung: das gleitende Skalarprodukt' } },
+  { path: '/control', sectionId: 'pid', emoji: '🎛️', title: { en: 'PID playground with animated cart', de: 'PID-Spielplatz mit animiertem Wagen' } },
+  { path: '/control', sectionId: 'stability', emoji: '💥', title: { en: 'Road to instability (delay + gain)', de: 'Weg in die Instabilität (Totzeit + Verstärkung)' } },
+  { path: '/kalman', sectionId: 'fusion', emoji: '🤝', title: { en: 'Fusing two uncertain sensors', de: 'Fusion zweier unsicherer Sensoren' } },
+  { path: '/kalman', sectionId: 'tracking', emoji: '🛰️', title: { en: '1D Kalman tracking (Q/R tuning)', de: '1D-Kalman-Tracking (Q/R-Tuning)' } },
+  { path: '/kalman', sectionId: 'mouse', emoji: '🐭', title: { en: 'Kalman filter chases your mouse', de: 'Kalman-Filter jagt deine Maus' } },
+  // 🤖 Robotics
+  { path: '/kinematics', sectionId: 'fk', emoji: '🦿', title: { en: 'Forward kinematics, live equations', de: 'Vorwärtskinematik, live Gleichungen' } },
+  { path: '/kinematics', sectionId: 'ik', emoji: '🎯', title: { en: 'Inverse kinematics + singularity ellipse', de: 'Rückwärtskinematik + Singularitätsellipse' } },
+  { path: '/kinematics', sectionId: 'workspace', emoji: '🌗', title: { en: 'Workspace under joint limits', de: 'Arbeitsraum unter Gelenkgrenzen' } },
+  { path: '/kinematics', sectionId: 'fk3d', emoji: '🦾', title: { en: '3D kinematic chain', de: '3D-Kinematikkette' } },
+  { path: '/slam', sectionId: 'deadreck', emoji: '🍝', title: { en: 'Dead-reckoning drift (spaghetti plot)', de: 'Koppelnavigations-Drift (Spaghetti-Plot)' } },
+  { path: '/slam', sectionId: 'ekfslam', emoji: '🗺️', title: { en: 'EKF-SLAM with loop closure', de: 'EKF-SLAM mit Schleifenschluss' } },
+  // 📏 Metrology
+  { path: '/measurement', sectionId: 'target', emoji: '🎯', title: { en: 'Accuracy vs precision target', de: 'Richtigkeit-vs-Präzision-Zielscheibe' } },
+  { path: '/measurement', sectionId: 'propagation', emoji: '🧾', title: { en: 'GUM vs Monte-Carlo propagation', de: 'GUM vs Monte-Carlo-Fortpflanzung' } },
+  { path: '/measurement', sectionId: 'mean', emoji: '➗', title: { en: 'Uncertainty of the mean', de: 'Unsicherheit des Mittelwerts' } },
+  { path: '/metrology-3d', sectionId: 'laser', emoji: '🔺', title: { en: 'Laser-line triangulation scanner', de: 'Laserlinien-Triangulationsscanner' } },
+  { path: '/metrology-3d', sectionId: 'fringe3d', emoji: '🦓', title: { en: 'Fringe projection = many laser lines', de: 'Streifenprojektion = viele Laserlinien' } },
+  { path: '/metrology-3d', sectionId: 'fringe', emoji: '🌈', title: { en: 'Phase-shift pipeline stepper', de: 'Phasenschiebe-Pipeline-Stepper' } },
+  { path: '/metrology-3d', sectionId: 'interferometry', emoji: '🎯', title: { en: 'Michelson interferometry (nm scale)', de: 'Michelson-Interferometrie (nm-Skala)' } },
+]
