@@ -27,7 +27,9 @@ const FORMULAS: { track: string; items: FormulaEntry[] }[] = [
     track: 'vision',
     items: [
       { tex: String.raw`\lambda\,\tilde{\mathbf{x}} = K[R\mid\mathbf{t}]\,\tilde{\mathbf{X}}, \qquad K = \begin{bmatrix} f_x & s & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{bmatrix}`, label: { en: 'Pinhole projection', de: 'Lochkamera-Projektion' }, path: '/camera-matrix' },
+      { tex: String.raw`\lambda\,\tilde{\mathbf{x}} = H\begin{bmatrix} X \\ Y \\ 1 \end{bmatrix}, \qquad H = K[\mathbf{r}_1\;\mathbf{r}_2\;\mathbf{t}]`, label: { en: 'Planar homography', de: 'Ebene Homographie' }, path: '/camera-matrix' },
       { tex: String.raw`x_d = x(1 + k_1 r^2 + k_2 r^4 + k_3 r^6) + 2p_1 xy + p_2(r^2 + 2x^2)`, label: { en: 'Brown–Conrady distortion', de: 'Brown–Conrady-Verzeichnung' }, path: '/calibration' },
+      { tex: String.raw`r = f\tan\theta \;\text{(pinhole)} \qquad r = f\,\theta \;\text{(fisheye)}`, label: { en: 'Fisheye vs. pinhole radius', de: 'Fisheye- vs. Lochkamera-Radius' }, path: '/calibration' },
       { tex: String.raw`(J^{\mathsf T}J + \lambda\,\mathrm{diag}(J^{\mathsf T}J))\,\boldsymbol{\delta} = -J^{\mathsf T}\mathbf{r}`, label: { en: 'Levenberg–Marquardt step', de: 'Levenberg–Marquardt-Schritt' }, path: '/optimization' },
       { tex: String.raw`Z = \frac{f\,b}{d}, \qquad \Delta Z \approx \frac{Z^2}{f\,b}\,\Delta d`, label: { en: 'Disparity → depth', de: 'Disparität → Tiefe' }, path: '/stereo' },
       { tex: String.raw`E = [\mathbf{t}]_\times R, \qquad F = K_2^{-\mathsf T} E K_1^{-1}, \qquad \tilde{\mathbf{x}}_2^{\mathsf T} F \tilde{\mathbf{x}}_1 = 0`, label: { en: 'Essential & fundamental matrix', de: 'Essentielle & Fundamentalmatrix' }, path: '/stereo' },
@@ -50,6 +52,8 @@ const FORMULAS: { track: string; items: FormulaEntry[] }[] = [
       { tex: String.raw`\theta_{t+1} = \theta_t - \alpha\,\frac{\hat{\mathbf{m}}_t}{\sqrt{\hat{\mathbf{v}}_t} + \varepsilon}`, label: { en: 'Adam update', de: 'Adam-Update' }, path: '/optimization-advanced' },
       { tex: String.raw`\delta^{(l)} = (W^{(l+1)\mathsf T}\delta^{(l+1)}) \odot \varphi'(z^{(l)}), \qquad \frac{\partial L}{\partial W^{(l)}} = \delta^{(l)} a^{(l-1)\mathsf T}`, label: { en: 'Backpropagation', de: 'Backpropagation' }, path: '/neural-networks' },
       { tex: String.raw`\operatorname{Attention}(Q,K,V) = \operatorname{softmax}\!\left(\frac{QK^{\mathsf T}}{\sqrt{d}}\right)V`, label: { en: 'Scaled dot-product attention', de: 'Skalierte Dot-Product-Attention' }, path: '/deep-learning' },
+      { tex: String.raw`\mathbf{z}_p = W_E\,\operatorname{flatten}(\text{patch}_p) + \mathbf{e}^{\text{pos}}_p`, label: { en: 'ViT patch embedding', de: 'ViT-Patch-Embedding' }, path: '/vision-transformers' },
+      { tex: String.raw`\mathcal{L}_{\text{InfoNCE}} = -\tfrac12\big[\textstyle\sum_i \log\frac{e^{s_{ii}/\tau}}{\sum_j e^{s_{ij}/\tau}} + (\text{sym})\big]`, label: { en: 'CLIP contrastive loss', de: 'CLIP-Kontrastverlust' }, path: '/vision-transformers' },
     ],
   },
   {

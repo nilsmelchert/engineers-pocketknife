@@ -5,7 +5,7 @@ bilingual (English / German, toggle in the navbar).
 
 **Platform features**: ⌘K search across all modules and labs · mobile navigation drawer ·
 local progress tracking with curated learning paths · a [labs index](#) for jumping straight
-to any of the 90+ interactives · bilingual glossary · printable formula cheat sheet ·
+to any of the 100+ interactives · bilingual glossary · printable formula cheat sheet ·
 route-based code splitting (initial load ~90 KB gzipped) · installable PWA that works offline.
 
 **🏭 Real-world application labs**: every module ends with an interactive industry scenario —
@@ -16,10 +16,10 @@ inspection and 15 more — each one driven by the exact math taught above it.
 ## Tracks & modules
 
 **📷 Camera & 3D Vision**
-1. **The Camera Matrix** — pinhole model, homogeneous coordinates, `K`, `[R|t]`, `P = K[R|t]`, live 3D projection lab
-2. **Camera Calibration** — Zhang's method, lens distortion playground, virtual capture session, reprojection error
+1. **The Camera Matrix** — pinhole model, homogeneous coordinates, `K`, `[R|t]`, `P = K[R|t]`, live 3D projection lab, planar homography (bird's-eye warp), PnP pose recovery
+2. **Camera Calibration** — Zhang's method (live closed-form solver), lens distortion playground, fisheye vs. pinhole, virtual capture session, reprojection error, calibration uncertainty (Monte-Carlo vs. `(JᵀJ)⁻¹`)
 3. **Numerical Optimization** — cost landscapes, gradient descent, Gauss-Newton, Levenberg–Marquardt, live calibration solver
-4. **Stereo Vision** — epipolar geometry, triangulation, rectification, disparity–depth
+4. **Stereo Vision** — epipolar geometry, triangulation, rectification, disparity–depth, live block-matching disparity map with cost-curve probe
 5. **Hand-Eye Calibration** — eye-in-hand/eye-to-hand, `AX = XB`, `AX = ZB`, interactive robot arm
 
 **📊 Data & Patterns**
@@ -31,8 +31,9 @@ inspection and 15 more — each one driven by the exact math taught above it.
 **🧠 Machine Learning**
 1. **ML Fundamentals** — linear/logistic regression, overfitting U-curve, ridge regularization
 2. **Stochastic & Global Optimization** — SGD noise, optimizer race (GD/momentum/Adam), LR schedules, simulated annealing, Lagrange constraints
-3. **Neural Networks & Deep Learning** — live-training MLP playground with decision boundaries, network diagram, backprop, gradient checking
-4. **Modern Deep Learning: CNNs & Transformers** — convolution kernel lab, feature hierarchies, live self-attention heatmap with causal masking
+3. **Neural Networks & Deep Learning** — live-training MLP playground with decision boundaries, interactive backprop visualizer (watch δ flow, chain-rule per weight), gradient checking
+4. **Modern Deep Learning: CNNs & Transformers** — convolution kernel lab, stride/padding/receptive-field lab, feature hierarchies, live self-attention with value mixing and causal masking
+5. **Vision Transformers & VLMs** — interactive ViT tokenizer, attention-on-an-image, multi-head roles, a draggable CLIP shared image–text space, a vision-language-model pipeline, and zero-shot defect triage
 
 **🧮 Math Foundations**
 1. **Probability & Bayes** — distributions, central limit theorem, base-rate fallacy with 1000 dots, Bayesian coin updating
