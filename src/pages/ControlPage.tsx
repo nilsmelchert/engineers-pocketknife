@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { PageToc } from '../components/PageToc'
-import { Readout, Section, Slider } from '../components/ui'
+import { InfoBox, Readout, Section, Slider } from '../components/ui'
 import { fmt } from '../lib/math'
 import { simulatePid, type PidResult } from '../lib/signal'
 
@@ -47,6 +47,16 @@ const T = {
     roles2: 'Classical recipes like Ziegler–Nichols start from exactly the experiment you just did: raise Kp to the edge of oscillation, then back off with tabulated factors. Modern loops add feedforward (use the model, let feedback handle only the residual) — the same philosophy as the Kalman filter of the next module.',
     mathTitle: 'The controller in one line',
     codeTitle: 'In practice',
+    appTitle: '🏭 In the real world: cruise control on a hill',
+    appIntro:
+      'Set your cruise control to 100 km/h and hit a 5 % grade: the hill is a sustained disturbance force, and what happens next is the P-vs-PI story made physical. A pure P controller needs a nonzero error to produce throttle — so on the hill it settles a few km/h BELOW the setpoint, forever. That permanent sag is the steady-state error from the theory above; you have felt it in old cars. The integral term accumulates the error second by second and quietly adds throttle until the error is exactly zero — the car sags briefly, then climbs back to 100 while still on the hill. Steepen the grade and watch the amber P-only car lose more speed while the cyan PI car always comes home.',
+    appGrade: 'hill grade (from t = 20 s)',
+    appKp: 'proportional gain Kp',
+    appSagP: 'speed loss on hill (P only)',
+    appSagPi: 'speed loss on hill (PI)',
+    appLegend: 'amber dashed = P only · cyan = PI · gray = hill profile',
+    appWhere:
+      'The same integral action holds oven temperatures against door openings, quadcopter altitude against battery droop, generator frequency against load steps and dialysis flow against filter clogging — every “holds the value under load” claim hides an integrator.',
   },
   de: {
     kicker: 'Signale · Modul 2',
@@ -88,6 +98,16 @@ const T = {
     roles2: 'Klassische Rezepte wie Ziegler–Nichols starten mit genau dem Experiment von eben: Kp bis an die Schwinggrenze erhöhen, dann mit tabellierten Faktoren zurücknehmen. Moderne Kreise ergänzen Vorsteuerung (nutze das Modell, lass die Rückkopplung nur den Rest erledigen) — dieselbe Philosophie wie beim Kalman-Filter im nächsten Modul.',
     mathTitle: 'Der Regler in einer Zeile',
     codeTitle: 'In der Praxis',
+    appTitle: '🏭 In der echten Welt: Tempomat am Berg',
+    appIntro:
+      'Stell den Tempomat auf 100 km/h und triff auf eine 5-%-Steigung: Der Berg ist eine anhaltende Störkraft, und was dann passiert, ist die P-gegen-PI-Geschichte in physischer Form. Ein reiner P-Regler braucht einen Fehler ungleich null, um Gas zu geben — am Berg pendelt er sich also ein paar km/h UNTER dem Sollwert ein, für immer. Dieses dauerhafte Absacken ist die bleibende Regelabweichung aus der Theorie oben; in alten Autos hast du sie gespürt. Der Integralanteil summiert den Fehler Sekunde für Sekunde und gibt leise mehr Gas, bis der Fehler exakt null ist — das Auto sackt kurz ab und klettert dann noch am Berg zurück auf 100. Mach die Steigung steiler und sieh zu, wie das bernsteinfarbene P-Auto mehr Tempo verliert, während das cyanfarbene PI-Auto immer heimkommt.',
+    appGrade: 'Steigung (ab t = 20 s)',
+    appKp: 'Proportionalverstärkung Kp',
+    appSagP: 'Tempoverlust am Berg (nur P)',
+    appSagPi: 'Tempoverlust am Berg (PI)',
+    appLegend: 'bernstein gestrichelt = nur P · cyan = PI · grau = Bergprofil',
+    appWhere:
+      'Dieselbe Integralwirkung hält Ofentemperaturen gegen Türöffnungen, Quadrocopter-Höhe gegen Batterieschwund, Generatorfrequenz gegen Lastsprünge und Dialyse-Durchfluss gegen zusetzende Filter — hinter jedem „hält den Wert unter Last“ steckt ein Integrierer.',
   },
 }
 
@@ -291,6 +311,82 @@ function StabilityLab() {
   )
 }
 
+// ---------------------------------------------------------------- application: cruise control
+
+const CAR_M = 1500 // kg
+const CAR_C = 60 // N·s/m linearized drag+rolling
+const V_SET = 27.78 // 100 km/h in m/s
+const HILL_T = 20 // s
+const CRUISE_T = 60 // s
+
+function simulateCruise(kp: number, ki: number, gradePct: number): number[] {
+  const dt = 0.05
+  const n = Math.round(CRUISE_T / dt)
+  let v = V_SET
+  let integ = 0
+  const out: number[] = []
+  for (let i = 0; i < n; i++) {
+    const time = i * dt
+    const e = V_SET - v
+    integ += e * dt
+    integ = Math.max(-800 / Math.max(ki, 1e-9), Math.min(800 / Math.max(ki, 1e-9), integ))
+    let u = kp * e + ki * integ + CAR_C * V_SET // feedforward for flat-road cruise
+    u = Math.max(0, Math.min(7000, u))
+    const hill = time >= HILL_T ? CAR_M * 9.81 * (gradePct / 100) : 0
+    const acc = (u - CAR_C * v - hill) / CAR_M
+    v += acc * dt
+    out.push(v)
+  }
+  return out
+}
+
+function CruiseLab() {
+  const t = useT(T)
+  const [grade, setGrade] = useState(5)
+  const [kp, setKp] = useState(300)
+
+  const vP = useMemo(() => simulateCruise(kp, 0, grade), [kp, grade])
+  const vPi = useMemo(() => simulateCruise(kp, 25, grade), [kp, grade])
+  const sagP = (V_SET - Math.min(...vP.slice(Math.floor(vP.length * 0.9)))) * 3.6
+  const sagPi = (V_SET - vPi[vPi.length - 1]) * 3.6
+
+  const PW = 560
+  const PH = 250
+  const sx = (i: number) => (i / (vP.length - 1)) * PW
+  const sy = (v: number) => 40 + (V_SET + 1.5 - v) * 3.6 * 14
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          {/* hill profile strip at the bottom */}
+          <polygon
+            points={`${(HILL_T / CRUISE_T) * PW},${PH - 8} ${PW},${PH - 8 - grade * 3.5} ${PW},${PH - 8} `}
+            fill="#5b627055"
+          />
+          <line x1={0} y1={sy(V_SET)} x2={PW} y2={sy(V_SET)} stroke="#8b93a755" strokeDasharray="5 4" />
+          <text x={6} y={sy(V_SET) - 5} fill="#8b93a7" fontSize={10.5} fontFamily="JetBrains Mono, monospace">
+            100 km/h
+          </text>
+          <polyline points={vP.map((v, i) => `${sx(i)},${sy(v)}`).join(' ')} fill="none" stroke="#fbbf24" strokeWidth={1.8} strokeDasharray="6 4" />
+          <polyline points={vPi.map((v, i) => `${sx(i)},${sy(v)}`).join(' ')} fill="none" stroke="#22d3ee" strokeWidth={2.2} />
+        </svg>
+        <div className="border-t border-white/10 px-4 py-2 text-[12px] text-muted">{t.appLegend}</div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appGrade} value={grade} min={0} max={8} step={0.5} onChange={setGrade} format={(v) => `${fmt(v, 1)} %`} />
+          <Slider label={t.appKp} value={kp} min={100} max={900} step={20} onChange={setKp} accent="#a78bfa" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appSagP} value={fmt(sagP, 1)} unit="km/h" accent={sagP > 1 ? '#fbbf24' : '#4ade80'} />
+          <Readout label={t.appSagPi} value={fmt(Math.max(sagPi, 0), 1)} unit="km/h" accent={Math.abs(sagPi) < 0.5 ? '#4ade80' : '#fbbf24'} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function ControlPage() {
@@ -304,6 +400,7 @@ export function ControlPage() {
           { id: 'stability', label: t.stabTitle },
           { id: 'roles', label: t.rolesTitle },
           { id: 'math', label: t.mathTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -379,6 +476,18 @@ export function ControlPage() {
           <TeX block>{String.raw`u(t) \;=\; K_p\, e(t) \;+\; K_i \int_0^t e(\tau)\, d\tau \;+\; K_d\, \frac{de(t)}{dt}, \qquad e = r - y`}</TeX>
         </div>
         <pre className="card mt-4 overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <CruiseLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

@@ -3,8 +3,8 @@ import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { Derivation } from '../components/Derivation'
 import { PageToc } from '../components/PageToc'
-import { Readout, Section, Segmented, Slider } from '../components/ui'
-import { fmt } from '../lib/math'
+import { InfoBox, Readout, Section, Segmented, Slider } from '../components/ui'
+import { fmt, mulberry32 } from '../lib/math'
 import {
   attentionMatrix,
   conv2d,
@@ -75,6 +75,18 @@ const T = {
       'Scaling laws: loss falls predictably with parameters, data and compute — the empirical engine behind today’s foundation models.',
     ],
     codeTitle: 'In practice',
+    appTitle: '🏭 In the real world: scratch detection on brushed metal',
+    appIntro:
+      'A surface-inspection camera stares at brushed stainless steel all day. The brushing texture is pure horizontal structure — and the defects are faint diagonal scratches hiding inside it. This is why convolution kernels are the right prior for images: an oriented edge filter responds to gradients in ONE direction, so the right kernel sees the scratches and is blind to the texture, exactly like the first layer of a trained CNN (which learns these filters by itself). Try the wrong orientation: the horizontal-edge kernel drowns in the brushing and floods the image with false positives — no threshold can save it. Then switch to the diagonal kernel and watch the scratches pop out of a quiet background.',
+    appKernel: 'filter orientation',
+    appKernelNames: ['horizontal edges', 'diagonal edges', 'vertical edges'],
+    appThresh: 'detection threshold',
+    appInput: 'camera image (brushed metal + 2 scratches)',
+    appResp: 'conv → ReLU → threshold',
+    appHits: 'scratch pixels found',
+    appFp: 'false positives',
+    appWhere:
+      'The same conv-ReLU-threshold pipeline (with learned kernels) inspects textile weave, battery-foil coating, glass panels and solar wafers at full line speed — and its learned big brother is the first layer of every vision model in production.',
   },
   de: {
     kicker: 'ML · Modul 4',
@@ -135,6 +147,18 @@ const T = {
       'Skalierungsgesetze: Der Verlust fällt vorhersagbar mit Parametern, Daten und Rechenleistung — der empirische Motor hinter den heutigen Foundation-Modellen.',
     ],
     codeTitle: 'In der Praxis',
+    appTitle: '🏭 In der echten Welt: Kratzererkennung auf gebürstetem Metall',
+    appIntro:
+      'Eine Oberflächeninspektionskamera starrt den ganzen Tag auf gebürsteten Edelstahl. Die Bürsttextur ist reine Horizontalstruktur — und die Defekte sind schwache diagonale Kratzer, die sich darin verstecken. Genau deshalb sind Faltungskerne der richtige Prior für Bilder: Ein orientierter Kantenfilter reagiert auf Gradienten in EINER Richtung, also sieht der richtige Kern die Kratzer und ist blind für die Textur — exakt wie die erste Schicht eines trainierten CNN (das diese Filter von selbst lernt). Probiere die falsche Orientierung: Der Horizontalkanten-Kern ertrinkt in der Bürstung und flutet das Bild mit Fehlalarmen — keine Schwelle rettet ihn. Wechsle dann zum Diagonalkern und sieh die Kratzer aus einem ruhigen Hintergrund springen.',
+    appKernel: 'Filterorientierung',
+    appKernelNames: ['horizontale Kanten', 'diagonale Kanten', 'vertikale Kanten'],
+    appThresh: 'Detektionsschwelle',
+    appInput: 'Kamerabild (gebürstetes Metall + 2 Kratzer)',
+    appResp: 'Conv → ReLU → Schwelle',
+    appHits: 'gefundene Kratzerpixel',
+    appFp: 'Fehlalarme',
+    appWhere:
+      'Dieselbe Conv-ReLU-Schwellen-Pipeline (mit gelernten Kernen) inspiziert Textilgewebe, Batteriefolien-Beschichtung, Glasscheiben und Solarwafer bei voller Liniengeschwindigkeit — und ihr gelernter großer Bruder ist die erste Schicht jedes Vision-Modells in Produktion.',
   },
 }
 
@@ -490,6 +514,122 @@ function PosEncPlot() {
   )
 }
 
+// ---------------------------------------------------------------- application: scratch detection
+
+const SCR_N = 64
+
+// brushed metal with two faint diagonal scratches; mask marks true scratch pixels
+const SCRATCH_IMG: { img: number[][]; mask: boolean[][] } = (() => {
+  const rand = mulberry32(321)
+  const img: number[][] = []
+  const mask: boolean[][] = Array.from({ length: SCR_N }, () => new Array<boolean>(SCR_N).fill(false))
+  for (let y = 0; y < SCR_N; y++) {
+    const row: number[] = []
+    const streak = 0.08 * Math.sin(y * 2.1) + 0.05 * Math.sin(y * 5.7 + 1)
+    for (let x = 0; x < SCR_N; x++) row.push(0.45 + streak + (rand() - 0.5) * 0.06)
+    img.push(row)
+  }
+  const drawScratch = (x0: number, y0: number, x1: number, y1: number) => {
+    const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))
+    for (let i = 0; i <= n; i++) {
+      const x = Math.round(x0 + ((x1 - x0) * i) / n)
+      const y = Math.round(y0 + ((y1 - y0) * i) / n)
+      if (x >= 0 && x < SCR_N && y >= 0 && y < SCR_N) {
+        img[y][x] = Math.min(1, img[y][x] + 0.35)
+        mask[y][x] = true
+      }
+    }
+  }
+  drawScratch(10, 52, 42, 14)
+  drawScratch(46, 56, 59, 39)
+  return { img, mask }
+})()
+
+const SCRATCH_KERNELS = [KERNELS.edgeY, KERNELS.diag1, KERNELS.edgeX]
+
+function ScratchCanvas({ img, hits }: { img: number[][]; hits?: boolean[][] }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const ctx = ref.current?.getContext('2d')
+    if (!ctx) return
+    const data = ctx.createImageData(SCR_N, SCR_N)
+    for (let y = 0; y < SCR_N; y++)
+      for (let x = 0; x < SCR_N; x++) {
+        const i = (y * SCR_N + x) * 4
+        if (hits?.[y][x]) {
+          data.data[i] = 248
+          data.data[i + 1] = 113
+          data.data[i + 2] = 113
+        } else {
+          const v = Math.round(Math.min(1, Math.max(0, img[y][x])) * 255)
+          data.data[i] = v
+          data.data[i + 1] = v
+          data.data[i + 2] = v
+        }
+        data.data[i + 3] = 255
+      }
+    ctx.putImageData(data, 0, 0)
+  }, [img, hits])
+  return <canvas ref={ref} width={SCR_N} height={SCR_N} className="block w-full" style={{ imageRendering: 'pixelated' }} />
+}
+
+function ScratchLab() {
+  const t = useT(T)
+  const [kIdx, setKIdx] = useState(1)
+  const [thresh, setThresh] = useState(0.6)
+
+  const { hits, tp, fp } = useMemo(() => {
+    const resp = reluImg(conv2d(SCRATCH_IMG.img, SCRATCH_KERNELS[kIdx]))
+    const hits2: boolean[][] = resp.map((row) => row.map((v) => v > thresh))
+    let tp2 = 0
+    let fp2 = 0
+    for (let y = 0; y < SCR_N; y++)
+      for (let x = 0; x < SCR_N; x++)
+        if (hits2[y][x]) {
+          // count hits within 1 px of a true scratch pixel as correct
+          let near = false
+          for (let dy = -1; dy <= 1 && !near; dy++)
+            for (let dx = -1; dx <= 1 && !near; dx++)
+              if (SCRATCH_IMG.mask[y + dy]?.[x + dx]) near = true
+          if (near) tp2++
+          else fp2++
+        }
+    return { hits: hits2, tp: tp2, fp: fp2 }
+  }, [kIdx, thresh])
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:col-span-3">
+        <div className="card overflow-hidden">
+          <ScratchCanvas img={SCRATCH_IMG.img} />
+          <div className="border-t border-white/10 px-3 py-1.5 text-[12px] text-muted">{t.appInput}</div>
+        </div>
+        <div className="card overflow-hidden">
+          <ScratchCanvas img={SCRATCH_IMG.img} hits={hits} />
+          <div className="border-t border-white/10 px-3 py-1.5 text-[12px] text-muted">{t.appResp}</div>
+        </div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <div>
+            <div className="mb-1.5 text-[12px] text-muted">{t.appKernel}</div>
+            <Segmented
+              options={t.appKernelNames.map((n, i) => ({ value: `${i}`, label: n }))}
+              value={`${kIdx}`}
+              onChange={(v) => setKIdx(Number(v))}
+            />
+          </div>
+          <Slider label={t.appThresh} value={thresh} min={0.15} max={1.4} step={0.01} onChange={setThresh} format={(v) => fmt(v, 2)} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appHits} value={`${tp}`} accent={tp > 40 ? '#4ade80' : '#fbbf24'} />
+          <Readout label={t.appFp} value={`${fp}`} accent={fp === 0 ? '#4ade80' : '#f87171'} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function DeepLearningPage() {
@@ -506,6 +646,7 @@ export function DeepLearningPage() {
           { id: 'compare', label: t.compTitle },
           { id: 'scale', label: t.scaleTitle },
           { id: 'code', label: t.codeTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -603,6 +744,18 @@ export function DeepLearningPage() {
 
       <Section id="code" title={t.codeTitle}>
         <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <ScratchLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

@@ -107,6 +107,21 @@ const T = {
       'Occlusions: some pixels are visible in only one camera and have no valid disparity.',
       'Active stereo (projected IR texture, e.g. RealSense) fights the first two problems.',
     ],
+    appTitle: '🏭 In the real world: designing a forklift safety camera',
+    appIntro:
+      'An autonomous forklift must stop for a 5 cm obstacle — a dropped bolt bin, a pallet corner — before it gets dangerously close. You are the system designer: pick the baseline and the lens, then check the rig against the spec at the required detection range. Two things must hold at that range: the depth error from ±0.5 px of disparity noise must stay below ±5 cm, and the disparity itself must be at least 5 px so the obstacle stands out from matching noise at all. Widen the baseline or lengthen the lens and watch the badge flip — this exact trade-off (baseline vs. housing size vs. range) is fought over in every stereo product meeting.',
+    appBase: 'baseline b',
+    appFocal: 'focal length f',
+    appRange: 'detection range Z',
+    appDisp: 'disparity at range',
+    appRes: 'depth error (±0.5 px)',
+    appPass: 'DESIGN PASSES',
+    appFail: 'DESIGN FAILS',
+    appPassWhy: 'disparity ≥ 5 px and depth error ≤ 5 cm at the detection range',
+    appFailDisp: 'disparity below 5 px — the obstacle drowns in matching noise',
+    appFailRes: 'depth error above 5 cm — obstacle and floor become indistinguishable',
+    appWhere:
+      'The same sizing calculation shapes the stereo rigs in cars (Subaru EyeSight), autonomous drones (Skydio), warehouse AMRs and planetary rovers — and it explains why phones, with millimeter baselines, only measure depth at arm’s length.',
   },
   de: {
     kicker: 'Vision · Modul 4',
@@ -185,6 +200,21 @@ const T = {
       'Verdeckungen: Manche Pixel sieht nur eine Kamera — sie haben keine gültige Disparität.',
       'Aktives Stereo (projizierte IR-Textur, z. B. RealSense) bekämpft die ersten beiden Probleme.',
     ],
+    appTitle: '🏭 In der echten Welt: eine Stapler-Sicherheitskamera auslegen',
+    appIntro:
+      'Ein autonomer Stapler muss vor einem 5-cm-Hindernis stoppen — eine heruntergefallene Schraubenkiste, eine Palettenecke — bevor er gefährlich nah ist. Du bist der Systemdesigner: Wähle Basislinie und Objektiv und prüfe das Rig gegen die Spezifikation bei der geforderten Detektionsreichweite. Zwei Dinge müssen dort gelten: Der Tiefenfehler aus ±0,5 px Disparitätsrauschen muss unter ±5 cm bleiben, und die Disparität selbst muss mindestens 5 px betragen, damit sich das Hindernis überhaupt vom Matchingrauschen abhebt. Verbreitere die Basislinie oder verlängere das Objektiv und sieh das Badge umschlagen — genau dieser Zielkonflikt (Basislinie vs. Gehäusegröße vs. Reichweite) wird in jedem Stereo-Produktmeeting ausgefochten.',
+    appBase: 'Basislinie b',
+    appFocal: 'Brennweite f',
+    appRange: 'Detektionsreichweite Z',
+    appDisp: 'Disparität bei Reichweite',
+    appRes: 'Tiefenfehler (±0,5 px)',
+    appPass: 'DESIGN BESTEHT',
+    appFail: 'DESIGN FÄLLT DURCH',
+    appPassWhy: 'Disparität ≥ 5 px und Tiefenfehler ≤ 5 cm bei der Detektionsreichweite',
+    appFailDisp: 'Disparität unter 5 px — das Hindernis geht im Matchingrauschen unter',
+    appFailRes: 'Tiefenfehler über 5 cm — Hindernis und Boden sind nicht mehr unterscheidbar',
+    appWhere:
+      'Dieselbe Auslegungsrechnung formt die Stereo-Rigs in Autos (Subaru EyeSight), autonomen Drohnen (Skydio), Lager-AMRs und Planetenrovern — und sie erklärt, warum Handys mit Millimeter-Basislinien Tiefe nur auf Armlänge messen.',
   },
 }
 
@@ -559,6 +589,93 @@ function DepthPlot() {
   )
 }
 
+// ---------------------------------------------------------------- application: forklift rig designer
+
+const DISP_MIN = 5 // px
+const ZERR_MAX = 0.05 // m
+
+function StereoRigLab() {
+  const t = useT(T)
+  const [b, setB] = useState(0.12)
+  const [f, setF] = useState(700)
+  const [range, setRange] = useState(6)
+
+  const d = (f * b) / range // disparity at range (px)
+  // depth error for ±0.5 px disparity noise
+  const zNear = (f * b) / (d + 0.5)
+  const zFar = d > 0.5 ? (f * b) / (d - 0.5) : Infinity
+  const zErr = Math.max(zFar - range, range - zNear)
+  const okDisp = d >= DISP_MIN
+  const okRes = zErr <= ZERR_MAX
+  const pass = okDisp && okRes
+
+  const PW = 560
+  const PH = 210
+  const groundY = PH - 42
+  const sx = (z: number) => 60 + (z / 12) * (PW - 90)
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          {/* floor */}
+          <line x1={0} y1={groundY} x2={PW} y2={groundY} stroke="#2a3245" strokeWidth={2} />
+          {/* forklift body */}
+          <rect x={8} y={groundY - 58} width={44} height={58} rx={5} fill="#1c2333" stroke="#38445c" />
+          <rect x={50} y={groundY - 34} width={8} height={34} fill="#38445c" />
+          <circle cx={22} cy={groundY} r={9} fill="#0a0e17" stroke="#38445c" strokeWidth={2} />
+          <circle cx={44} cy={groundY} r={9} fill="#0a0e17" stroke="#38445c" strokeWidth={2} />
+          {/* stereo head: two cameras separated by baseline (exaggerated vertically for visibility) */}
+          <rect x={26 - Math.max(b * 90, 10) / 2} y={groundY - 74} width={Math.max(b * 90, 10)} height={12} rx={3} fill="#22d3ee22" stroke="#22d3ee" />
+          <circle cx={26 - Math.max(b * 90, 10) / 2 + 3} cy={groundY - 68} r={2.5} fill="#22d3ee" />
+          <circle cx={26 + Math.max(b * 90, 10) / 2 - 3} cy={groundY - 68} r={2.5} fill="#22d3ee" />
+          {/* FOV wedge to obstacle */}
+          <path
+            d={`M 30 ${groundY - 68} L ${sx(range)} ${groundY - 26} L ${sx(range)} ${groundY} Z`}
+            fill={pass ? '#4ade8011' : '#f8717111'}
+            stroke={pass ? '#4ade8055' : '#f8717155'}
+            strokeDasharray="4 4"
+          />
+          {/* obstacle at range */}
+          <rect x={sx(range) - 7} y={groundY - 14} width={14} height={14} rx={2} fill={pass ? '#4ade80' : '#f87171'} />
+          <text x={sx(range)} y={groundY + 16} textAnchor="middle" fill="#8b93a7" fontSize={10.5} fontFamily="JetBrains Mono, monospace">
+            {fmt(range, 1)} m
+          </text>
+          {/* depth uncertainty bracket */}
+          {Number.isFinite(zFar) && (
+            <>
+              <line x1={sx(Math.max(zNear, 0))} y1={groundY - 26} x2={sx(Math.min(zFar, 12))} y2={groundY - 26} stroke="#fbbf24" strokeWidth={3} strokeLinecap="round" />
+              <text x={sx(range)} y={groundY - 33} textAnchor="middle" fill="#fbbf24" fontSize={10.5} fontFamily="JetBrains Mono, monospace">
+                ±{fmt(zErr * 100, 1)} cm
+              </text>
+            </>
+          )}
+          <text x={PW - 10} y={16} textAnchor="end" fill={pass ? '#4ade80' : '#f87171'} fontSize={13} fontWeight={700} fontFamily="JetBrains Mono, monospace">
+            {pass ? `✓ ${t.appPass}` : `✗ ${t.appFail}`}
+          </text>
+        </svg>
+        <div className="border-t border-white/10 px-4 py-2.5 text-[12.5px] text-muted">
+          {pass ? t.appPassWhy : !okDisp ? t.appFailDisp : t.appFailRes}
+        </div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appBase} value={b} min={0.03} max={0.4} step={0.01} onChange={setB} format={(v) => `${fmt(v * 100, 0)} cm`} />
+          <Slider label={t.appFocal} value={f} min={300} max={1600} step={25} onChange={setF} format={(v) => `${v} px`} accent="#a78bfa" />
+          <Slider label={t.appRange} value={range} min={2} max={11} step={0.5} onChange={setRange} format={(v) => `${fmt(v, 1)} m`} accent="#fbbf24" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appDisp} value={fmt(d, 1)} unit="px" accent={okDisp ? '#4ade80' : '#f87171'} />
+          <Readout label={t.appRes} value={`±${fmt(zErr * 100, 1)}`} unit="cm" accent={okRes ? '#4ade80' : '#f87171'} />
+        </div>
+        <div className="card-pad">
+          <TeX block>{`d = \\frac{f\\,b}{Z} = \\frac{${fmt(f, 0)}\\cdot${fmt(b, 2)}}{${fmt(range, 1)}} = ${fmt(d, 1)}\\,\\text{px}`}</TeX>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function StereoPage() {
@@ -574,6 +691,7 @@ export function StereoPage() {
           { id: 'rectification', label: t.rectTitle },
           { id: 'depth', label: t.depthTitle },
           { id: 'matching', label: t.matchTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -686,6 +804,18 @@ export function StereoPage() {
             ))}
           </ul>
         </div>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <StereoRigLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

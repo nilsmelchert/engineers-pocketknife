@@ -5,8 +5,13 @@ bilingual (English / German, toggle in the navbar).
 
 **Platform features**: ⌘K search across all modules and labs · mobile navigation drawer ·
 local progress tracking with curated learning paths · a [labs index](#) for jumping straight
-to any of the 65+ interactives · bilingual glossary · printable formula cheat sheet ·
+to any of the 90+ interactives · bilingual glossary · printable formula cheat sheet ·
 route-based code splitting (initial load ~90 KB gzipped) · installable PWA that works offline.
+
+**🏭 Real-world application labs**: every module ends with an interactive industry scenario —
+ADAS mono distance, stereo rig design for a forklift, PID auto-tuning, bearing-fault spectra,
+GPS tunnel dropout, LIDAR obstacle extraction, guard-banded part acceptance, inline weld
+inspection and 15 more — each one driven by the exact math taught above it.
 
 ## Tracks & modules
 

@@ -3,7 +3,7 @@ import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { Derivation } from '../components/Derivation'
 import { PageToc } from '../components/PageToc'
-import { Readout, Section, Slider } from '../components/ui'
+import { InfoBox, Readout, Section, Slider } from '../components/ui'
 import { fmt } from '../lib/math'
 import { eulerStep, rk4Step } from '../lib/signal'
 
@@ -49,6 +49,20 @@ const T = {
     ],
     table2: 'The PID plant of the Control module integrates with small fixed steps — fine, because the sim is designed non-stiff. The moment you simulate a real system, check stiffness first and let an adaptive solver choose the step.',
     codeTitle: 'In practice',
+    appTitle: '🏭 In the real world: tuning a suspension over a pothole',
+    appIntro:
+      'Before a single prototype shock absorber is machined, suspension engineers drive a quarter-car model — one wheel, a spring, a damper, a quarter of the body mass — over virtual road bumps, exactly the RK4 integration of this module. Two numbers decide the character of the car: peak body acceleration (what your spine feels) and how quickly the oscillation dies (how long the tire load stays predictable). Tune the damper: too soft and the body floats and wallows for meters; too hard and the bump hits your passengers unfiltered. The sweet spot in between is what ride engineers are paid to find — here you can find it in thirty seconds.',
+    appDamp: 'damper c',
+    appStiff: 'spring k',
+    appPeak: 'peak body acceleration',
+    appSettle: 'settling time',
+    appVerdict: 'ride verdict',
+    appSoft: 'wallowing',
+    appGood: 'COMFORT ✓',
+    appHard: 'harsh',
+    appLegend: 'gray = road profile (8 cm bump) · cyan = body height, RK4-integrated',
+    appWhere:
+      'The same quarter-car-and-integrator loop tunes train bogies, aircraft landing gear, washing-machine suspensions and seismic building dampers — and the identical RK4 core propagates satellites and simulates every battery model in a BMS.',
   },
   de: {
     kicker: 'Mathe · Modul 3',
@@ -91,6 +105,20 @@ const T = {
     ],
     table2: 'Die PID-Strecke des Regelungsmoduls integriert mit kleinen festen Schritten — in Ordnung, weil die Simulation bewusst nicht-steif entworfen ist. Sobald du ein echtes System simulierst: erst Steifheit prüfen und einen adaptiven Löser die Schrittweite wählen lassen.',
     codeTitle: 'In der Praxis',
+    appTitle: '🏭 In der echten Welt: ein Fahrwerk über ein Schlagloch abstimmen',
+    appIntro:
+      'Bevor ein einziger Prototypen-Stoßdämpfer gefertigt wird, fahren Fahrwerksingenieure ein Viertelfahrzeugmodell — ein Rad, eine Feder, ein Dämpfer, ein Viertel der Karosseriemasse — über virtuelle Fahrbahnstöße, exakt die RK4-Integration dieses Moduls. Zwei Zahlen entscheiden den Charakter des Autos: die maximale Aufbaubeschleunigung (was deine Wirbelsäule spürt) und wie schnell die Schwingung abklingt (wie lange die Radlast berechenbar bleibt). Stimme den Dämpfer ab: zu weich, und der Aufbau schwimmt und schaukelt meterlang; zu hart, und der Stoß trifft die Passagiere ungefiltert. Der Sweet Spot dazwischen ist das, wofür Fahrkomfort-Ingenieure bezahlt werden — hier findest du ihn in dreißig Sekunden.',
+    appDamp: 'Dämpfer c',
+    appStiff: 'Feder k',
+    appPeak: 'max. Aufbaubeschleunigung',
+    appSettle: 'Beruhigungszeit',
+    appVerdict: 'Fahrkomfort-Urteil',
+    appSoft: 'schaukelt',
+    appGood: 'KOMFORT ✓',
+    appHard: 'hart',
+    appLegend: 'grau = Fahrbahnprofil (8-cm-Stoß) · cyan = Aufbauhöhe, RK4-integriert',
+    appWhere:
+      'Dieselbe Viertelfahrzeug-und-Integrator-Schleife stimmt Drehgestelle von Zügen, Flugzeugfahrwerke, Waschmaschinen-Aufhängungen und seismische Gebäudedämpfer ab — und derselbe RK4-Kern propagiert Satelliten und simuliert jedes Batteriemodell in einem BMS.',
   },
 }
 
@@ -236,6 +264,90 @@ function StabilityLab() {
   )
 }
 
+// ---------------------------------------------------------------- application: suspension
+
+const SUSP_M = 300 // kg, quarter body mass
+const BUMP_H = 0.08
+const BUMP_T0 = 0.4
+const BUMP_D = 0.22
+
+function roadZ(time: number): number {
+  if (time < BUMP_T0 || time > BUMP_T0 + BUMP_D) return 0
+  return (BUMP_H / 2) * (1 - Math.cos((2 * Math.PI * (time - BUMP_T0)) / BUMP_D))
+}
+function roadV(time: number): number {
+  if (time < BUMP_T0 || time > BUMP_T0 + BUMP_D) return 0
+  return ((BUMP_H * Math.PI) / BUMP_D) * Math.sin((2 * Math.PI * (time - BUMP_T0)) / BUMP_D)
+}
+
+function SuspensionLab() {
+  const t = useT(T)
+  const [c, setC] = useState(900)
+  const [k, setK] = useState(30000)
+
+  const { ts, zs, peakAcc, settle } = useMemo(() => {
+    const f = (time: number, y: number[]) => {
+      const acc = (-k * (y[0] - roadZ(time)) - c * (y[1] - roadV(time))) / SUSP_M
+      return [y[1], acc]
+    }
+    const dt = 0.004
+    const TEND = 3.5
+    let y = [0, 0]
+    const ts2: number[] = []
+    const zs2: number[] = []
+    let peak = 0
+    let lastBig = 0
+    for (let time = 0; time <= TEND; time += dt) {
+      ts2.push(time)
+      zs2.push(y[0])
+      const acc = (-k * (y[0] - roadZ(time)) - c * (y[1] - roadV(time))) / SUSP_M
+      if (time > BUMP_T0) peak = Math.max(peak, Math.abs(acc))
+      if (Math.abs(y[0]) > 0.005) lastBig = time
+      y = rk4Step(f, time, y, dt)
+    }
+    return { ts: ts2, zs: zs2, peakAcc: peak, settle: Math.max(0, lastBig - BUMP_T0) }
+  }, [c, k])
+
+  const good = peakAcc < 4 && settle < 1.2
+  const verdict = good ? t.appGood : peakAcc >= 4 ? t.appHard : t.appSoft
+  const color = good ? '#4ade80' : '#f87171'
+
+  const PW = 560
+  const PH = 240
+  const sx = (time: number) => (time / 3.5) * PW
+  const sy = (z: number) => PH / 2 + 30 - z * 1400
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          <polyline
+            points={ts.map((time, i) => `${sx(time)},${sy(roadZ(ts[i]))}`).join(' ')}
+            fill="none"
+            stroke="#5b6270"
+            strokeWidth={1.4}
+          />
+          <polyline points={ts.map((time, i) => `${sx(time)},${sy(zs[i])}`).join(' ')} fill="none" stroke="#22d3ee" strokeWidth={2} />
+          <text x={PW - 10} y={20} textAnchor="end" fill={color} fontSize={13} fontWeight={700} fontFamily="JetBrains Mono, monospace">
+            {verdict}
+          </text>
+        </svg>
+        <div className="border-t border-white/10 px-4 py-2 text-[12px] text-muted">{t.appLegend}</div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appDamp} value={c} min={200} max={6000} step={50} onChange={setC} format={(v) => `${v} N·s/m`} />
+          <Slider label={t.appStiff} value={k} min={15000} max={60000} step={1000} onChange={setK} format={(v) => `${v / 1000} kN/m`} accent="#a78bfa" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appPeak} value={fmt(peakAcc, 1)} unit="m/s²" accent={peakAcc < 4 ? '#4ade80' : '#f87171'} />
+          <Readout label={t.appSettle} value={fmt(settle, 2)} unit="s" accent={settle < 1.2 ? '#4ade80' : '#f87171'} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function OdePage() {
@@ -249,6 +361,7 @@ export function OdePage() {
           { id: 'stability', label: t.stabTitle },
           { id: 'table', label: t.tableTitle },
           { id: 'code', label: t.codeTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -316,6 +429,18 @@ export function OdePage() {
 
       <Section id="code" title={t.codeTitle}>
         <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <SuspensionLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

@@ -8,6 +8,7 @@ import { fmt, mulberry32 } from '../lib/math'
 import { FN2D, gdStep2D, momentumStep2D, type Fn2D, type Vec2 } from '../lib/optim'
 import { adam2DInit, adamStep2D, annealStep, sgdNoisyStep2D, type Adam2DState } from '../lib/ml'
 import { makeGauss } from '../lib/stats'
+import { simulatePid, type PidOptions, type PidResult } from '../lib/signal'
 
 const T = {
   en: {
@@ -66,6 +67,18 @@ const T = {
       ['no gradients at all (black-box simulation)', 'Nelder–Mead, Bayesian optimization, CMA-ES'],
     ],
     codeTitle: 'In practice',
+    appTitle: '🏭 In the real world: auto-tuning a PID controller',
+    appIntro:
+      'Commissioning engineers tune thousands of PID loops per plant — and “auto-tune” buttons on modern drives do exactly what this module taught: they treat the controller gains as parameters, the simulated (or measured) step response as the data, and the integrated squared error as the loss. The heatmap below is that loss over the (Kp, Ki) plane for the module’s mass-spring-damper plant — every pixel is a full closed-loop simulation. Click anywhere to drop a starting guess: finite-difference gradient descent walks downhill and lands in the valley of well-tuned gains. The step-response plot shows what the descent bought you.',
+    appMapTitle: 'loss landscape: log ISE over (Kp, Ki) — click to start a descent',
+    appStart: 'start',
+    appTuned: 'auto-tuned',
+    appIse: 'ISE (tuned)',
+    appGains: 'tuned Kp / Ki',
+    appResp: 'step response: start vs. tuned',
+    appHint: 'click the heatmap to auto-tune from that starting point',
+    appWhere:
+      'The same simulate-and-descend loop tunes motor drives at commissioning, aircraft autopilot gains, chemical-reactor temperature loops, and the throttle response maps in your car — black-box optimization over a simulator is half of modern engineering.',
   },
   de: {
     kicker: 'ML · Modul 2',
@@ -123,6 +136,18 @@ const T = {
       ['gar keine Gradienten (Black-Box-Simulation)', 'Nelder–Mead, Bayessche Optimierung, CMA-ES'],
     ],
     codeTitle: 'In der Praxis',
+    appTitle: '🏭 In der echten Welt: einen PID-Regler auto-tunen',
+    appIntro:
+      'Inbetriebnahme-Ingenieure stimmen tausende PID-Schleifen pro Anlage ab — und die „Auto-Tune“-Knöpfe moderner Antriebe machen genau das, was dieses Modul gelehrt hat: Sie behandeln die Reglerverstärkungen als Parameter, die simulierte (oder gemessene) Sprungantwort als Daten und den integrierten quadratischen Fehler als Verlust. Die Heatmap unten ist dieser Verlust über der (Kp, Ki)-Ebene für die Masse-Feder-Dämpfer-Strecke des Moduls — jedes Pixel ist eine komplette Regelkreis-Simulation. Klicke irgendwohin, um einen Startwert zu setzen: Finite-Differenzen-Gradientenabstieg läuft bergab und landet im Tal der gut abgestimmten Verstärkungen. Der Sprungantwort-Plot zeigt, was der Abstieg gebracht hat.',
+    appMapTitle: 'Verlustlandschaft: log ISE über (Kp, Ki) — klicken startet einen Abstieg',
+    appStart: 'Start',
+    appTuned: 'auto-getunt',
+    appIse: 'ISE (getunt)',
+    appGains: 'getunte Kp / Ki',
+    appResp: 'Sprungantwort: Start vs. getunt',
+    appHint: 'in die Heatmap klicken, um von dort zu auto-tunen',
+    appWhere:
+      'Dieselbe Simulieren-und-Absteigen-Schleife stimmt Motorantriebe bei der Inbetriebnahme ab, Autopilot-Verstärkungen in Flugzeugen, Temperaturschleifen chemischer Reaktoren und die Gasannahme-Kennfelder deines Autos — Black-Box-Optimierung über einem Simulator ist die halbe moderne Ingenieurskunst.',
   },
 }
 
@@ -693,6 +718,120 @@ function LagrangeLab() {
   )
 }
 
+// ---------------------------------------------------------------- application: PID auto-tune
+
+const TUNE_PLANT: PidOptions = { m: 1, c: 1.2, k: 3, dt: 0.02, T: 6, delay: 0.05, setpoint: 1 }
+const KP_R: [number, number] = [0.5, 30]
+const KI_R: [number, number] = [0.05, 15]
+
+function pidIse(kp: number, ki: number): number {
+  const r = simulatePid(kp, ki, 0.8, TUNE_PLANT)
+  if (r.metrics.unstable) return 1e4
+  let s = 0
+  for (const y of r.y) s += (TUNE_PLANT.setpoint - y) ** 2 * TUNE_PLANT.dt
+  return s
+}
+
+function tuneDescent(kp0: number, ki0: number): { path: Vec2[]; ise: number } {
+  let p: Vec2 = [kp0, ki0]
+  let cost = pidIse(p[0], p[1])
+  const path: Vec2[] = [p]
+  let lr = 1.2
+  for (let it = 0; it < 60; it++) {
+    const h: Vec2 = [0.25, 0.12]
+    const gx = (pidIse(p[0] + h[0], p[1]) - pidIse(p[0] - h[0], p[1])) / (2 * h[0])
+    const gy = (pidIse(p[0], p[1] + h[1]) - pidIse(p[0], p[1] - h[1])) / (2 * h[1])
+    const norm = Math.hypot(gx, gy)
+    if (norm < 1e-5) break
+    let stepped = false
+    for (let tries = 0; tries < 5; tries++) {
+      const cand: Vec2 = [
+        Math.min(KP_R[1], Math.max(KP_R[0], p[0] - (lr * gx) / norm)),
+        Math.min(KI_R[1], Math.max(KI_R[0], p[1] - (lr * gy) / norm)),
+      ]
+      const cCost = pidIse(cand[0], cand[1])
+      if (cCost < cost) {
+        p = cand
+        cost = cCost
+        path.push(p)
+        lr = Math.min(lr * 1.3, 2.5)
+        stepped = true
+        break
+      }
+      lr /= 2
+    }
+    if (!stepped) break
+  }
+  return { path, ise: cost }
+}
+
+function PidTuneLab() {
+  const t = useT(T)
+  const [start, setStart] = useState<Vec2>([26, 1])
+
+  const { path, ise } = useMemo(() => tuneDescent(start[0], start[1]), [start])
+  const tuned = path[path.length - 1]
+  const respStart = useMemo(() => simulatePid(start[0], start[1], 0.8, TUNE_PLANT), [start])
+  const respTuned = useMemo(() => simulatePid(tuned[0], tuned[1], 0.8, TUNE_PLANT), [tuned])
+
+  const W2 = 460
+  const H2 = 340
+  const sx = (kp: number) => ((kp - KP_R[0]) / (KP_R[1] - KP_R[0])) * W2
+  const sy = (ki: number) => H2 - ((ki - KI_R[0]) / (KI_R[1] - KI_R[0])) * H2
+
+  const RW = 460
+  const RH = 170
+  const rx = (time: number) => (time / TUNE_PLANT.T) * RW
+  const ry = (y: number) => RH - 14 - (y / 1.6) * (RH - 28)
+  const respLine = (r: PidResult) =>
+    r.t
+      .filter((_, i) => i % 4 === 0)
+      .map((time, i) => `${rx(time)},${ry(Math.max(-0.1, Math.min(1.7, r.y[i * 4])))}`)
+      .join(' ')
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="lg:col-span-3">
+        <Heatmap
+          w={W2}
+          h={H2}
+          xr={KP_R}
+          yr={KI_R}
+          cost={(kp, ki) => Math.log10(pidIse(kp, ki) + 1e-3)}
+          ckey="pid-tune"
+          onPick={(kp, ki) => setStart([kp, ki])}
+          title={t.appMapTitle}
+        >
+          <polyline points={path.map((p) => `${sx(p[0])},${sy(p[1])}`).join(' ')} fill="none" stroke="#fbbf24" strokeWidth={2} />
+          <circle cx={sx(start[0])} cy={sy(start[1])} r={5} fill="#f87171" />
+          <circle cx={sx(tuned[0])} cy={sy(tuned[1])} r={6} fill="#4ade80" stroke="#0a0e17" strokeWidth={1.5} />
+        </Heatmap>
+        <p className="mt-2 text-[12px] text-muted">{t.appHint}</p>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card overflow-hidden">
+          <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">{t.appResp}</div>
+          <svg viewBox={`0 0 ${RW} ${RH}`} className="block w-full">
+            <line x1={0} y1={ry(1)} x2={RW} y2={ry(1)} stroke="#8b93a744" strokeDasharray="4 4" />
+            <polyline points={respLine(respStart)} fill="none" stroke="#f87171" strokeWidth={1.8} strokeDasharray="6 4" />
+            <polyline points={respLine(respTuned)} fill="none" stroke="#4ade80" strokeWidth={2.2} />
+            <text x={RW - 8} y={16} textAnchor="end" fill="#4ade80" fontSize={11} fontFamily="JetBrains Mono, monospace">
+              {t.appTuned}
+            </text>
+            <text x={RW - 8} y={30} textAnchor="end" fill="#f87171" fontSize={11} fontFamily="JetBrains Mono, monospace">
+              {t.appStart}
+            </text>
+          </svg>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appGains} value={`${fmt(tuned[0], 1)} / ${fmt(tuned[1], 1)}`} accent="#4ade80" />
+          <Readout label={t.appIse} value={fmt(ise, 3)} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function OptAdvancedPage() {
@@ -708,6 +847,7 @@ export function OptAdvancedPage() {
           { id: 'anneal', label: t.annealTitle },
           { id: 'lagrange', label: t.lagTitle },
           { id: 'table', label: t.tableTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -807,6 +947,18 @@ export function OptAdvancedPage() {
           <h3 className="mb-2 text-sm font-bold tracking-wide text-muted uppercase">{t.codeTitle}</h3>
           <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
         </div>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <PidTuneLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

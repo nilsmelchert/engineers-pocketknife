@@ -74,6 +74,17 @@ const T = {
     math1: 'K-means minimizes the within-cluster sum of squares over both the assignments and the centroids:',
     math2: 'Fix μ → the optimal assignment is the nearest centroid. Fix the assignments → the optimal μⱼ is the cluster mean (set the gradient to zero). Alternating the two exact minimizations makes the objective monotonically non-increasing — convergence is guaranteed, global optimality is not (the problem is NP-hard in general).',
     codeTitle: 'In practice',
+    appTitle: '🏭 In the real world: color quantization',
+    appIntro:
+      'Every GIF you have ever seen, every embedded display with a 256-color palette, every print job that reduces a photo to a handful of inks solves the same problem: replace millions of RGB values by k representative colors with minimal visible damage. That is k-means, verbatim — the pixels are points in 3D RGB space, the palette entries are the centroids, and “assign each pixel to its nearest palette color” is Lloyd’s assignment step. Slide k and watch the sunset image degrade gracefully — and check what happens to the storage cost.',
+    appK: 'palette size k',
+    appOrig: 'original (24-bit)',
+    appQuant: 'quantized',
+    appPalette: 'the k centroids = the palette',
+    appMse: 'color error (RMS)',
+    appSize: 'bits per pixel',
+    appWhere:
+      'The identical machinery builds visual-word vocabularies for image retrieval, compresses neural-network weights (weight sharing), picks warehouse locations from delivery coordinates, and segments customers from purchasing features.',
   },
   de: {
     kicker: 'Daten · Modul 2',
@@ -127,7 +138,172 @@ const T = {
     math1: 'K-Means minimiert die Summe der quadrierten Abstände innerhalb der Cluster über Zuweisungen und Zentroide gemeinsam:',
     math2: 'Fixiere μ → die optimale Zuweisung ist der nächste Zentroid. Fixiere die Zuweisungen → das optimale μⱼ ist der Clustermittelwert (Gradient null setzen). Das Abwechseln der beiden exakten Minimierungen macht die Zielfunktion monoton nicht-steigend — Konvergenz ist garantiert, globale Optimalität nicht (das Problem ist im Allgemeinen NP-schwer).',
     codeTitle: 'In der Praxis',
+    appTitle: '🏭 In der echten Welt: Farbquantisierung',
+    appIntro:
+      'Jedes GIF, das du je gesehen hast, jedes Embedded-Display mit 256-Farben-Palette, jeder Druckauftrag, der ein Foto auf eine Handvoll Druckfarben reduziert, löst dasselbe Problem: Millionen RGB-Werte durch k repräsentative Farben ersetzen — mit minimalem sichtbarem Schaden. Das ist wortwörtlich K-Means: Die Pixel sind Punkte im 3D-RGB-Raum, die Paletteneinträge sind die Zentroide, und „weise jedem Pixel die nächste Palettenfarbe zu“ ist Lloyds Zuweisungsschritt. Schiebe k und beobachte, wie das Sonnenuntergangsbild würdevoll degradiert — und was mit den Speicherkosten passiert.',
+    appK: 'Palettengröße k',
+    appOrig: 'Original (24 Bit)',
+    appQuant: 'quantisiert',
+    appPalette: 'die k Zentroide = die Palette',
+    appMse: 'Farbfehler (RMS)',
+    appSize: 'Bits pro Pixel',
+    appWhere:
+      'Dieselbe Maschinerie baut Visual-Word-Vokabulare für die Bildsuche, komprimiert Netzgewichte (Weight Sharing), wählt Lagerstandorte aus Lieferkoordinaten und segmentiert Kunden aus Kaufmerkmalen.',
   },
+}
+
+// ---------------------------------------------------------------- application: color quantization
+
+const QIMG = 48
+
+// procedural sunset image, RGB 0..255
+const QUANT_PIXELS: number[][] = (() => {
+  const px: number[][] = []
+  const rand = mulberry32(9)
+  for (let y = 0; y < QIMG; y++) {
+    for (let x = 0; x < QIMG; x++) {
+      const fy = y / (QIMG - 1)
+      const fx = x / (QIMG - 1)
+      let r: number, g: number, b: number
+      if (fy < 0.55) {
+        // sky: deep violet high up → orange at the horizon
+        const s = fy / 0.55
+        r = 60 + 195 * s
+        g = 30 + 110 * s
+        b = 110 - 60 * s
+        // sun disk
+        const d = Math.hypot(fx - 0.62, (fy - 0.42) * 1.4)
+        if (d < 0.09) {
+          r = 255
+          g = 235 - 400 * d
+          b = 160 - 800 * d
+        }
+      } else {
+        // sea: dark blue with a sun reflection column
+        const s = (fy - 0.55) / 0.45
+        r = 40 - 15 * s
+        g = 45 + 10 * s
+        b = 95 + 25 * s
+        if (Math.abs(fx - 0.62) < 0.06 * (1 - s) + 0.015) {
+          r += 160 * (1 - s)
+          g += 90 * (1 - s)
+        }
+      }
+      const n = (rand() - 0.5) * 14
+      px.push([
+        Math.min(255, Math.max(0, r + n)),
+        Math.min(255, Math.max(0, g + n)),
+        Math.min(255, Math.max(0, b + n)),
+      ])
+    }
+  }
+  return px
+})()
+
+function kmeansRgb(pixels: number[][], k: number): { palette: number[][]; labels: number[] } {
+  const rand = mulberry32(1234 + k)
+  // k-means++ seeding
+  const palette: number[][] = [pixels[Math.floor(rand() * pixels.length)].slice()]
+  const d2 = (a: number[], b: number[]) => (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2
+  while (palette.length < k) {
+    const dists = pixels.map((p) => Math.min(...palette.map((c) => d2(p, c))))
+    const sum = dists.reduce((s, v) => s + v, 0)
+    let r = rand() * sum
+    let idx = 0
+    for (; idx < dists.length - 1 && r > dists[idx]; idx++) r -= dists[idx]
+    palette.push(pixels[idx].slice())
+  }
+  let labels = new Array<number>(pixels.length).fill(0)
+  for (let it = 0; it < 12; it++) {
+    labels = pixels.map((p) => {
+      let best = 0
+      let bd = Infinity
+      for (let j = 0; j < k; j++) {
+        const dd = d2(p, palette[j])
+        if (dd < bd) {
+          bd = dd
+          best = j
+        }
+      }
+      return best
+    })
+    const sums = Array.from({ length: k }, () => [0, 0, 0, 0])
+    labels.forEach((l, i) => {
+      sums[l][0] += pixels[i][0]
+      sums[l][1] += pixels[i][1]
+      sums[l][2] += pixels[i][2]
+      sums[l][3]++
+    })
+    for (let j = 0; j < k; j++)
+      if (sums[j][3] > 0) palette[j] = [sums[j][0] / sums[j][3], sums[j][1] / sums[j][3], sums[j][2] / sums[j][3]]
+  }
+  return { palette, labels }
+}
+
+function QuantCanvas({ pixels }: { pixels: number[][] }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    const ctx = ref.current?.getContext('2d')
+    if (!ctx) return
+    const img = ctx.createImageData(QIMG, QIMG)
+    pixels.forEach((p, i) => {
+      img.data[i * 4] = p[0]
+      img.data[i * 4 + 1] = p[1]
+      img.data[i * 4 + 2] = p[2]
+      img.data[i * 4 + 3] = 255
+    })
+    ctx.putImageData(img, 0, 0)
+  }, [pixels])
+  return <canvas ref={ref} width={QIMG} height={QIMG} className="block w-full" style={{ imageRendering: 'pixelated' }} />
+}
+
+function QuantizeLab() {
+  const t = useT(T)
+  const [k, setK] = useState(4)
+
+  const { palette, labels } = useMemo(() => kmeansRgb(QUANT_PIXELS, k), [k])
+  const quantized = useMemo(() => labels.map((l) => palette[l]), [labels, palette])
+  const rms = Math.sqrt(
+    QUANT_PIXELS.reduce((s, p, i) => s + (p[0] - quantized[i][0]) ** 2 + (p[1] - quantized[i][1]) ** 2 + (p[2] - quantized[i][2]) ** 2, 0) /
+      (QUANT_PIXELS.length * 3),
+  )
+  const bpp = Math.ceil(Math.log2(k))
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:col-span-3">
+        <div className="card overflow-hidden">
+          <QuantCanvas pixels={QUANT_PIXELS} />
+          <div className="border-t border-white/10 px-3 py-1.5 text-[12px] text-muted">{t.appOrig}</div>
+        </div>
+        <div className="card overflow-hidden">
+          <QuantCanvas pixels={quantized} />
+          <div className="border-t border-white/10 px-3 py-1.5 text-[12px] text-muted">{t.appQuant}</div>
+        </div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad">
+          <Slider label={t.appK} value={k} min={2} max={16} step={1} onChange={setK} />
+        </div>
+        <div className="card-pad">
+          <div className="mb-2 text-[12px] text-muted">{t.appPalette}</div>
+          <div className="flex flex-wrap gap-1.5">
+            {palette.map((c, i) => (
+              <span
+                key={i}
+                className="inline-block h-7 w-7 rounded border border-white/15"
+                style={{ background: `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})` }}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appMse} value={fmt(rms, 1)} />
+          <Readout label={t.appSize} value={`${bpp} / 24`} accent="#4ade80" />
+        </div>
+      </div>
+    </div>
+  )
 }
 
 const SNIPPET = `from sklearn.cluster import KMeans
@@ -480,6 +656,7 @@ export function KmeansPage() {
           { id: 'failures', label: t.failTitle },
           { id: 'math', label: t.mathTitle },
           { id: 'code', label: t.codeTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -561,6 +738,18 @@ export function KmeansPage() {
 
       <Section id="code" title={t.codeTitle}>
         <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <QuantizeLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

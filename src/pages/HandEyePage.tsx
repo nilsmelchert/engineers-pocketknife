@@ -150,6 +150,19 @@ const T = {
       'The board-pose estimates must be good: calibrate intrinsics first (module 2), then hold them fixed.',
       'Validate: move to an unused pose, predict the board position via A·X·B, compare with the measurement.',
     ],
+    appTitle: '🏭 In the real world: will the robot hit the pick?',
+    appIntro:
+      'A bin-picking cell must place the gripper within ±5 mm of the part, or the fingers jam against the bin wall. The camera measures the part perfectly — but the measurement travels through your hand-eye transform X before it reaches the robot. Every error in X lands directly on the pick point, and the rotational part gets multiplied by the working distance: at 800 mm from the flange, a mere 0.5° of rotation error already displaces the pick by 7 mm. Budget the two error sources with the sliders and see whether the pick still succeeds — and why hand-eye calibration is redone after every gripper crash.',
+    appRot: 'rotation error of X',
+    appTrans: 'translation error of X',
+    appDist: 'working distance (flange → part)',
+    appErr: 'total pick-point error',
+    appBudget: 'error budget',
+    appPass: 'PICK OK',
+    appFail: 'PICK FAILS',
+    appTol: 'tolerance ±5 mm',
+    appWhere:
+      'The same budget maths governs welding robots (torch tip vs. seam), surgical robots (instrument vs. anatomy), wafer handlers and drone landing on markers — any system where a sensor in one frame steers an actuator in another.',
   },
   de: {
     kicker: 'Vision · Modul 5',
@@ -223,6 +236,19 @@ const T = {
       'Die Brettposen-Schätzungen müssen gut sein: erst die Intrinsik kalibrieren (Modul 2), dann festhalten.',
       'Validieren: eine unbenutzte Pose anfahren, die Brettposition über A·X·B vorhersagen und mit der Messung vergleichen.',
     ],
+    appTitle: '🏭 In der echten Welt: trifft der Roboter den Griff?',
+    appIntro:
+      'Eine Bin-Picking-Zelle muss den Greifer auf ±5 mm genau am Teil platzieren, sonst verklemmen die Finger an der Kistenwand. Die Kamera misst das Teil perfekt — aber die Messung läuft durch deine Hand-Auge-Transformation X, bevor sie den Roboter erreicht. Jeder Fehler in X landet direkt auf dem Griffpunkt, und der Rotationsanteil wird mit dem Arbeitsabstand multipliziert: Bei 800 mm vom Flansch verschieben schon 0,5° Rotationsfehler den Griff um 7 mm. Budgetiere die beiden Fehlerquellen mit den Slidern und sieh, ob der Griff noch gelingt — und warum die Hand-Auge-Kalibrierung nach jedem Greifer-Crash wiederholt wird.',
+    appRot: 'Rotationsfehler von X',
+    appTrans: 'Translationsfehler von X',
+    appDist: 'Arbeitsabstand (Flansch → Teil)',
+    appErr: 'Gesamtfehler am Griffpunkt',
+    appBudget: 'Fehlerbudget',
+    appPass: 'GRIFF OK',
+    appFail: 'GRIFF SCHLÄGT FEHL',
+    appTol: 'Toleranz ±5 mm',
+    appWhere:
+      'Dieselbe Budgetrechnung gilt für Schweißroboter (Brennerspitze vs. Naht), OP-Roboter (Instrument vs. Anatomie), Wafer-Handler und Drohnenlandungen auf Markern — für jedes System, in dem ein Sensor in einem Koordinatensystem einen Aktor in einem anderen steuert.',
   },
 }
 
@@ -246,6 +272,77 @@ type Mode = 'inhand' | 'tohand'
 interface CapturedPair {
   A: M4
   B: M4
+}
+
+// ---------------------------------------------------------------- application: pick-accuracy budget
+
+const PICK_TOL = 5 // mm
+
+function PickBudgetLab() {
+  const t = useT(T)
+  const [rotErr, setRotErr] = useState(0.3)
+  const [transErr, setTransErr] = useState(1.5)
+  const [dist, setDist] = useState(800)
+
+  const rotPart = dist * Math.sin((rotErr * Math.PI) / 180)
+  const total = transErr + rotPart
+  const pass = total <= PICK_TOL
+
+  const PW = 560
+  const PH = 220
+  const cx2 = PW / 2
+  const partY = PH - 60
+  // 1 mm = 6 px in the zoomed view
+  const missPx = Math.min(total * 6, 150)
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          {/* part (cylinder seen from above) with tolerance circle */}
+          <circle cx={cx2} cy={partY} r={PICK_TOL * 6} fill="none" stroke={pass ? '#4ade8066' : '#f8717166'} strokeDasharray="5 4" />
+          <circle cx={cx2} cy={partY} r={13} fill="#2a3245" stroke="#8b93a7" strokeWidth={1.5} />
+          <circle cx={cx2} cy={partY} r={4} fill="#8b93a7" />
+          {/* gripper fingers arriving offset by the error */}
+          <g transform={`translate(${cx2 + missPx}, ${partY})`}>
+            <rect x={-30} y={-52} width={60} height={16} rx={4} fill="#1c2333" stroke="#22d3ee" />
+            <rect x={-26} y={-38} width={9} height={30} rx={2} fill="#22d3ee33" stroke="#22d3ee" />
+            <rect x={17} y={-38} width={9} height={30} rx={2} fill="#22d3ee33" stroke="#22d3ee" />
+            <line x1={0} y1={-36} x2={0} y2={8} stroke="#22d3ee" strokeWidth={1} strokeDasharray="3 3" />
+          </g>
+          {/* miss arrow */}
+          {missPx > 4 && (
+            <>
+              <line x1={cx2} y1={partY + 26} x2={cx2 + missPx} y2={partY + 26} stroke="#fbbf24" strokeWidth={2.5} strokeLinecap="round" />
+              <text x={cx2 + missPx / 2} y={partY + 42} textAnchor="middle" fill="#fbbf24" fontSize={11.5} fontFamily="JetBrains Mono, monospace">
+                {fmt(total, 1)} mm
+              </text>
+            </>
+          )}
+          <text x={PW - 10} y={20} textAnchor="end" fill={pass ? '#4ade80' : '#f87171'} fontSize={13} fontWeight={700} fontFamily="JetBrains Mono, monospace">
+            {pass ? `✓ ${t.appPass}` : `✗ ${t.appFail}`}
+          </text>
+          <text x={PW - 10} y={36} textAnchor="end" fill="#8b93a7" fontSize={10.5} fontFamily="JetBrains Mono, monospace">
+            {t.appTol}
+          </text>
+        </svg>
+        <div className="border-t border-white/10 px-4 py-2.5">
+          <TeX block>{`e = e_t + d\\sin(e_R) = ${fmt(transErr, 1)} + ${fmt(dist, 0)}\\sin(${fmt(rotErr, 2)}°) = ${fmt(total, 1)}\\,\\text{mm}`}</TeX>
+        </div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appRot} value={rotErr} min={0} max={2} step={0.05} onChange={setRotErr} format={(v) => `${fmt(v, 2)}°`} />
+          <Slider label={t.appTrans} value={transErr} min={0} max={5} step={0.1} onChange={setTransErr} format={(v) => `${fmt(v, 1)} mm`} accent="#a78bfa" />
+          <Slider label={t.appDist} value={dist} min={200} max={1500} step={25} onChange={setDist} format={(v) => `${v} mm`} accent="#fbbf24" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appErr} value={fmt(total, 1)} unit="mm" accent={pass ? '#4ade80' : '#f87171'} />
+          <Readout label={t.appBudget} value={`${fmt(transErr, 1)} + ${fmt(rotPart, 1)}`} unit="mm" />
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export function HandEyePage() {
@@ -365,6 +462,7 @@ export function HandEyePage() {
           { id: 'axxb', label: t.mathTitle },
           { id: 'axzb', label: t.axzbTitle },
           { id: 'practice', label: t.practTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -589,6 +687,18 @@ export function HandEyePage() {
             ))}
           </ul>
         </div>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <PickBudgetLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

@@ -3,8 +3,8 @@ import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { PageToc } from '../components/PageToc'
 import { InfoBox, Readout, Section, Slider } from '../components/ui'
-import { fmt } from '../lib/math'
-import { jacobiEigen } from '../lib/stats'
+import { fmt, mulberry32 } from '../lib/math'
+import { jacobiEigen, makeGauss } from '../lib/stats'
 
 const T = {
   en: {
@@ -37,6 +37,17 @@ const T = {
       'Condition number = σ₁/σₙ — the ill-conditioning that tortured gradient descent in the optimization modules, quantified in one ratio.',
     ],
     codeTitle: 'In practice',
+    appTitle: '🏭 In the real world: denoising a sensor array',
+    appIntro:
+      'Eight strain gauges on a bridge deck record 120 samples. Physically, the deck only does two things — a slow thermal bend and a faster traffic oscillation — so the true data matrix has rank 2. The noise, however, is independent per sensor and spreads over all 8 dimensions. That asymmetry is the whole trick: keep only the strongest singular directions and you keep the physics while discarding most of the noise. Slide the rank: at r = 2 the traces clean up beautifully; push further and you start faithfully reconstructing garbage. The singular-value bars tell you where the physics ends and the noise floor begins.',
+    appRank: 'rank kept r',
+    appNoise: 'sensor noise σ',
+    appSnrIn: 'SNR raw',
+    appSnrOut: 'SNR after truncation',
+    appSpectrum: 'singular values',
+    appLegend: 'gray = raw sensor traces · cyan = rank-r reconstruction',
+    appWhere:
+      'The same truncation cleans EEG channels, seismic arrays, vibration surveys with dozens of accelerometers, and financial factor models — whenever many channels watch few underlying causes, the SVD separates them from the noise.',
   },
   de: {
     kicker: 'Mathe · Modul 2',
@@ -68,6 +79,17 @@ const T = {
       'Konditionszahl = σ₁/σₙ — die schlechte Konditionierung, die den Gradientenabstieg in den Optimierungsmodulen quälte, in einem Verhältnis quantifiziert.',
     ],
     codeTitle: 'In der Praxis',
+    appTitle: '🏭 In der echten Welt: ein Sensorarray entrauschen',
+    appIntro:
+      'Acht Dehnungsmessstreifen auf einer Brückenfahrbahn zeichnen 120 Samples auf. Physikalisch tut die Fahrbahn nur zwei Dinge — eine langsame thermische Biegung und eine schnellere Verkehrsschwingung — die wahre Datenmatrix hat also Rang 2. Das Rauschen dagegen ist pro Sensor unabhängig und verteilt sich über alle 8 Dimensionen. Diese Asymmetrie ist der ganze Trick: Behalte nur die stärksten Singulärrichtungen, und du behältst die Physik, während du das meiste Rauschen wegwirfst. Schiebe den Rang: Bei r = 2 werden die Spuren wunderbar sauber; gehst du weiter, rekonstruierst du treu den Müll. Die Singulärwert-Balken zeigen dir, wo die Physik endet und der Rauschboden beginnt.',
+    appRank: 'behaltener Rang r',
+    appNoise: 'Sensorrauschen σ',
+    appSnrIn: 'SNR roh',
+    appSnrOut: 'SNR nach Trunkierung',
+    appSpectrum: 'Singulärwerte',
+    appLegend: 'grau = rohe Sensorspuren · cyan = Rang-r-Rekonstruktion',
+    appWhere:
+      'Dieselbe Trunkierung säubert EEG-Kanäle, seismische Arrays, Schwingungsmessungen mit Dutzenden Beschleunigungsaufnehmern und Faktormodelle im Finanzwesen — überall dort, wo viele Kanäle wenige zugrunde liegende Ursachen beobachten, trennt die SVD sie vom Rauschen.',
   },
 }
 
@@ -367,6 +389,105 @@ function CompressionLab() {
   )
 }
 
+// ---------------------------------------------------------------- application: sensor-array denoising
+
+const ARR_S = 8 // sensors
+const ARR_T = 120 // samples
+
+// clean rank-2 data: two physical modes mixed into 8 channels
+const ARR_CLEAN: number[][] = (() => {
+  const mixRand = mulberry32(64)
+  const mix = Array.from({ length: ARR_S }, () => [mixRand() * 2 - 1, mixRand() * 2 - 1])
+  return Array.from({ length: ARR_S }, (_, s) =>
+    Array.from({ length: ARR_T }, (_, i) => {
+      const m1 = Math.sin((2 * Math.PI * i) / 48)
+      const m2 = 0.6 * Math.sin((2 * Math.PI * i) / 13 + 1.1)
+      return mix[s][0] * m1 + mix[s][1] * m2
+    }),
+  )
+})()
+
+const ARR_NOISE_UNIT: number[][] = (() => {
+  const g = makeGauss(65)
+  return Array.from({ length: ARR_S }, () => Array.from({ length: ARR_T }, () => g()))
+})()
+
+function SensorDenoiseLab() {
+  const t = useT(T)
+  const [rank, setRank] = useState(2)
+  const [noise, setNoise] = useState(0.35)
+
+  const { noisy, recon, sigmas, snrIn, snrOut } = useMemo(() => {
+    const X = ARR_CLEAN.map((row, s) => row.map((v, i) => v + noise * ARR_NOISE_UNIT[s][i]))
+    // C = X·Xᵀ (8×8), eigenvectors = left singular vectors
+    const C = Array.from({ length: ARR_S }, (_, a) =>
+      Array.from({ length: ARR_S }, (_, b) => X[a].reduce((acc, v, i) => acc + v * X[b][i], 0)),
+    )
+    const eig = jacobiEigen(C)
+    // project onto top-r left singular vectors: X̂ = U_r U_rᵀ X
+    const coeff = eig.vectors.slice(0, rank).map((u) => Array.from({ length: ARR_T }, (_, i) => u.reduce((acc, ui, s) => acc + ui * X[s][i], 0)))
+    const Xh = Array.from({ length: ARR_S }, (_, s) =>
+      Array.from({ length: ARR_T }, (_, i) => coeff.reduce((acc, c, j) => acc + eig.vectors[j][s] * c[i], 0)),
+    )
+    const power = (M: number[][]) => M.reduce((acc, row) => acc + row.reduce((a2, v) => a2 + v * v, 0), 0)
+    const diff = (A: number[][], B: number[][]) => A.reduce((acc, row, s) => acc + row.reduce((a2, v, i) => a2 + (v - B[s][i]) ** 2, 0), 0)
+    const sig = power(ARR_CLEAN)
+    return {
+      noisy: X,
+      recon: Xh,
+      sigmas: eig.values.map((v) => Math.sqrt(Math.max(v, 0))),
+      snrIn: 10 * Math.log10(sig / Math.max(diff(X, ARR_CLEAN), 1e-9)),
+      snrOut: 10 * Math.log10(sig / Math.max(diff(Xh, ARR_CLEAN), 1e-9)),
+    }
+  }, [rank, noise])
+
+  const PW = 540
+  const ROW = 34
+  const PH = ARR_S * ROW + 10
+  const sx = (i: number) => (i / (ARR_T - 1)) * PW
+  const sy = (s: number, v: number) => 5 + s * ROW + ROW / 2 - v * 10
+
+  const maxSig = Math.max(...sigmas, 1e-9)
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          {Array.from({ length: ARR_S }, (_, s) => (
+            <g key={s}>
+              <polyline points={noisy[s].map((v, i) => `${sx(i)},${sy(s, v)}`).join(' ')} fill="none" stroke="#5b6270" strokeWidth={0.9} />
+              <polyline points={recon[s].map((v, i) => `${sx(i)},${sy(s, v)}`).join(' ')} fill="none" stroke="#22d3ee" strokeWidth={1.4} />
+            </g>
+          ))}
+        </svg>
+        <div className="border-t border-white/10 px-4 py-2 text-[12px] text-muted">{t.appLegend}</div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appRank} value={rank} min={1} max={8} step={1} onChange={setRank} />
+          <Slider label={t.appNoise} value={noise} min={0.05} max={1} step={0.05} onChange={setNoise} format={(v) => fmt(v, 2)} accent="#a78bfa" />
+        </div>
+        <div className="card-pad">
+          <div className="mb-2 text-[12px] text-muted">{t.appSpectrum}</div>
+          <div className="flex items-end gap-1.5" style={{ height: 64 }}>
+            {sigmas.map((s, i) => (
+              <div
+                key={i}
+                className="flex-1 rounded-t"
+                style={{ height: `${(s / maxSig) * 100}%`, background: i < rank ? '#22d3ee' : '#3a4256' }}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appSnrIn} value={fmt(snrIn, 1)} unit="dB" />
+          <Readout label={t.appSnrOut} value={fmt(snrOut, 1)} unit="dB" accent={snrOut > snrIn ? '#4ade80' : '#f87171'} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function SvdPage() {
@@ -380,6 +501,7 @@ export function SvdPage() {
           { id: 'compression', label: t.compTitle },
           { id: 'where', label: t.whereTitle },
           { id: 'code', label: t.codeTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -429,6 +551,18 @@ export function SvdPage() {
 
       <Section id="code" title={t.codeTitle}>
         <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <SensorDenoiseLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { PageToc } from '../components/PageToc'
-import { Readout, Section, Segmented, Slider } from '../components/ui'
+import { InfoBox, Readout, Section, Segmented, Slider } from '../components/ui'
 import { fmt, mulberry32 } from '../lib/math'
 import { makeGauss } from '../lib/stats'
 
@@ -49,6 +49,18 @@ const T = {
       'Every uncertainty budget in metrology (Measurement track) is probability bookkeeping in disguise.',
     ],
     codeTitle: 'In practice',
+    appTitle: '🏭 In the real world: the SPC control chart',
+    appIntro:
+      'On every serious production line hangs a control chart: sample the process, plot the values, draw limits at ±kσ around the target. The chart is applied probability — and the choice of k is a probability trade-off you can now compute. Tight limits (k = 2) catch drifts fast but cry wolf: with pure noise, 1 in 22 points falls outside by chance alone. Wide limits (k = 4) almost never false-alarm but let real drifts run for hours. Inject a drift and play with k — you will rediscover why Walter Shewhart’s 1924 choice of ±3σ (false alarm ≈ 1 in 370) is still stamped on every quality handbook.',
+    appDrift: 'process drift (from sample 25)',
+    appK: 'control limits ±kσ',
+    appFa: 'false-alarm rate (in control)',
+    appDelay: 'detection delay',
+    appDelayNone: 'not detected',
+    appSamples: 'samples',
+    appLegend: 'cyan = in-control samples · amber = after drift starts · red = outside the limits',
+    appWhere:
+      'The same ±kσ logic gates server-latency alerts, patient-monitor alarms, seismometer triggers and fraud-detection scores — every alarm threshold anywhere is a false-alarm-vs-delay trade-off.',
   },
   de: {
     kicker: 'Mathe · Modul 1',
@@ -92,6 +104,18 @@ const T = {
       'Jedes Messunsicherheitsbudget der Metrologie (Messtechnik-Track) ist verkleidete Wahrscheinlichkeitsbuchführung.',
     ],
     codeTitle: 'In der Praxis',
+    appTitle: '🏭 In der echten Welt: die SPC-Regelkarte',
+    appIntro:
+      'An jeder ernsthaften Produktionslinie hängt eine Regelkarte: Prozess abtasten, Werte plotten, Grenzen bei ±kσ um den Sollwert ziehen. Die Karte ist angewandte Wahrscheinlichkeitsrechnung — und die Wahl von k ist ein Wahrscheinlichkeits-Kompromiss, den du jetzt berechnen kannst. Enge Grenzen (k = 2) fangen Driften schnell, schreien aber ständig Wolf: Bei reinem Rauschen fällt 1 von 22 Punkten allein durch Zufall heraus. Weite Grenzen (k = 4) geben fast nie Fehlalarm, lassen echte Driften aber stundenlang laufen. Injiziere eine Drift und spiele mit k — du wirst wiederentdecken, warum Walter Shewharts Wahl von ±3σ aus dem Jahr 1924 (Fehlalarm ≈ 1 zu 370) noch heute in jedem Qualitätshandbuch steht.',
+    appDrift: 'Prozessdrift (ab Stichprobe 25)',
+    appK: 'Eingriffsgrenzen ±kσ',
+    appFa: 'Fehlalarmrate (beherrscht)',
+    appDelay: 'Erkennungsverzögerung',
+    appDelayNone: 'nicht erkannt',
+    appSamples: 'Stichproben',
+    appLegend: 'cyan = beherrschter Prozess · bernstein = nach Driftbeginn · rot = außerhalb der Grenzen',
+    appWhere:
+      'Dieselbe ±kσ-Logik steuert Server-Latenz-Alarme, Patientenmonitore, Seismometer-Trigger und Betrugs-Scores — jede Alarmschwelle überall ist ein Kompromiss aus Fehlalarm und Verzögerung.',
   },
 }
 
@@ -372,6 +396,78 @@ function CoinLab() {
   )
 }
 
+// ---------------------------------------------------------------- application: SPC chart
+
+const SPC_N = 60
+const SPC_DRIFT_AT = 25
+const SPC_NOISE = makeGauss(2026)
+const SPC_BASE: number[] = Array.from({ length: SPC_N }, () => SPC_NOISE())
+
+function SpcLab() {
+  const t = useT(T)
+  const [drift, setDrift] = useState(1.2)
+  const [k, setK] = useState(3)
+
+  const samples = SPC_BASE.map((v, i) => v + (i >= SPC_DRIFT_AT ? drift : 0))
+  const firstOut = samples.findIndex((v, i) => i >= SPC_DRIFT_AT && Math.abs(v) > k)
+  const delay = firstOut < 0 ? null : firstOut - SPC_DRIFT_AT
+  // theoretical in-control false-alarm probability per sample: 2·Φ(−k)
+  const phi = (x: number) => 0.5 * (1 + Math.tanh(Math.sqrt(Math.PI / 8) * x * (1 + 0.044715 * x * x))) // fast Φ approx
+  const faP = 2 * (1 - phi(k))
+
+  const PW = 560
+  const PH = 260
+  const sx = (i: number) => 30 + (i / (SPC_N - 1)) * (PW - 45)
+  const sy = (v: number) => PH / 2 - v * (PH / 11)
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          <line x1={30} y1={sy(0)} x2={PW - 12} y2={sy(0)} stroke="#8b93a755" />
+          {[k, -k].map((lim, j) => (
+            <g key={j}>
+              <line x1={30} y1={sy(lim)} x2={PW - 12} y2={sy(lim)} stroke="#f87171aa" strokeDasharray="6 4" strokeWidth={1.5} />
+              <text x={PW - 8} y={sy(lim) + 4} textAnchor="end" fill="#f87171" fontSize={10} fontFamily="JetBrains Mono, monospace">
+                {j === 0 ? `+${fmt(k, 1)}σ` : `−${fmt(k, 1)}σ`}
+              </text>
+            </g>
+          ))}
+          <line x1={sx(SPC_DRIFT_AT) - 4} y1={12} x2={sx(SPC_DRIFT_AT) - 4} y2={PH - 12} stroke="#fbbf2455" strokeDasharray="3 4" />
+          <polyline points={samples.map((v, i) => `${sx(i)},${sy(v)}`).join(' ')} fill="none" stroke="#8b93a744" strokeWidth={1} />
+          {samples.map((v, i) => {
+            const out = Math.abs(v) > k
+            return (
+              <circle
+                key={i}
+                cx={sx(i)}
+                cy={sy(v)}
+                r={out ? 4.5 : 3}
+                fill={out ? '#f87171' : i >= SPC_DRIFT_AT ? '#fbbf24' : '#22d3ee'}
+              />
+            )
+          })}
+        </svg>
+        <div className="border-t border-white/10 px-4 py-2 text-[12px] text-muted">{t.appLegend}</div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appDrift} value={drift} min={0} max={3} step={0.05} onChange={setDrift} format={(v) => `${fmt(v, 2)} σ`} />
+          <Slider label={t.appK} value={k} min={1.5} max={4.5} step={0.1} onChange={setK} format={(v) => `±${fmt(v, 1)} σ`} accent="#f87171" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appFa} value={`1 : ${fmt(1 / Math.max(faP, 1e-6), 0)}`} accent={faP < 0.01 ? '#4ade80' : '#fbbf24'} />
+          <Readout
+            label={t.appDelay}
+            value={delay === null ? t.appDelayNone : `${delay} ${t.appSamples}`}
+            accent={delay === null ? '#f87171' : delay <= 5 ? '#4ade80' : '#fbbf24'}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function ProbabilityPage() {
@@ -385,6 +481,7 @@ export function ProbabilityPage() {
           { id: 'updating', label: t.updateTitle },
           { id: 'engineer', label: t.engTitle },
           { id: 'code', label: t.codeTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -436,6 +533,18 @@ export function ProbabilityPage() {
 
       <Section id="code" title={t.codeTitle}>
         <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <SpcLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

@@ -122,6 +122,16 @@ const T = {
     depthNote:
       'This ambiguity is the reason stereo vision exists — and the viewing ray you are sliding along will return in module 4 as the epipolar line of this pixel.',
     tipK: 'A way to remember the split: [R|t] is the tripod (where the camera stands and points), the division by Z paints the world onto a canvas one unit in front of the lens, and K is the ruler that measures this canvas in pixels. Everything camera-specific lives in K; everything about the viewpoint in [R|t].',
+    appTitle: '🏭 In the real world: how far is that car?',
+    appIntro:
+      'Every driver-assistance system with a mono camera answers a distance question dozens of times per second — with exactly the formula of this module, run backwards. A car is about 1.5 m tall; if its image is h pixels tall, then Z = f·H/h. The catch: the sensor measures h only to about ±1 pixel. Slide the car away and watch the estimate wobble — at long range one pixel is worth many meters, which is why mono ADAS systems fuse with radar.',
+    appZ: 'true distance',
+    appF: 'focal length f',
+    appHpx: 'car height in image',
+    appZest: 'estimated distance (±1 px)',
+    appErr: 'worst-case error',
+    appWhere:
+      'The same inverse projection meters distances in football broadcast graphics, estimates crowd sizes from drone photos, and sizes craters on Mars from orbiter images — anywhere one known dimension turns pixels into meters.',
     matricesTitle: 'The matrices, live',
     matricesNote:
       'P projects homogeneous world points to homogeneous pixels: λ·(u,v,1)ᵀ = P·(X,Y,Z,1)ᵀ. The λ that gets divided away is exactly the depth in the camera frame.',
@@ -213,6 +223,16 @@ const T = {
     depthNote:
       'Diese Mehrdeutigkeit ist der Grund, warum es Stereosehen gibt — und der Sehstrahl, den du hier verschiebst, kehrt in Modul 4 als Epipolarlinie dieses Pixels zurück.',
     tipK: 'Eine Merkhilfe für die Aufteilung: [R|t] ist das Stativ (wo die Kamera steht und wohin sie schaut), die Division durch Z malt die Welt auf eine Leinwand eine Einheit vor dem Objektiv, und K ist das Lineal, das diese Leinwand in Pixeln vermisst. Alles Kameraspezifische steckt in K, alles über den Standpunkt in [R|t].',
+    appTitle: '🏭 In der echten Welt: Wie weit ist das Auto weg?',
+    appIntro:
+      'Jedes Fahrerassistenzsystem mit Monokamera beantwortet dutzende Male pro Sekunde eine Abstandsfrage — mit exakt der Formel dieses Moduls, rückwärts gerechnet. Ein Auto ist etwa 1,5 m hoch; ist sein Bild h Pixel hoch, gilt Z = f·H/h. Der Haken: Der Sensor misst h nur auf etwa ±1 Pixel genau. Schiebe das Auto weg und sieh die Schätzung wackeln — auf große Distanz ist ein Pixel viele Meter wert, weshalb Mono-ADAS mit Radar fusioniert.',
+    appZ: 'wahrer Abstand',
+    appF: 'Brennweite f',
+    appHpx: 'Autohöhe im Bild',
+    appZest: 'geschätzter Abstand (±1 px)',
+    appErr: 'Worst-Case-Fehler',
+    appWhere:
+      'Dieselbe inverse Projektion vermisst Distanzen in Fußball-TV-Grafiken, schätzt Menschenmengen aus Drohnenfotos und Kratergrößen auf dem Mars aus Orbiterbildern — überall, wo eine bekannte Dimension Pixel in Meter verwandelt.',
     matricesTitle: 'Die Matrizen, live',
     matricesNote:
       'P projiziert homogene Weltpunkte auf homogene Pixel: λ·(u,v,1)ᵀ = P·(X,Y,Z,1)ᵀ. Das λ, durch das dividiert wird, ist genau die Tiefe im Kamerasystem.',
@@ -292,6 +312,60 @@ function PinholeDiagram({ labels }: { labels: (typeof T)['en']['diagram'] }) {
         </marker>
       </defs>
     </svg>
+  )
+}
+
+function AdasLab() {
+  const t = useT(T)
+  const [z, setZ] = useState(20)
+  const [f2, setF2] = useState(800)
+  const H_CAR = 1.5
+  const W_CAR = 1.8
+  const CAM_H = 1.2
+  const IW2 = 640
+  const IH2 = 360
+  const cy2 = IH2 / 2
+
+  const hPx = (f2 * H_CAR) / z
+  const wPx = (f2 * W_CAR) / z
+  const vBottom = cy2 + (f2 * CAM_H) / z
+  const hMeasured = Math.max(Math.round(hPx), 1)
+  const zEst = (f2 * H_CAR) / hMeasured
+  const zWorst = (f2 * H_CAR) / Math.max(hMeasured - 1, 1)
+  const errPct = ((zWorst - z) / z) * 100
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${IW2} ${IH2}`} className="block w-full" style={{ background: 'linear-gradient(#141a28 0%, #141a28 49%, #0f1520 51%, #0a0e17 100%)' }}>
+          {/* road */}
+          <polygon points={`${IW2 / 2 - 240},${IH2} ${IW2 / 2 - 12},${cy2} ${IW2 / 2 + 12},${cy2} ${IW2 / 2 + 240},${IH2}`} fill="rgba(139,147,167,0.12)" />
+          <line x1={0} y1={cy2} x2={IW2} y2={cy2} stroke="rgba(255,255,255,0.15)" strokeDasharray="6 5" />
+          {/* car silhouette */}
+          <g>
+            <rect x={IW2 / 2 - wPx / 2} y={vBottom - hPx} width={wPx} height={hPx * 0.62} rx={hPx * 0.08} fill="#22d3ee" opacity={0.75} />
+            <rect x={IW2 / 2 - wPx * 0.36} y={vBottom - hPx * 0.98} width={wPx * 0.72} height={hPx * 0.42} rx={hPx * 0.1} fill="#22d3ee" opacity={0.55} />
+          </g>
+          {/* measured height bracket */}
+          <line x1={IW2 / 2 + wPx / 2 + 10} y1={vBottom} x2={IW2 / 2 + wPx / 2 + 10} y2={vBottom - hPx} stroke="#fbbf24" strokeWidth={2} />
+          <text x={IW2 / 2 + wPx / 2 + 16} y={vBottom - hPx / 2} fill="#fbbf24" fontSize={13} fontFamily="JetBrains Mono, monospace">
+            {hMeasured}px
+          </text>
+        </svg>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appZ} value={z} min={5} max={80} step={0.5} onChange={setZ} format={(v) => `${fmt(v, 1)} m`} accent="#fbbf24" />
+          <Slider label={t.appF} value={f2} min={400} max={1400} step={10} onChange={setF2} format={(v) => `${v} px`} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appHpx} value={`${hMeasured}`} unit="px" />
+          <Readout label={t.appZest} value={fmt(zEst, 1)} unit="m" accent="#fbbf24" />
+          <Readout label={t.appErr} value={`+${fmt(errPct, 1)}`} unit="%" accent={errPct > 10 ? '#f87171' : '#4ade80'} />
+        </div>
+        <TeX block>{String.raw`Z = \frac{f \cdot H}{h_{px}} = \frac{${f2} \cdot 1.5}{${hMeasured}} = ${fmt(zEst, 1)}\text{ m}`}</TeX>
+      </div>
+    </div>
   )
 }
 
@@ -426,6 +500,7 @@ export function PinholePage() {
           { id: 'intrinsics', label: t.s4Title },
           { id: 'extrinsics', label: t.s5Title },
           { id: 'projection-matrix', label: t.s6Title },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -702,6 +777,18 @@ export function PinholePage() {
             ))}
           </div>
         </div>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <AdasLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

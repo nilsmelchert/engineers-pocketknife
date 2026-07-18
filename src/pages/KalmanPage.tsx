@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { PageToc } from '../components/PageToc'
-import { Readout, Section, Slider } from '../components/ui'
+import { InfoBox, Readout, Section, Slider } from '../components/ui'
 import { fmt } from '../lib/math'
 import { covEllipse, fuseGauss, kf1dSim, kf2dInit, kf2dPredict, kf2dUpdate, type Kf2d } from '../lib/signal'
 import { makeGauss } from '../lib/stats'
@@ -52,6 +52,16 @@ const T = {
       'Fuse many sensors by stacking measurement models: GPS + IMU + wheel odometry + the calibrated camera from the hand-eye module. That road leads to SLAM (roadmap).',
     ],
     codeTitle: 'In practice',
+    appTitle: '🏭 In the real world: navigating through a tunnel',
+    appIntro:
+      'Your car’s navigation keeps showing a confident position inside a tunnel — with zero GPS. This lab shows the machinery: a vehicle drives a curved route while a Kalman filter fuses noisy GPS fixes with its motion model. In the gray tunnel segment the GPS drops out entirely, and the filter does the only honest thing: it keeps predicting from its velocity state while its uncertainty ellipse balloons step by step — no measurements, no confidence. At the tunnel exit one single GPS fix snaps the estimate back and collapses the ellipse. Lengthen the tunnel and watch how prediction quality decays with time — this graceful degradation, not magic accuracy, is what makes the filter trustworthy.',
+    appTunnel: 'tunnel length',
+    appGpsR: 'GPS noise σ',
+    appErrExit: 'position error at tunnel exit',
+    appEllipse: 'ellipse area: tunnel end vs. before',
+    appLegend: 'gray band = tunnel (no GPS) · dots = GPS fixes · cyan = fused estimate with 2σ ellipses · white dashes = truth',
+    appWhere:
+      'The same predict-through-the-gap pattern bridges GPS outages in drones between buildings, ultrasound dropouts in surgical tracking, barcode gaps on warehouse conveyors and radar shadows in air-traffic control.',
   },
   de: {
     kicker: 'Signale · Modul 3',
@@ -97,6 +107,16 @@ const T = {
       'Viele Sensoren fusioniert man durch Stapeln der Messmodelle: GPS + IMU + Radodometrie + die kalibrierte Kamera aus dem Hand-Auge-Modul. Dieser Weg führt zu SLAM (Roadmap).',
     ],
     codeTitle: 'In der Praxis',
+    appTitle: '🏭 In der echten Welt: Navigation durch einen Tunnel',
+    appIntro:
+      'Das Navi deines Autos zeigt im Tunnel weiter selbstbewusst eine Position — ganz ohne GPS. Dieses Labor zeigt die Maschinerie: Ein Fahrzeug fährt eine kurvige Route, während ein Kalman-Filter verrauschte GPS-Fixes mit seinem Bewegungsmodell fusioniert. Im grauen Tunnelabschnitt fällt das GPS komplett aus, und das Filter tut das einzig Ehrliche: Es prädiziert aus seinem Geschwindigkeitszustand weiter, während seine Unsicherheitsellipse Schritt für Schritt aufbläht — keine Messungen, kein Vertrauen. Am Tunnelausgang lässt ein einziger GPS-Fix die Schätzung zurückschnappen und die Ellipse kollabieren. Verlängere den Tunnel und beobachte, wie die Prädiktionsqualität mit der Zeit zerfällt — dieses würdevolle Degradieren, nicht magische Genauigkeit, macht das Filter vertrauenswürdig.',
+    appTunnel: 'Tunnellänge',
+    appGpsR: 'GPS-Rauschen σ',
+    appErrExit: 'Positionsfehler am Tunnelausgang',
+    appEllipse: 'Ellipsenfläche: Tunnelende vs. davor',
+    appLegend: 'graues Band = Tunnel (kein GPS) · Punkte = GPS-Fixes · cyan = fusionierte Schätzung mit 2σ-Ellipsen · weiß gestrichelt = Wahrheit',
+    appWhere:
+      'Dasselbe Durch-die-Lücke-Prädizieren überbrückt GPS-Ausfälle von Drohnen zwischen Gebäuden, Ultraschall-Aussetzer im OP-Tracking, Barcode-Lücken auf Förderbändern und Radarschatten in der Flugsicherung.',
   },
 }
 
@@ -366,6 +386,115 @@ function MouseChaseLab() {
   )
 }
 
+// ---------------------------------------------------------------- application: tunnel
+
+const TUN_N = 110
+const TUN_DT = 0.5
+const TUN_START = 40
+const TUN_NOISE: [number, number][] = (() => {
+  const g = makeGauss(2027)
+  return Array.from({ length: TUN_N }, () => [g(), g()] as [number, number])
+})()
+
+function tunnelTruth(i: number): [number, number] {
+  const x = (i / (TUN_N - 1)) * 100
+  return [x, 18 * Math.sin(x / 24)]
+}
+
+function TunnelLab() {
+  const t = useT(T)
+  const [tunLen, setTunLen] = useState(25)
+  const [gpsR, setGpsR] = useState(2.5)
+
+  const { est, ellipses, gps, errExit, areaRatio } = useMemo(() => {
+    const kf = kf2dInit(0, 0)
+    const est2: [number, number][] = []
+    const ell: { x: number; y: number; a: number; b: number; ang: number; inTunnel: boolean }[] = []
+    const gps2: ([number, number] | null)[] = []
+    let areaBefore = 0
+    let areaEnd = 0
+    let err = 0
+    for (let i = 0; i < TUN_N; i++) {
+      const [tx, ty] = tunnelTruth(i)
+      const inTunnel = tx >= TUN_START && tx <= TUN_START + tunLen
+      kf2dPredict(kf, TUN_DT, 0.6)
+      if (!inTunnel) {
+        const z: [number, number] = [tx + TUN_NOISE[i][0] * gpsR, ty + TUN_NOISE[i][1] * gpsR]
+        kf2dUpdate(kf, z[0], z[1], gpsR)
+        gps2.push(z)
+      } else {
+        gps2.push(null)
+      }
+      est2.push([kf.x[0], kf.x[1]])
+      const e = covEllipse(kf.P[0][0], kf.P[0][1], kf.P[1][1])
+      if (i % 5 === 0 || inTunnel) ell.push({ x: kf.x[0], y: kf.x[1], a: e.a, b: e.b, ang: e.angleDeg, inTunnel })
+      const nextInTunnel = i + 1 < TUN_N && tunnelTruth(i + 1)[0] >= TUN_START && tunnelTruth(i + 1)[0] <= TUN_START + tunLen
+      if (!inTunnel && nextInTunnel) areaBefore = Math.PI * e.a * e.b
+      if (inTunnel) {
+        areaEnd = Math.PI * e.a * e.b
+        err = Math.hypot(kf.x[0] - tx, kf.x[1] - ty)
+      }
+    }
+    return { est: est2, ellipses: ell, gps: gps2, errExit: err, areaRatio: areaBefore > 0 ? areaEnd / areaBefore : 1 }
+  }, [tunLen, gpsR])
+
+  const PW = 560
+  const PH = 260
+  const sx = (x: number) => 8 + (x / 100) * (PW - 16)
+  const sy = (y: number) => PH / 2 - y * 4.2
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          {/* tunnel band */}
+          <rect x={sx(TUN_START)} y={0} width={sx(TUN_START + tunLen) - sx(TUN_START)} height={PH} fill="#5b627026" />
+          <text x={(sx(TUN_START) + sx(TUN_START + tunLen)) / 2} y={16} textAnchor="middle" fill="#8b93a7" fontSize={10.5} fontFamily="JetBrains Mono, monospace">
+            🚇
+          </text>
+          {/* truth */}
+          <polyline
+            points={Array.from({ length: TUN_N }, (_, i) => `${sx(tunnelTruth(i)[0])},${sy(tunnelTruth(i)[1])}`).join(' ')}
+            fill="none"
+            stroke="#e2e8f088"
+            strokeWidth={1}
+            strokeDasharray="3 4"
+          />
+          {/* ellipses */}
+          {ellipses.map((e, i) => (
+            <ellipse
+              key={i}
+              cx={sx(e.x)}
+              cy={sy(e.y)}
+              rx={Math.min(e.a * 4.2, 200)}
+              ry={Math.min(e.b * 4.2, 200)}
+              transform={`rotate(${-e.ang} ${sx(e.x)} ${sy(e.y)})`}
+              fill="none"
+              stroke={e.inTunnel ? '#fbbf2466' : '#22d3ee44'}
+              strokeWidth={1}
+            />
+          ))}
+          {/* gps fixes */}
+          {gps.map((z, i) => (z ? <circle key={i} cx={sx(z[0])} cy={sy(z[1])} r={1.8} fill="#a78bfa88" /> : null))}
+          {/* estimate */}
+          <polyline points={est.map((p) => `${sx(p[0])},${sy(p[1])}`).join(' ')} fill="none" stroke="#22d3ee" strokeWidth={2} />
+        </svg>
+        <div className="border-t border-white/10 px-4 py-2 text-[12px] text-muted">{t.appLegend}</div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appTunnel} value={tunLen} min={8} max={45} step={1} onChange={setTunLen} format={(v) => `${v} %`} />
+          <Slider label={t.appGpsR} value={gpsR} min={0.8} max={6} step={0.1} onChange={setGpsR} format={(v) => `${fmt(v, 1)} m`} accent="#a78bfa" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appErrExit} value={fmt(errExit, 1)} unit="m" accent={errExit < 3 ? '#4ade80' : '#fbbf24'} />
+          <Readout label={t.appEllipse} value={`×${fmt(areaRatio, 1)}`} accent={areaRatio > 2 ? '#fbbf24' : '#4ade80'} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function KalmanPage() {
@@ -380,6 +509,7 @@ export function KalmanPage() {
           { id: 'math', label: t.mathTitle },
           { id: 'practice', label: t.practTitle },
           { id: 'code', label: t.codeTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -441,6 +571,18 @@ export function KalmanPage() {
 
       <Section id="code" title={t.codeTitle}>
         <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <TunnelLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

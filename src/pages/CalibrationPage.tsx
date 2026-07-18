@@ -129,6 +129,18 @@ const T = {
       'Check the residual pattern per image, not only the global RMS; drop bad frames.',
       'For wide-angle / fisheye lenses use the appropriate model (cv2.fisheye or a rational model).',
     ],
+    appTitle: '🏭 In the real world: measuring a part in millimeters',
+    appIntro:
+      'A camera above a conveyor measures every bolt that passes: length spec 42.00 ± 0.10 mm. The pixels-to-millimeters scale comes entirely from the calibration (f and working distance). Now let the calibration silently age — the lens was bumped, the camera mount warmed up — and watch a perfectly good bolt fail inspection, or worse, a bad one pass. This is why measurement cameras are recalibrated on a schedule, and why a calibration certificate has an expiry date.',
+    appDecal: 'calibration drift (effective f)',
+    appNoiseA: 'edge-detection noise',
+    appMeasured: 'measured length',
+    appTrue: 'true length',
+    appVerdict: 'inspection verdict',
+    appPass: 'PASS',
+    appFail: 'FAIL',
+    appWhere:
+      'Identical setups gauge brake discs, pizza diameters, lumber widths and pill sizes — every "vision gauge" on every production line is a calibrated camera doing pixels-to-millimeters.',
   },
   de: {
     kicker: 'Vision · Modul 2',
@@ -229,6 +241,18 @@ const T = {
       'Das Residuenmuster pro Bild prüfen, nicht nur den globalen RMS; schlechte Aufnahmen verwerfen.',
       'Für Weitwinkel/Fisheye das passende Modell verwenden (cv2.fisheye oder rationales Modell).',
     ],
+    appTitle: '🏭 In der echten Welt: ein Teil in Millimetern vermessen',
+    appIntro:
+      'Eine Kamera über einem Förderband vermisst jede vorbeilaufende Schraube: Längenspezifikation 42,00 ± 0,10 mm. Der Pixel-zu-Millimeter-Maßstab kommt vollständig aus der Kalibrierung (f und Arbeitsabstand). Lass die Kalibrierung nun stillschweigend altern — das Objektiv wurde angestoßen, die Halterung hat sich erwärmt — und sieh zu, wie eine einwandfreie Schraube durchfällt oder, schlimmer, eine schlechte durchgeht. Deshalb werden Messkameras nach Plan rekalibriert, und deshalb hat ein Kalibrierschein ein Ablaufdatum.',
+    appDecal: 'Kalibrierdrift (effektives f)',
+    appNoiseA: 'Kantendetektions-Rauschen',
+    appMeasured: 'gemessene Länge',
+    appTrue: 'wahre Länge',
+    appVerdict: 'Prüfurteil',
+    appPass: 'GUT',
+    appFail: 'AUSSCHUSS',
+    appWhere:
+      'Identische Aufbauten vermessen Bremsscheiben, Pizzadurchmesser, Brettbreiten und Tablettengrößen — jede „Vision-Lehre“ auf jeder Produktionslinie ist eine kalibrierte Kamera, die Pixel in Millimeter übersetzt.',
   },
 }
 
@@ -702,6 +726,63 @@ function ReprojectionDemo() {
   )
 }
 
+// ---------------------------------------------------------------- application: vision gauge
+
+const BOLT_TRUE_MM = 42.0
+const GAUGE_SCALE_TRUE = 11.0 // px per mm at nominal calibration
+
+function GaugeLab() {
+  const t = useT(T)
+  const [decal, setDecal] = useState(0) // percent f drift
+  const [noise, setNoise] = useState(0.3) // px edge noise
+
+  const boltPx = BOLT_TRUE_MM * GAUGE_SCALE_TRUE
+  // deterministic "noise" sample so the display is stable per slider setting
+  const rand = mulberry32(Math.round(noise * 1000) + 7)
+  const noisyPx = boltPx + (rand() - 0.5) * 2 * noise * 2
+  const assumedScale = GAUGE_SCALE_TRUE * (1 + decal / 100)
+  const measured = noisyPx / assumedScale
+  const pass = Math.abs(measured - BOLT_TRUE_MM) <= 0.1
+
+  const GW2 = 620
+  const GH2 = 200
+  const x0 = (GW2 - boltPx) / 2
+  const yMid = GH2 / 2
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${GW2} ${GH2}`} className="block w-full" style={{ background: 'radial-gradient(120% 120% at 50% 40%, #141a28 0%, #0a0e17 100%)' }}>
+          {/* bolt: head + shaft + thread lines */}
+          <rect x={x0} y={yMid - 26} width={52} height={52} rx={6} fill="#4a5670" />
+          <rect x={x0 + 52} y={yMid - 13} width={boltPx - 52} height={26} rx={4} fill="#8b93a7" />
+          {Array.from({ length: 14 }, (_, i) => (
+            <line key={i} x1={x0 + 110 + i * 22} y1={yMid - 13} x2={x0 + 102 + i * 22} y2={yMid + 13} stroke="#5b6478" strokeWidth={2.5} />
+          ))}
+          {/* measurement overlay */}
+          <line x1={x0} y1={yMid + 44} x2={x0 + noisyPx} y2={yMid + 44} stroke="#22d3ee" strokeWidth={2} />
+          <line x1={x0} y1={yMid + 36} x2={x0} y2={yMid + 52} stroke="#22d3ee" strokeWidth={2} />
+          <line x1={x0 + noisyPx} y1={yMid + 36} x2={x0 + noisyPx} y2={yMid + 52} stroke="#22d3ee" strokeWidth={2} />
+          <text x={GW2 / 2} y={yMid + 68} textAnchor="middle" fill="#22d3ee" fontSize={13} fontFamily="JetBrains Mono, monospace">
+            {fmt(noisyPx, 1)} px ÷ {fmt(assumedScale, 2)} px/mm = {fmt(measured, 2)} mm
+          </text>
+        </svg>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appDecal} value={decal} min={-3} max={3} step={0.05} onChange={setDecal} format={(v) => `${fmt(v, 2)} %`} accent="#f87171" />
+          <Slider label={t.appNoiseA} value={noise} min={0} max={2} step={0.05} onChange={setNoise} format={(v) => `${fmt(v, 2)} px`} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appMeasured} value={fmt(measured, 2)} unit="mm" accent="#22d3ee" />
+          <Readout label={t.appTrue} value={fmt(BOLT_TRUE_MM, 2)} unit="mm" />
+          <Readout label={t.appVerdict} value={pass ? `✓ ${t.appPass}` : `✗ ${t.appFail}`} accent={pass ? '#4ade80' : '#f87171'} unit="±0.10 mm" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function CalibrationPage() {
@@ -717,6 +798,7 @@ export function CalibrationPage() {
           { id: 'tilt', label: t.tiltTitle },
           { id: 'reprojection', label: t.reprojTitle },
           { id: 'opencv', label: t.tipsTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -824,6 +906,18 @@ export function CalibrationPage() {
         <pre className="card mt-4 overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">
           {OPENCV_SNIPPET}
         </pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <GaugeLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

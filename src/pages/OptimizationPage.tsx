@@ -6,6 +6,7 @@ import { Heatmap } from '../components/Heatmap'
 import { PageToc } from '../components/PageToc'
 import { InfoBox, Readout, Section, Segmented, Slider } from '../components/ui'
 import { fmt } from '../lib/math'
+import { makeGauss } from '../lib/stats'
 import {
   CALIB_START,
   CALIB_TRUE,
@@ -129,6 +130,18 @@ const T = {
     ],
     when2: 'One mental model unifies all of it: define a cost, get a slope, exploit whatever structure the problem offers to descend fast. Whether the parameters are four camera numbers or a billion network weights, it is the same walk downhill.',
     codeTitle: 'Try it on real data',
+    appTitle: '🏭 In the real world: fitting a sensor characteristic',
+    appIntro:
+      'Every thermistor datasheet gives the exponential law R(T) = R₀·exp(B(1/T − 1/T₀)) — but for YOUR sensor batch, R₀ and B must be identified from a handful of measured (T, R) points. That identification is a two-parameter nonlinear least-squares problem, solved with exactly this module’s Levenberg–Marquardt. Set a starting guess with the sliders, then let LM iterate: the curve locks onto the points in a handful of steps. Sensor vendors run this fit millions of times a year.',
+    appR0: 'start guess R₀',
+    appB: 'start guess B',
+    appFit: 'LM step',
+    appRun: 'Fit',
+    appReset: 'Reset',
+    appRms: 'fit RMS',
+    appParams: 'identified R₀ / B',
+    appWhere:
+      'The same nonlinear fit identifies load-cell polynomials, pump curves, battery-discharge models, camera response curves and PID plant models — parameter identification is the daily bread of every test engineer.',
   },
   de: {
     kicker: 'Vision · Modul 3',
@@ -233,6 +246,18 @@ const T = {
     ],
     when2: 'Ein gedankliches Modell vereint alles: Kosten definieren, Steigung besorgen, jede Struktur des Problems ausnutzen, um schnell abzusteigen. Ob die Parameter vier Kamerazahlen sind oder eine Milliarde Netzgewichte — es ist derselbe Weg bergab.',
     codeTitle: 'Am echten Problem ausprobieren',
+    appTitle: '🏭 In der echten Welt: eine Sensorkennlinie fitten',
+    appIntro:
+      'Jedes Thermistor-Datenblatt nennt das Exponentialgesetz R(T) = R₀·exp(B(1/T − 1/T₀)) — aber für DEINE Sensorcharge müssen R₀ und B aus einer Handvoll gemessener (T, R)-Punkte identifiziert werden. Diese Identifikation ist ein nichtlineares Kleinste-Quadrate-Problem mit zwei Parametern, gelöst mit dem Levenberg–Marquardt dieses Moduls. Setze mit den Slidern einen Startwert und lass LM iterieren: Die Kurve rastet in wenigen Schritten auf den Punkten ein. Sensorhersteller rechnen diesen Fit millionenfach pro Jahr.',
+    appR0: 'Startwert R₀',
+    appB: 'Startwert B',
+    appFit: 'LM-Schritt',
+    appRun: 'Fitten',
+    appReset: 'Zurücksetzen',
+    appRms: 'Fit-RMS',
+    appParams: 'identifiziert R₀ / B',
+    appWhere:
+      'Derselbe nichtlineare Fit identifiziert Wägezellen-Polynome, Pumpenkennlinien, Batterie-Entlademodelle, Kamerakennlinien und PID-Streckenmodelle — Parameteridentifikation ist das tägliche Brot jedes Versuchsingenieurs.',
   },
 }
 
@@ -944,6 +969,129 @@ function CalibSolverLab() {
   )
 }
 
+// ================================================================ application: thermistor fit
+
+const THERM_T0 = 298
+const THERM_TRUE = { r0: 10, b: 3950 } // R in kΩ
+const thermModel = (r0: number, b: number, T: number) =>
+  r0 * Math.exp(b * (1 / T - 1 / THERM_T0))
+
+const THERM_DATA: { T: number; R: number }[] = (() => {
+  const g = makeGauss(77)
+  return Array.from({ length: 10 }, (_, i) => {
+    const T = 280 + i * 9
+    return { T, R: thermModel(THERM_TRUE.r0, THERM_TRUE.b, T) * (1 + g() * 0.03) }
+  })
+})()
+
+function thermLmStep(r0: number, b: number, lambda: number): { r0: number; b: number; lambda: number } {
+  const res = (p: [number, number]) => THERM_DATA.map((d) => thermModel(p[0], p[1], d.T) - d.R)
+  const p0: [number, number] = [r0, b]
+  const r = res(p0)
+  const steps = [1e-4, 1e-2]
+  const J = [0, 1].map((k) => {
+    const pp: [number, number] = [...p0]
+    pp[k] += steps[k]
+    const rp = res(pp)
+    return rp.map((v, i) => (v - r[i]) / steps[k])
+  })
+  const A = [
+    [0, 0],
+    [0, 0],
+  ]
+  const g2 = [0, 0]
+  for (let a = 0; a < 2; a++) {
+    for (let bb = 0; bb < 2; bb++) A[a][bb] = J[a].reduce((s, v, i) => s + v * J[bb][i], 0)
+    g2[a] = J[a].reduce((s, v, i) => s + v * r[i], 0)
+  }
+  const cost = r.reduce((s, v) => s + v * v, 0)
+  let lam = lambda
+  for (let tries = 0; tries < 6; tries++) {
+    const a00 = A[0][0] * (1 + lam)
+    const a11 = A[1][1] * (1 + lam)
+    const det = a00 * a11 - A[0][1] * A[1][0]
+    if (Math.abs(det) > 1e-12) {
+      const dx = (-g2[0] * a11 + g2[1] * A[0][1]) / det
+      const dy = (g2[0] * A[1][0] - g2[1] * a00) / det
+      const cand: [number, number] = [p0[0] + dx, p0[1] + dy]
+      const cCost = res(cand).reduce((s, v) => s + v * v, 0)
+      if (cCost < cost) return { r0: cand[0], b: cand[1], lambda: Math.max(lam / 3, 1e-8) }
+    }
+    lam *= 5
+  }
+  return { r0, b, lambda: lam }
+}
+
+function ThermistorLab() {
+  const t = useT(T)
+  const [start, setStart] = useState({ r0: 4, b: 2000 })
+  const [fit, setFit] = useState<{ r0: number; b: number; lambda: number } | null>(null)
+
+  const cur = fit ?? { ...start, lambda: 1e-2 }
+  const rms = Math.sqrt(
+    THERM_DATA.reduce((s, d) => s + (thermModel(cur.r0, cur.b, d.T) - d.R) ** 2, 0) / THERM_DATA.length,
+  )
+
+  const runFit = () => {
+    let st = { ...start, lambda: 1e-2 }
+    for (let i = 0; i < 25; i++) st = thermLmStep(st.r0, st.b, st.lambda)
+    setFit(st)
+  }
+
+  const PW = 520
+  const PH = 300
+  const tx = (T2: number) => ((T2 - 275) / 95) * PW
+  const ty = (R: number) => PH - 20 - (Math.min(R, 26) / 26) * (PH - 40)
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          <polyline
+            points={Array.from({ length: 100 }, (_, i) => {
+              const T2 = 278 + (i / 99) * 88
+              return `${tx(T2)},${ty(thermModel(cur.r0, cur.b, T2))}`
+            }).join(' ')}
+            fill="none"
+            stroke={fit ? '#4ade80' : '#a78bfa'}
+            strokeWidth={2.2}
+          />
+          {THERM_DATA.map((d, i) => (
+            <circle key={i} cx={tx(d.T)} cy={ty(d.R)} r={4.5} fill="#22d3ee" stroke="#0a0e17" strokeWidth={1.2} />
+          ))}
+          <text x={PW - 10} y={PH - 8} textAnchor="end" fill="#8b93a7" fontSize={11} fontFamily="JetBrains Mono, monospace">
+            T (K) →
+          </text>
+          <text x={10} y={18} fill="#8b93a7" fontSize={11} fontFamily="JetBrains Mono, monospace">
+            R (kΩ)
+          </text>
+        </svg>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appR0} value={start.r0} min={2} max={30} step={0.5} onChange={(v) => { setStart({ ...start, r0: v }); setFit(null) }} format={(v) => `${fmt(v, 1)} kΩ`} />
+          <Slider label={t.appB} value={start.b} min={1500} max={8000} step={50} onChange={(v) => { setStart({ ...start, b: v }); setFit(null) }} format={(v) => `${v} K`} accent="#a78bfa" />
+          <div className="flex flex-wrap gap-2">
+            <button className="btn-primary" onClick={runFit}>
+              🔧 {t.appRun}
+            </button>
+            <button className="btn" onClick={() => setFit(fit ? thermLmStep(fit.r0, fit.b, fit.lambda) : thermLmStep(start.r0, start.b, 1e-2))}>
+              {t.appFit}
+            </button>
+            <button className="btn" onClick={() => setFit(null)}>
+              ↺ {t.appReset}
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appRms} value={fmt(rms, 3)} unit="kΩ" accent={rms < 0.3 ? '#4ade80' : undefined} />
+          <Readout label={t.appParams} value={`${fmt(cur.r0, 2)} / ${fmt(cur.b, 0)}`} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ================================================================ page
 
 export function OptimizationPage() {
@@ -962,6 +1110,7 @@ export function OptimizationPage() {
           { id: 'bundle', label: t.bigTitle },
           { id: 'choosing', label: t.whenTitle },
           { id: 'code', label: t.codeTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -1086,6 +1235,18 @@ export function OptimizationPage() {
 
       <Section id="code" title={t.codeTitle}>
         <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <ThermistorLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

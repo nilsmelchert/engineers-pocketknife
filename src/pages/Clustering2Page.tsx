@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../i18n'
 import { Derivation } from '../components/Derivation'
 import { PageToc } from '../components/PageToc'
-import { Readout, Section, Segmented, Slider } from '../components/ui'
+import { InfoBox, Readout, Section, Segmented, Slider } from '../components/ui'
 import { fmt, mulberry32 } from '../lib/math'
 import { covEllipse } from '../lib/signal'
 import {
@@ -74,6 +74,16 @@ const T = {
       ['hierarchical', 'arbitrary (linkage)', 'no (cut later)', 'no', 'no'],
     ],
     codeTitle: 'In practice',
+    appTitle: '🏭 In the real world: LIDAR obstacle extraction',
+    appIntro:
+      'The first thing an AGV does with every LIDAR sweep — thousands of times per shift — is exactly this module: turn a ring of raw range points into objects. The scan below shows a warehouse aisle: two walls, a pallet, a person’s legs and speckle noise from dust and reflections. DBSCAN is the industry’s go-to here precisely because of its two superpowers: it does not need to know how many objects there are, and it throws the speckle away as noise instead of assigning it to something. Tune ε: too small and the pallet shatters into fragments, too large and everything fuses with the walls — the AGV would brake for a phantom obstacle ten meters wide.',
+    appEps: 'DBSCAN radius ε',
+    appClusters: 'objects found',
+    appObstacles: 'obstacles (non-wall)',
+    appNoise: 'noise points dropped',
+    appLegend: 'gray ✕ = classified as noise · long thin clusters = walls · △ = scanner',
+    appWhere:
+      'The same raw-points-to-objects step runs in robot vacuums, autonomous-driving perception stacks (after ground removal), people counting with ceiling LIDARs, and 3D-scan cleanup in metrology software.',
   },
   de: {
     kicker: 'Daten · Modul 3',
@@ -120,6 +130,16 @@ const T = {
       ['hierarchisch', 'beliebig (Linkage)', 'nein (später schneiden)', 'nein', 'nein'],
     ],
     codeTitle: 'In der Praxis',
+    appTitle: '🏭 In der echten Welt: LIDAR-Hinderniserkennung',
+    appIntro:
+      'Das Erste, was ein FTS mit jedem LIDAR-Sweep macht — tausende Male pro Schicht — ist genau dieses Modul: einen Ring roher Entfernungspunkte in Objekte verwandeln. Der Scan unten zeigt einen Lagergang: zwei Wände, eine Palette, die Beine einer Person und Speckle-Rauschen von Staub und Reflexionen. DBSCAN ist hier der Industriestandard, genau wegen seiner zwei Superkräfte: Es muss nicht wissen, wie viele Objekte es gibt, und es wirft das Speckle als Rauschen weg, statt es irgendetwas zuzuordnen. Stelle ε ein: zu klein, und die Palette zersplittert in Fragmente; zu groß, und alles verschmilzt mit den Wänden — das FTS würde für ein zehn Meter breites Phantomhindernis bremsen.',
+    appEps: 'DBSCAN-Radius ε',
+    appClusters: 'gefundene Objekte',
+    appObstacles: 'Hindernisse (Nicht-Wand)',
+    appNoise: 'verworfene Rauschpunkte',
+    appLegend: 'graue ✕ = als Rauschen klassifiziert · lange dünne Cluster = Wände · △ = Scanner',
+    appWhere:
+      'Derselbe Schritt von Rohpunkten zu Objekten läuft in Saugrobotern, Perception-Stacks autonomer Autos (nach der Bodenentfernung), Personenzählung per Decken-LIDAR und der 3D-Scan-Bereinigung in Messtechnik-Software.',
   },
 }
 
@@ -384,6 +404,86 @@ function DbscanLab() {
   )
 }
 
+// ---------------------------------------------------------------- application: LIDAR obstacles
+
+// warehouse aisle scan in meters: scanner at (0, 0), aisle 8 m wide, walls at x = ±4
+const LIDAR_PTS: P2[] = (() => {
+  const rand = mulberry32(2024)
+  const pts: P2[] = []
+  // left + right wall, 4.5 m of aisle
+  for (let i = 0; i < 46; i++) {
+    pts.push([-4 + (rand() - 0.5) * 0.08, 0.4 + i * 0.09])
+    pts.push([4 + (rand() - 0.5) * 0.08, 0.4 + i * 0.09])
+  }
+  // pallet at (1.6, 2.6): dense L-shaped face
+  for (let i = 0; i < 16; i++) pts.push([0.95 + i * 0.085, 2.6 + (rand() - 0.5) * 0.06])
+  for (let i = 0; i < 7; i++) pts.push([0.95 + (rand() - 0.5) * 0.06, 2.6 + i * 0.09])
+  // person's legs at (-1.5, 3.4): two tight arcs
+  for (let i = 0; i < 8; i++) pts.push([-1.65 + (rand() - 0.5) * 0.09, 3.35 + (rand() - 0.5) * 0.09])
+  for (let i = 0; i < 8; i++) pts.push([-1.3 + (rand() - 0.5) * 0.09, 3.45 + (rand() - 0.5) * 0.09])
+  // speckle noise
+  for (let i = 0; i < 26; i++) pts.push([(rand() - 0.5) * 7.4, 0.3 + rand() * 4.3])
+  return pts
+})()
+
+function LidarLab() {
+  const t = useT(T)
+  const [eps, setEps] = useState(0.35)
+
+  const { labels } = useMemo(() => dbscan(LIDAR_PTS, eps, 4), [eps])
+  const nClusters = labels.length ? Math.max(...labels) + 1 : 0
+  const noiseCount = labels.filter((l) => l < 0).length
+  // wall vs obstacle: clusters longer than 2.5 m in either direction are walls
+  const obstacles = useMemo(() => {
+    let count = 0
+    for (let c = 0; c < nClusters; c++) {
+      const pts = LIDAR_PTS.filter((_, i) => labels[i] === c)
+      const xs = pts.map((p) => p[0])
+      const ys = pts.map((p) => p[1])
+      const ext = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys))
+      if (ext < 2.5) count++
+    }
+    return count
+  }, [labels, nClusters])
+
+  const PW = 520
+  const PH = 340
+  const sx = (x: number) => ((x + 4.6) / 9.2) * PW
+  const sy = (y: number) => PH - 16 - (y / 5) * (PH - 32)
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          {/* scanner */}
+          <path d={`M ${sx(0)} ${sy(0) - 8} l 7 14 l -14 0 Z`} fill="#22d3ee" />
+          {LIDAR_PTS.map((p, i) => {
+            const l = labels[i]
+            if (l < 0)
+              return (
+                <text key={i} x={sx(p[0])} y={sy(p[1]) + 3} textAnchor="middle" fill="#5b6270" fontSize={9}>
+                  ✕
+                </text>
+              )
+            return <circle key={i} cx={sx(p[0])} cy={sy(p[1])} r={3} fill={HEXES[l % HEXES.length]} />
+          })}
+        </svg>
+        <div className="border-t border-white/10 px-4 py-2 text-[12px] text-muted">{t.appLegend}</div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad">
+          <Slider label={t.appEps} value={eps} min={0.08} max={1.2} step={0.02} onChange={setEps} format={(v) => `${fmt(v, 2)} m`} />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <Readout label={t.appClusters} value={`${nClusters}`} />
+          <Readout label={t.appObstacles} value={`${obstacles}`} accent={obstacles === 2 ? '#4ade80' : '#fbbf24'} />
+          <Readout label={t.appNoise} value={`${noiseCount}`} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function Clustering2Page() {
@@ -396,6 +496,7 @@ export function Clustering2Page() {
           { id: 'dbscan', label: t.dbTitle },
           { id: 'compare', label: t.compTitle },
           { id: 'code', label: t.codeTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -453,6 +554,18 @@ export function Clustering2Page() {
 
       <Section id="code" title={t.codeTitle}>
         <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <LidarLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

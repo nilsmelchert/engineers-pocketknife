@@ -82,6 +82,19 @@ const T = {
       'Interferometry needs no camera model — its ruler is λ, traceable to the definition of the meter. That is why it sits at the top of the calibration chain from the Measurement Theory module, calibrating the very gauges that calibrate everything else.',
       'And every one of these instruments reports its result the metrologist’s way: value ± uncertainty, budgeted exactly as in the previous module.',
     ],
+    appTitle: '🏭 In the real world: inline weld-seam inspection',
+    appIntro:
+      'Millimeters behind the welding torch, a laser-line scanner rides along and profiles the fresh seam a thousand times per minute. Each profile is one slice of laser triangulation — and from each slice, software must extract two numbers before the part leaves the station: seam height and seam width, both against tolerance (here: height 1.0–2.2 mm, width 4.0–7.0 mm). Below is one live profile: the algorithm finds the plate baseline, thresholds the bead above it, and measures. Play with the weld quality slider — from a proud, full bead to a sunken, undercut seam — and with sensor noise from spatter and shine. Watch when the PASS verdict flips, and when noise alone starts flipping it: that is the moment a real station needs profile averaging.',
+    appQuality: 'weld quality',
+    appNoise: 'sensor noise',
+    appHeight: 'seam height',
+    appWidth: 'seam width',
+    appVerdict: 'inline verdict',
+    appPass: 'SEAM OK',
+    appFail: 'REWORK',
+    appLegend: 'cyan dots = laser profile points · violet = detected bead region · dashes = plate baseline',
+    appWhere:
+      'The same profile-and-extract loop checks adhesive beads before car windshields are set, battery-cell sealing seams, extruded rubber profiles and rail-head wear from measuring trains — one laser line, two tolerance numbers, at line speed.',
   },
   de: {
     kicker: 'Messtechnik · Modul 2',
@@ -154,6 +167,19 @@ const T = {
       'Die Interferometrie braucht kein Kameramodell — ihr Lineal ist λ, rückführbar auf die Definition des Meters. Deshalb sitzt sie an der Spitze der Kalibrierkette aus dem Messtheorie-Modul und kalibriert genau die Normale, die alles andere kalibrieren.',
       'Und jedes dieser Instrumente berichtet sein Ergebnis nach Art der Metrologen: Wert ± Unsicherheit, budgetiert exakt wie im vorigen Modul.',
     ],
+    appTitle: '🏭 In der echten Welt: Inline-Schweißnahtprüfung',
+    appIntro:
+      'Millimeter hinter dem Schweißbrenner fährt ein Laserlinien-Scanner mit und profiliert die frische Naht tausendmal pro Minute. Jedes Profil ist ein Schnitt Lasertriangulation — und aus jedem Schnitt muss die Software zwei Zahlen extrahieren, bevor das Teil die Station verlässt: Nahthöhe und Nahtbreite, beide gegen Toleranz (hier: Höhe 1,0–2,2 mm, Breite 4,0–7,0 mm). Unten ein Live-Profil: Der Algorithmus findet die Blech-Grundlinie, schwellwertet die Raupe darüber und misst. Spiele mit dem Nahtqualitäts-Slider — von einer satten, vollen Raupe bis zur eingefallenen Naht mit Einbrandkerbe — und mit dem Sensorrauschen aus Spritzern und Glanz. Beobachte, wann das GUT-Urteil kippt und wann allein das Rauschen es kippen lässt: Das ist der Moment, in dem eine echte Station Profilmittelung braucht.',
+    appQuality: 'Nahtqualität',
+    appNoise: 'Sensorrauschen',
+    appHeight: 'Nahthöhe',
+    appWidth: 'Nahtbreite',
+    appVerdict: 'Inline-Urteil',
+    appPass: 'NAHT OK',
+    appFail: 'NACHARBEIT',
+    appLegend: 'cyan Punkte = Laserprofil · violett = erkannte Raupenregion · gestrichelt = Blech-Grundlinie',
+    appWhere:
+      'Dieselbe Profilieren-und-Extrahieren-Schleife prüft Kleberaupen vor dem Setzen von Windschutzscheiben, Dichtnähte von Batteriezellen, extrudierte Gummiprofile und Schienenkopf-Verschleiß von Messzügen aus — eine Laserlinie, zwei Toleranzzahlen, bei Liniengeschwindigkeit.',
   },
 }
 
@@ -682,6 +708,103 @@ function InterferometryLab() {
   )
 }
 
+// ---------------------------------------------------------------- application: weld inspection
+
+const WELD_N = 120
+const WELD_X = Array.from({ length: WELD_N }, (_, i) => -6 + (12 * i) / (WELD_N - 1)) // mm
+const WELD_NOISE_UNIT: number[] = (() => {
+  const rand = mulberry32(777)
+  return Array.from({ length: WELD_N }, () => (rand() - 0.5) * 2)
+})()
+const H_MIN = 1.0
+const H_MAX = 2.2
+const W_MIN = 4.0
+const W_MAX = 7.0
+
+function WeldLab() {
+  const t = useT(T)
+  const [q, setQ] = useState(0.55)
+  const [noise, setNoise] = useState(0.04)
+
+  const { profile, beadIdx, h, w, pass } = useMemo(() => {
+    const beadH = 0.5 + 2.0 * q
+    const beadW = 3.0 + 4.5 * q
+    const s = beadW / 3.4
+    const prof = WELD_X.map((x, i) => {
+      let z = beadH * Math.exp(-((x / s) ** 2))
+      // undercut notches at the bead toes for poor quality
+      z -= (1 - q) * 0.35 * (Math.exp(-(((Math.abs(x) - beadW / 2) / 0.35) ** 2)) || 0)
+      return z + WELD_NOISE_UNIT[i] * noise
+    })
+    // baseline from the outer 15 points on each side
+    const outer = [...prof.slice(0, 15), ...prof.slice(-15)]
+    const base = outer.reduce((a, v) => a + v, 0) / outer.length
+    const thr = base + 0.2
+    const idx = prof.map((z, i) => (z > thr ? i : -1)).filter((i) => i >= 0)
+    const h2 = Math.max(...prof) - base
+    const w2 = idx.length ? WELD_X[idx[idx.length - 1]] - WELD_X[idx[0]] : 0
+    return {
+      profile: prof,
+      beadIdx: new Set(idx),
+      h: h2,
+      w: w2,
+      pass: h2 >= H_MIN && h2 <= H_MAX && w2 >= W_MIN && w2 <= W_MAX,
+    }
+  }, [q, noise])
+
+  const PW = 560
+  const PH = 260
+  const sx = (x: number) => ((x + 6) / 12) * PW
+  const sy = (z: number) => PH - 40 - z * 62
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          <line x1={0} y1={sy(0)} x2={PW} y2={sy(0)} stroke="#8b93a755" strokeDasharray="6 4" />
+          {profile.map((z, i) => (
+            <circle key={i} cx={sx(WELD_X[i])} cy={sy(z)} r={2.2} fill={beadIdx.has(i) ? '#a78bfa' : '#22d3ee99'} />
+          ))}
+          {/* width bracket */}
+          {w > 0 && (
+            <>
+              <line x1={sx(-w / 2)} y1={sy(-0.55)} x2={sx(w / 2)} y2={sy(-0.55)} stroke="#fbbf24" strokeWidth={2} strokeLinecap="round" />
+              <text x={sx(0)} y={sy(-0.55) + 15} textAnchor="middle" fill="#fbbf24" fontSize={11} fontFamily="JetBrains Mono, monospace">
+                {fmt(w, 1)} mm
+              </text>
+            </>
+          )}
+          <text x={PW - 10} y={20} textAnchor="end" fill={pass ? '#4ade80' : '#f87171'} fontSize={13} fontWeight={700} fontFamily="JetBrains Mono, monospace">
+            {pass ? `✓ ${t.appPass}` : `✗ ${t.appFail}`}
+          </text>
+        </svg>
+        <div className="border-t border-white/10 px-4 py-2 text-[12px] text-muted">{t.appLegend}</div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appQuality} value={q} min={0} max={1} step={0.01} onChange={setQ} format={(v) => `${fmt(v * 100, 0)} %`} />
+          <Slider label={t.appNoise} value={noise} min={0} max={0.15} step={0.005} onChange={setNoise} format={(v) => `${fmt(v * 1000, 0)} µm`} accent="#a78bfa" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout
+            label={`${t.appHeight} (${H_MIN}–${H_MAX})`}
+            value={fmt(h, 2)}
+            unit="mm"
+            accent={h >= H_MIN && h <= H_MAX ? '#4ade80' : '#f87171'}
+          />
+          <Readout
+            label={`${t.appWidth} (${W_MIN}–${W_MAX})`}
+            value={fmt(w, 2)}
+            unit="mm"
+            accent={w >= W_MIN && w <= W_MAX ? '#4ade80' : '#f87171'}
+          />
+        </div>
+        <Readout label={t.appVerdict} value={pass ? t.appPass : t.appFail} accent={pass ? '#4ade80' : '#f87171'} />
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function Metrology3dPage() {
@@ -696,6 +819,7 @@ export function Metrology3dPage() {
           { id: 'interferometry', label: t.interTitle },
           { id: 'compare', label: t.compTitle },
           { id: 'calibration', label: t.calibTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -783,6 +907,18 @@ export function Metrology3dPage() {
             ))}
           </ul>
         </div>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <WeldLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { PageToc } from '../components/PageToc'
-import { Readout, Section, Segmented, Slider } from '../components/ui'
+import { InfoBox, Readout, Section, Segmented, Slider } from '../components/ui'
 import { fmt } from '../lib/math'
 import { convolve, dftMag, lowpass, seriesCoef } from '../lib/signal'
 import { makeGauss } from '../lib/stats'
@@ -45,6 +45,21 @@ const T = {
     math1: 'The DFT projects the signal onto N complex sinusoids; the inverse sums them back. Nothing is lost — it is a change of basis:',
     math2: 'Computed naively this costs O(N²); the FFT algorithm reorganizes it to O(N log N), which is why real-time spectral processing exists at all — from your equalizer to OFDM radio to the phase unwrapping of the metrology track.',
     codeTitle: 'In practice',
+    appTitle: '🏭 In the real world: hearing a bearing die',
+    appIntro:
+      'A worn ball bearing announces its death weeks in advance — but not in the time signal, where a small periodic click drowns in the machine’s hum. It talks in the spectrum: every time a ball rolls over a spall in the outer ring, it makes one click, so the clicks arrive at the Ball-Pass Frequency Outer race (BPFO) — a frequency you can CALCULATE from the geometry and shaft speed. Raise the fault severity: the time trace barely changes, but in the spectrum a needle grows exactly at the predicted BPFO, with harmonics in tow. Every vibration analyst plays this game daily: compute the fault frequencies, then look up whether anything lives there.',
+    appRpm: 'shaft speed',
+    appSev: 'fault severity',
+    appBpfo: 'computed BPFO',
+    appPeak: 'spectrum peak at BPFO',
+    appTime: 'accelerometer signal (time domain)',
+    appSpec: 'spectrum |X(f)| — red marker = predicted BPFO',
+    appHealthy: 'no fault signature',
+    appAlarmSmall: 'early damage',
+    appAlarmBig: 'REPLACE BEARING',
+    appState: 'diagnosis',
+    appWhere:
+      'The same compute-the-frequency-then-look trick finds gear-mesh damage, unbalanced fans (1× RPM), misalignment (2× RPM), cavitating pumps and loose electrical stators (2× line frequency) — the frequency axis is the machine’s medical chart.',
   },
   de: {
     kicker: 'Signale · Modul 1',
@@ -83,6 +98,21 @@ const T = {
     math1: 'Die DFT projiziert das Signal auf N komplexe Sinusschwingungen; die Inverse summiert sie zurück. Nichts geht verloren — es ist ein Basiswechsel:',
     math2: 'Naiv gerechnet kostet das O(N²); der FFT-Algorithmus organisiert es zu O(N log N) um — deshalb gibt es Echtzeit-Spektralverarbeitung überhaupt: vom Equalizer über OFDM-Funk bis zur Phasenauswertung im Messtechnik-Track.',
     codeTitle: 'In der Praxis',
+    appTitle: '🏭 In der echten Welt: ein Lager sterben hören',
+    appIntro:
+      'Ein verschlissenes Kugellager kündigt seinen Tod Wochen im Voraus an — aber nicht im Zeitsignal, wo ein kleines periodisches Klicken im Brummen der Maschine untergeht. Es spricht im Spektrum: Jedes Mal, wenn eine Kugel über eine Ausbruchstelle im Außenring rollt, gibt es ein Klicken, also kommen die Klicks mit der Ball-Pass-Frequenz des Außenrings (BPFO) — einer Frequenz, die man aus Geometrie und Drehzahl BERECHNEN kann. Erhöhe den Schadensgrad: Die Zeitspur ändert sich kaum, aber im Spektrum wächst eine Nadel exakt bei der vorhergesagten BPFO, mit Harmonischen im Schlepptau. Jeder Schwingungsanalytiker spielt dieses Spiel täglich: Fehlerfrequenzen ausrechnen, dann nachsehen, ob dort etwas wohnt.',
+    appRpm: 'Wellendrehzahl',
+    appSev: 'Schadensgrad',
+    appBpfo: 'berechnete BPFO',
+    appPeak: 'Spektrumspitze bei BPFO',
+    appTime: 'Beschleunigungssignal (Zeitbereich)',
+    appSpec: 'Spektrum |X(f)| — rote Marke = vorhergesagte BPFO',
+    appHealthy: 'keine Fehlersignatur',
+    appAlarmSmall: 'beginnender Schaden',
+    appAlarmBig: 'LAGER TAUSCHEN',
+    appState: 'Diagnose',
+    appWhere:
+      'Derselbe Frequenz-berechnen-dann-nachsehen-Trick findet Zahneingriffschäden, unwuchtige Lüfter (1× Drehzahl), Ausrichtfehler (2× Drehzahl), kavitierende Pumpen und lose Statoren (2× Netzfrequenz) — die Frequenzachse ist die Krankenakte der Maschine.',
   },
 }
 
@@ -396,6 +426,98 @@ function ConvLab() {
   )
 }
 
+// ---------------------------------------------------------------- application: bearing diagnosis
+
+const BRG_N = 512
+const BRG_FS = 2048 // Hz
+const BRG_BALLS = 9
+const BRG_GEO = 0.8 // 1 − d/D·cosφ
+const BRG_NOISE: number[] = (() => {
+  const g = makeGauss(88)
+  return Array.from({ length: BRG_N }, () => g())
+})()
+
+function BearingLab() {
+  const t = useT(T)
+  const [rpm, setRpm] = useState(1800)
+  const [sev, setSev] = useState(0)
+
+  const fShaft = rpm / 60
+  const bpfo = (BRG_BALLS / 2) * fShaft * BRG_GEO
+
+  const { sig, spec, peak } = useMemo(() => {
+    const x = Array.from({ length: BRG_N }, (_, i) => {
+      const time = i / BRG_FS
+      let v = 0.6 * Math.sin(2 * Math.PI * fShaft * time) + 0.18 * Math.sin(2 * Math.PI * 2 * fShaft * time + 0.7)
+      v += 0.12 * BRG_NOISE[i]
+      // fault: periodic clicking = truncated harmonic comb at BPFO
+      for (let h = 1; h <= 4; h++) v += sev * 0.28 * Math.pow(0.75, h - 1) * Math.cos(2 * Math.PI * h * bpfo * time)
+      return v
+    })
+    const m = dftMag(x)
+    const bin = Math.round((bpfo * BRG_N) / BRG_FS)
+    const pk = Math.max(m[bin - 1] ?? 0, m[bin] ?? 0, m[bin + 1] ?? 0)
+    return { sig: x, spec: m, peak: pk }
+  }, [fShaft, sev, bpfo])
+
+  const state = peak < 0.05 ? 0 : peak < 0.2 ? 1 : 2
+  const stateLabel = [t.appHealthy, t.appAlarmSmall, t.appAlarmBig][state]
+  const stateColor = ['#4ade80', '#fbbf24', '#f87171'][state]
+
+  const PW = 560
+  const TH = 120
+  const SH = 170
+  const FMAX = 900 // Hz shown
+  const binHz = BRG_FS / BRG_N
+  const nBins = Math.min(spec.length, Math.floor(FMAX / binHz))
+  const sxT = (i: number) => (i / (BRG_N - 1)) * PW
+  const syT = (v: number) => TH / 2 - v * (TH / 4.2)
+  const sxF = (b: number) => (b / nBins) * PW
+  const syF = (v: number) => SH - 16 - Math.min(v / 0.7, 1) * (SH - 34)
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="flex flex-col gap-3 lg:col-span-3">
+        <div className="card overflow-hidden">
+          <div className="border-b border-white/10 px-3 py-1.5 text-[12px] text-muted">{t.appTime}</div>
+          <svg viewBox={`0 0 ${PW} ${TH}`} className="block w-full">
+            <polyline points={sig.map((v, i) => `${sxT(i)},${syT(v)}`).join(' ')} fill="none" stroke="#22d3ee" strokeWidth={1} />
+          </svg>
+        </div>
+        <div className="card overflow-hidden">
+          <div className="border-b border-white/10 px-3 py-1.5 text-[12px] text-muted">{t.appSpec}</div>
+          <svg viewBox={`0 0 ${PW} ${SH}`} className="block w-full">
+            <line x1={sxF(bpfo / binHz)} y1={8} x2={sxF(bpfo / binHz)} y2={SH - 16} stroke="#f87171" strokeWidth={1.5} strokeDasharray="4 3" />
+            <text x={sxF(bpfo / binHz) + 4} y={16} fill="#f87171" fontSize={10} fontFamily="JetBrains Mono, monospace">
+              BPFO
+            </text>
+            {Array.from({ length: nBins }, (_, b) => (
+              <line key={b} x1={sxF(b)} y1={SH - 16} x2={sxF(b)} y2={syF(spec[b])} stroke="#22d3ee" strokeWidth={PW / nBins - 0.4} />
+            ))}
+            <text x={PW - 8} y={SH - 4} textAnchor="end" fill="#8b93a7" fontSize={10} fontFamily="JetBrains Mono, monospace">
+              f (Hz) → {FMAX}
+            </text>
+          </svg>
+        </div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appRpm} value={rpm} min={600} max={3600} step={60} onChange={setRpm} format={(v) => `${v} rpm`} />
+          <Slider label={t.appSev} value={sev} min={0} max={1} step={0.02} onChange={setSev} format={(v) => `${fmt(v * 100, 0)} %`} accent="#f87171" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appBpfo} value={fmt(bpfo, 1)} unit="Hz" />
+          <Readout label={t.appPeak} value={fmt(peak, 3)} />
+        </div>
+        <Readout label={t.appState} value={stateLabel} accent={stateColor} />
+        <div className="card-pad">
+          <TeX block>{String.raw`f_{\text{BPFO}} = \frac{n}{2} f_s \left(1 - \frac{d}{D}\cos\varphi\right)`}</TeX>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function FourierPage() {
@@ -410,6 +532,7 @@ export function FourierPage() {
           { id: 'convolution', label: t.convTitle },
           { id: 'math', label: t.mathTitle },
           { id: 'code', label: t.codeTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -464,6 +587,18 @@ export function FourierPage() {
 
       <Section id="code" title={t.codeTitle}>
         <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <BearingLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

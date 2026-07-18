@@ -49,6 +49,18 @@ const T = {
     logLoss: 'cross-entropy loss',
     logAcc: 'accuracy',
     codeTitle: 'In practice',
+    appTitle: '🏭 In the real world: the process window of a molding machine',
+    appIntro:
+      'An injection-molding machine produced 90 logged shots: melt temperature, holding pressure, and whether the part came out OK or scrap (short shots, sink marks). Logistic regression turns that log into a process window — the shaded map below is the model’s scrap probability, trained on exactly the cross-entropy machinery from this module. Now place the operating point with the sliders: the model predicts the scrap rate before you waste a single shot. Process engineers call this a “process window”; data scientists call it a linear classifier. Same thing.',
+    appTemp: 'melt temperature',
+    appPress: 'holding pressure',
+    appScrapP: 'predicted scrap rate',
+    appVerdict: 'operating point',
+    appSafe: 'SAFE',
+    appRisky: 'RISKY',
+    appMapTitle: 'process window learned from 90 logged shots (amber = OK region, cyan = scrap region)',
+    appWhere:
+      'The same learned windows guard wave-soldering profiles, CNC feeds-and-speeds, semiconductor recipes and beer-brewing fermentation — anywhere “good” is a region in parameter space that nobody wrote down explicitly.',
   },
   de: {
     kicker: 'ML · Modul 1',
@@ -90,6 +102,18 @@ const T = {
     logLoss: 'Kreuzentropie-Verlust',
     logAcc: 'Trefferquote',
     codeTitle: 'In der Praxis',
+    appTitle: '🏭 In der echten Welt: das Prozessfenster einer Spritzgussmaschine',
+    appIntro:
+      'Eine Spritzgussmaschine hat 90 protokollierte Schüsse geliefert: Massetemperatur, Nachdruck, und ob das Teil gut oder Ausschuss war (Füllfehler, Einfallstellen). Logistische Regression macht aus diesem Protokoll ein Prozessfenster — die schattierte Karte unten ist die Ausschusswahrscheinlichkeit des Modells, trainiert mit exakt der Kreuzentropie-Maschinerie dieses Moduls. Setze nun den Betriebspunkt mit den Slidern: Das Modell sagt die Ausschussrate voraus, bevor du einen einzigen Schuss verschwendest. Prozessingenieure nennen das „Prozessfenster“, Data Scientists „linearer Klassifikator“. Dasselbe Ding.',
+    appTemp: 'Massetemperatur',
+    appPress: 'Nachdruck',
+    appScrapP: 'vorhergesagte Ausschussrate',
+    appVerdict: 'Betriebspunkt',
+    appSafe: 'SICHER',
+    appRisky: 'RISKANT',
+    appMapTitle: 'Prozessfenster aus 90 protokollierten Schüssen (bernstein = Gut-Region, cyan = Ausschuss-Region)',
+    appWhere:
+      'Dieselben gelernten Fenster bewachen Wellenlöt-Profile, CNC-Vorschübe und -Drehzahlen, Halbleiter-Rezepte und Bierbrau-Fermentationen — überall dort, wo „gut“ eine Region im Parameterraum ist, die niemand explizit aufgeschrieben hat.',
   },
 }
 
@@ -463,6 +487,88 @@ function LogRegLab() {
   )
 }
 
+// ---------------------------------------------------------------- application: process window
+
+// normalized coords: x1 = (T − 240)/40, x2 = (P − 700)/300
+const SHOTS: { x: [number, number]; y: number }[] = (() => {
+  const rand = mulberry32(31)
+  const g = makeGauss(32)
+  return Array.from({ length: 90 }, () => {
+    const x1 = (rand() - 0.5) * 2
+    const x2 = (rand() - 0.5) * 2
+    // true physics: hot melt or high pressure fills the mold; y = 1 means OK
+    const y = 0.9 * x1 + 1.2 * x2 + 0.25 + g() * 0.35 > 0 ? 1 : 0
+    return { x: [x1, x2] as [number, number], y }
+  })
+})()
+
+const WINDOW_W: LogregW = (() => {
+  let w: LogregW = [0, 0, 0]
+  for (let i = 0; i < 4000; i++) w = logregStep(w, SHOTS, 0.5).w
+  return w
+})()
+
+const toT = (x1: number) => 240 + 40 * x1
+const toP = (x2: number) => 700 + 300 * x2
+
+function ProcessWindowLab() {
+  const t = useT(T)
+  const [temp, setTemp] = useState(235)
+  const [press, setPress] = useState(650)
+
+  const x1 = (temp - 240) / 40
+  const x2 = (press - 700) / 300
+  const pOk = sigmoid(WINDOW_W[0] * x1 + WINDOW_W[1] * x2 + WINDOW_W[2])
+  const scrap = 1 - pOk
+  const safe = scrap < 0.02
+
+  const W2 = 480
+  const H2 = 360
+  const sx = (v1: number) => ((v1 + 1) / 2) * W2
+  const sy = (v2: number) => H2 - ((v2 + 1) / 2) * H2
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="lg:col-span-3">
+        <ProbMap
+          w={W2}
+          h={H2}
+          xr={[-1, 1]}
+          yr={[-1, 1]}
+          prob={(a, b) => sigmoid(WINDOW_W[0] * a + WINDOW_W[1] * b + WINDOW_W[2])}
+          ckey="process-window"
+          title={t.appMapTitle}
+        >
+          {SHOTS.map((s, i) => (
+            <circle
+              key={i}
+              cx={sx(s.x[0])}
+              cy={sy(s.x[1])}
+              r={3}
+              fill={s.y === 1 ? '#fbbf24cc' : '#22d3eecc'}
+              stroke="#0a0e17"
+              strokeWidth={0.8}
+            />
+          ))}
+          <circle cx={sx(x1)} cy={sy(x2)} r={9} fill="none" stroke={safe ? '#4ade80' : '#f87171'} strokeWidth={2.5} />
+          <line x1={sx(x1) - 14} y1={sy(x2)} x2={sx(x1) + 14} y2={sy(x2)} stroke={safe ? '#4ade80' : '#f87171'} strokeWidth={1} />
+          <line x1={sx(x1)} y1={sy(x2) - 14} x2={sx(x1)} y2={sy(x2) + 14} stroke={safe ? '#4ade80' : '#f87171'} strokeWidth={1} />
+        </ProbMap>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appTemp} value={temp} min={toT(-1)} max={toT(1)} step={1} onChange={setTemp} format={(v) => `${v} °C`} />
+          <Slider label={t.appPress} value={press} min={toP(-1)} max={toP(1)} step={5} onChange={setPress} format={(v) => `${v} bar`} accent="#a78bfa" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appScrapP} value={`${fmt(scrap * 100, 1)} %`} accent={safe ? '#4ade80' : '#f87171'} />
+          <Readout label={t.appVerdict} value={safe ? t.appSafe : t.appRisky} accent={safe ? '#4ade80' : '#f87171'} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function MlBasicsPage() {
@@ -477,6 +583,7 @@ export function MlBasicsPage() {
           { id: 'biasvar', label: t.biasTitle },
           { id: 'logreg', label: t.logTitle },
           { id: 'code', label: t.codeTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -536,6 +643,18 @@ export function MlBasicsPage() {
 
       <Section id="code" title={t.codeTitle}>
         <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <ProcessWindowLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useT } from '../i18n'
 import { Derivation } from '../components/Derivation'
 import { PageToc } from '../components/PageToc'
-import { Readout, Section, Slider } from '../components/ui'
+import { InfoBox, Readout, Section, Slider } from '../components/ui'
 import { fmt, mulberry32 } from '../lib/math'
 import { makeGauss, type P2 } from '../lib/stats'
 
@@ -48,6 +48,17 @@ const T = {
       'Rule of thumb: RANSAC for finding the consensus set, robust kernels for the final polish, plain least squares only after the outliers are gone.',
     ],
     codeTitle: 'In practice',
+    appTitle: '🏭 In the real world: lane detection',
+    appIntro:
+      'A lane-keeping camera extracts bright edge points from every frame and must fit the lane line through them — while shadows, tar seams, guardrail reflections and old repainted markings all produce edge points too. Least squares averages over all of that clutter and steers the fit into the bushes; RANSAC finds the largest consensus among the points and locks onto the true marking. Crank up the clutter and compare the two lines — then imagine each of them steering your car at 130 km/h.',
+    appClutter: 'clutter points',
+    appThresh: 'inlier threshold',
+    appInliers: 'RANSAC consensus',
+    appErrRansac: 'lane-position error (RANSAC)',
+    appErrLs: 'lane-position error (least squares)',
+    appLegend: 'green = RANSAC · red dashed = least squares · dots = detected edge points',
+    appWhere:
+      'The same consensus trick locks onto runway edges for autonomous landing, pallet edges for forklift docking, weld seams for tracking torches, and floor planes in AR headsets.',
   },
   de: {
     kicker: 'Daten · Modul 4',
@@ -87,6 +98,17 @@ const T = {
       'Faustregel: RANSAC zum Finden der Konsensmenge, robuste Kerne für die Politur, reine kleinste Quadrate erst, wenn die Ausreißer weg sind.',
     ],
     codeTitle: 'In der Praxis',
+    appTitle: '🏭 In der echten Welt: Spurerkennung',
+    appIntro:
+      'Eine Spurhaltekamera extrahiert aus jedem Frame helle Kantenpunkte und muss die Spurlinie hindurchfitten — während Schatten, Teernähte, Leitplankenreflexe und alte, übermalte Markierungen ebenfalls Kantenpunkte erzeugen. Kleinste Quadrate mitteln über all diesen Müll und lenken den Fit ins Gebüsch; RANSAC findet den größten Konsens unter den Punkten und rastet auf der echten Markierung ein. Dreh den Störpunkte-Regler hoch und vergleiche die beiden Linien — und stell dir dann vor, jede von ihnen lenkt dein Auto bei 130 km/h.',
+    appClutter: 'Störpunkte',
+    appThresh: 'Inlier-Schwelle',
+    appInliers: 'RANSAC-Konsens',
+    appErrRansac: 'Spurpositionsfehler (RANSAC)',
+    appErrLs: 'Spurpositionsfehler (kleinste Quadrate)',
+    appLegend: 'grün = RANSAC · rot gestrichelt = kleinste Quadrate · Punkte = erkannte Kantenpunkte',
+    appWhere:
+      'Derselbe Konsens-Trick rastet auf Landebahnkanten für autonome Landungen ein, auf Palettenkanten beim Stapler-Andocken, auf Schweißnähten für nachgeführte Brenner und auf Bodenebenen in AR-Headsets.',
   },
 }
 
@@ -344,6 +366,115 @@ function LossFigure() {
   )
 }
 
+// ---------------------------------------------------------------- application: lane detection
+
+const LANE_W = 520
+const LANE_H = 300
+const HORIZON = 100
+// true right lane edge in image coords: x = LANE_X0 + LANE_SLOPE · (y − horizon)
+const LANE_X0 = 285
+const LANE_SLOPE = 0.78
+
+function laneFitLs(pts: P2[]): { m: number; c: number } {
+  // fit x = m·y + c
+  const n = pts.length
+  const sy = pts.reduce((s, p) => s + p[1], 0)
+  const sx = pts.reduce((s, p) => s + p[0], 0)
+  const syy = pts.reduce((s, p) => s + p[1] * p[1], 0)
+  const sxy = pts.reduce((s, p) => s + p[0] * p[1], 0)
+  const m = (n * sxy - sy * sx) / Math.max(n * syy - sy * sy, 1e-9)
+  return { m, c: (sx - m * sy) / n }
+}
+
+function LaneLab() {
+  const t = useT(T)
+  const [clutter, setClutter] = useState(30)
+  const [thresh, setThresh] = useState(8)
+
+  const pts = useMemo(() => {
+    const g = makeGauss(5)
+    const rand = mulberry32(11)
+    const out: P2[] = []
+    for (let i = 0; i < 26; i++) {
+      const y = HORIZON + 12 + ((LANE_H - HORIZON - 20) / 25) * i
+      out.push([LANE_X0 + LANE_SLOPE * (y - HORIZON) + g() * 3, y])
+    }
+    for (let i = 0; i < clutter; i++) {
+      const y = HORIZON + 10 + rand() * (LANE_H - HORIZON - 20)
+      const halfRoad = 40 + 1.6 * (y - HORIZON)
+      out.push([LANE_W / 2 - 60 + (rand() - 0.35) * halfRoad * 1.6, y])
+    }
+    return out
+  }, [clutter])
+
+  const { ransac, inliers, ls } = useMemo(() => {
+    const rand = mulberry32(97)
+    let best = { m: 0, c: 0 }
+    let bestCount = -1
+    for (let it = 0; it < 250; it++) {
+      const i = Math.floor(rand() * pts.length)
+      let j = Math.floor(rand() * pts.length)
+      if (j === i) j = (j + 1) % pts.length
+      const [x1, y1] = pts[i]
+      const [x2, y2] = pts[j]
+      if (Math.abs(y2 - y1) < 8) continue
+      const m = (x2 - x1) / (y2 - y1)
+      const c = x1 - m * y1
+      const count = pts.filter((p) => Math.abs(p[0] - (m * p[1] + c)) < thresh).length
+      if (count > bestCount) {
+        bestCount = count
+        best = { m, c }
+      }
+    }
+    return { ransac: best, inliers: bestCount, ls: laneFitLs(pts) }
+  }, [pts, thresh])
+
+  const laneX = (y: number) => LANE_X0 + LANE_SLOPE * (y - HORIZON)
+  const errAt = (fit: { m: number; c: number }) => Math.abs(fit.m * LANE_H + fit.c - laneX(LANE_H))
+  const errR = errAt(ransac)
+  const errL = errAt(ls)
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${LANE_W} ${LANE_H}`} className="block w-full">
+          {/* sky + road */}
+          <rect width={LANE_W} height={HORIZON} fill="#141a28" />
+          <polygon
+            points={`${LANE_W / 2 - 95},${HORIZON} ${LANE_W / 2 + 45},${HORIZON} ${LANE_W - 30},${LANE_H} -80,${LANE_H}`}
+            fill="#1a2030"
+          />
+          {/* center dashes */}
+          {[0, 1, 2, 3].map((i) => {
+            const y1 = HORIZON + 22 + i * 48
+            return <line key={i} x1={185 - i * 26} y1={y1} x2={177 - i * 34} y2={y1 + 26} stroke="#8b93a733" strokeWidth={4 + i} />
+          })}
+          {/* edge points */}
+          {pts.map((p, i) => (
+            <circle key={i} cx={p[0]} cy={p[1]} r={2.8} fill="#22d3ee99" />
+          ))}
+          {/* LS line */}
+          <line x1={ls.m * HORIZON + ls.c} y1={HORIZON} x2={ls.m * LANE_H + ls.c} y2={LANE_H} stroke="#f87171" strokeWidth={2} strokeDasharray="7 5" />
+          {/* RANSAC line */}
+          <line x1={ransac.m * HORIZON + ransac.c} y1={HORIZON} x2={ransac.m * LANE_H + ransac.c} y2={LANE_H} stroke="#4ade80" strokeWidth={2.5} />
+        </svg>
+        <div className="border-t border-white/10 px-4 py-2 text-[12px] text-muted">{t.appLegend}</div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appClutter} value={clutter} min={0} max={70} step={1} onChange={setClutter} />
+          <Slider label={t.appThresh} value={thresh} min={3} max={25} step={1} onChange={setThresh} format={(v) => `${v} px`} accent="#a78bfa" />
+        </div>
+        <div className="grid grid-cols-1 gap-3">
+          <Readout label={t.appInliers} value={`${inliers} / ${pts.length}`} />
+          <Readout label={t.appErrRansac} value={fmt(errR, 1)} unit="px" accent={errR < 10 ? '#4ade80' : '#f87171'} />
+          <Readout label={t.appErrLs} value={fmt(errL, 1)} unit="px" accent={errL < 10 ? '#4ade80' : '#f87171'} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function RansacPage() {
@@ -357,6 +488,7 @@ export function RansacPage() {
           { id: 'losses', label: t.lossTitle },
           { id: 'where', label: t.whereTitle },
           { id: 'code', label: t.codeTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -403,6 +535,18 @@ export function RansacPage() {
 
       <Section id="code" title={t.codeTitle}>
         <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <LaneLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

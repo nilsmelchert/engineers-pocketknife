@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { PageToc } from '../components/PageToc'
-import { Readout, Section, Segmented, Slider } from '../components/ui'
+import { InfoBox, Readout, Section, Segmented, Slider } from '../components/ui'
 import { fmt } from '../lib/math'
 import { gumPropagate, mcPropagate } from '../lib/signal'
 import { makeGauss } from '../lib/stats'
@@ -51,6 +51,20 @@ const T = {
     ],
     budgetCombined: 'combined u = 1.6 µm → expanded U (k = 2) = 3.2 µm',
     codeTitle: 'In practice',
+    appTitle: '🏭 In the real world: accepting parts at the tolerance limit',
+    appIntro:
+      'A shaft must measure 20 mm ± 25 µm. Your gauge has uncertainty U. Now the uncomfortable truth of every incoming-goods inspection: for parts near the tolerance limit, the measurement — not the part — decides. A good part measured 10 µm high gets scrapped (false reject, your money); a bad part measured 10 µm low gets shipped (false accept, your customer’s problem). Below, 400 parts from a real-looking process: slide the gauge uncertainty and watch the two error populations grow around the limits. Then discover the industry’s two answers: buy a gauge with U ≤ T/10 (the golden rule), or pull the acceptance limits in by U — guard-banding, as ISO 14253 demands.',
+    appU: 'gauge uncertainty U',
+    appSigma: 'process spread σ',
+    appGuard: 'guard-band (shrink acceptance by U)',
+    appFa: 'false accepts (bad parts shipped)',
+    appFr: 'false rejects (good parts scrapped)',
+    appRatio: 'U / T ratio',
+    appAxisMeas: 'measured ↑',
+    appAxisTrue: 'true deviation (µm) →',
+    appLegend: 'cyan = correctly accepted · gray = correctly rejected · red = falsely ACCEPTED · amber = falsely REJECTED · dashes = tolerance, dotted = acceptance limits',
+    appWhere:
+      'The same trade-off governs pharma release testing, breathalyzer legal margins, emissions certification and every calibration lab’s “pass with guard band” stamp — wherever a noisy measurement meets a hard limit.',
   },
   de: {
     kicker: 'Messtechnik · Modul 1',
@@ -95,6 +109,20 @@ const T = {
     ],
     budgetCombined: 'kombiniert u = 1,6 µm → erweitert U (k = 2) = 3,2 µm',
     codeTitle: 'In der Praxis',
+    appTitle: '🏭 In der echten Welt: Teile an der Toleranzgrenze annehmen',
+    appIntro:
+      'Eine Welle soll 20 mm ± 25 µm messen. Dein Messgerät hat die Unsicherheit U. Nun die unbequeme Wahrheit jeder Wareneingangsprüfung: Bei Teilen nahe der Toleranzgrenze entscheidet die Messung — nicht das Teil. Ein gutes Teil, 10 µm zu hoch gemessen, wird verschrottet (Fehl-Ausschuss, dein Geld); ein schlechtes Teil, 10 µm zu niedrig gemessen, wird ausgeliefert (Fehl-Annahme, das Problem deines Kunden). Unten 400 Teile aus einem realistisch aussehenden Prozess: Schiebe die Messunsicherheit und sieh die beiden Fehlerpopulationen um die Grenzen wachsen. Dann entdecke die zwei Antworten der Industrie: ein Messgerät mit U ≤ T/10 kaufen (die goldene Regel) — oder die Annahmegrenzen um U nach innen ziehen: Guard-Banding, wie ISO 14253 es verlangt.',
+    appU: 'Messunsicherheit U',
+    appSigma: 'Prozessstreuung σ',
+    appGuard: 'Guard-Band (Annahme um U verengen)',
+    appFa: 'Fehl-Annahmen (schlechte Teile geliefert)',
+    appFr: 'Fehl-Ausschuss (gute Teile verschrottet)',
+    appRatio: 'U/T-Verhältnis',
+    appAxisMeas: 'gemessen ↑',
+    appAxisTrue: 'wahre Abweichung (µm) →',
+    appLegend: 'cyan = korrekt angenommen · grau = korrekt abgelehnt · rot = fälschlich ANGENOMMEN · bernstein = fälschlich ABGELEHNT · gestrichelt = Toleranz, gepunktet = Annahmegrenzen',
+    appWhere:
+      'Derselbe Kompromiss regiert Pharma-Freigabeprüfungen, juristische Abzüge beim Atemalkohol, Abgas-Zertifizierung und den „bestanden mit Guard-Band“-Stempel jedes Kalibrierlabors — überall dort, wo eine verrauschte Messung auf eine harte Grenze trifft.',
   },
 }
 
@@ -322,6 +350,98 @@ function MeanLab() {
   )
 }
 
+// ---------------------------------------------------------------- application: guard-banding
+
+const GB_T = 25 // µm half-tolerance
+const GB_N = 400
+const GB_TRUE_UNIT: number[] = (() => {
+  const g = makeGauss(500)
+  return Array.from({ length: GB_N }, () => g())
+})()
+const GB_MEAS_UNIT: number[] = (() => {
+  const g = makeGauss(501)
+  return Array.from({ length: GB_N }, () => g())
+})()
+
+function GuardBandLab() {
+  const t = useT(T)
+  const [U, setU] = useState(8)
+  const [sigma, setSigma] = useState(14)
+  const [guard, setGuard] = useState<'off' | 'on'>('off')
+
+  const limit = guard === 'on' ? GB_T - U : GB_T
+
+  const parts = useMemo(
+    () =>
+      GB_TRUE_UNIT.map((tv, i) => {
+        const truth = tv * sigma
+        const meas = truth + GB_MEAS_UNIT[i] * (U / 2)
+        const good = Math.abs(truth) <= GB_T
+        const accepted = Math.abs(meas) <= limit
+        return { truth, meas, good, accepted }
+      }),
+    [sigma, U, limit],
+  )
+  const fa = parts.filter((p) => p.accepted && !p.good).length
+  const fr = parts.filter((p) => !p.accepted && p.good).length
+
+  const PW = 460
+  const PH = 400
+  const R = 55 // µm plotted range
+  const sx = (v: number) => PW / 2 + (v / R) * (PW / 2 - 10)
+  const sy = (v: number) => PH / 2 - (v / R) * (PH / 2 - 10)
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          {/* tolerance (true) vertical lines */}
+          {[GB_T, -GB_T].map((v, i) => (
+            <line key={`t${i}`} x1={sx(v)} y1={0} x2={sx(v)} y2={PH} stroke="#8b93a766" strokeDasharray="6 4" />
+          ))}
+          {/* acceptance (measured) horizontal lines */}
+          {[limit, -limit].map((v, i) => (
+            <line key={`a${i}`} x1={0} y1={sy(v)} x2={PW} y2={sy(v)} stroke="#22d3ee88" strokeDasharray="2 4" />
+          ))}
+          {parts.map((p, i) => {
+            const color = p.accepted && p.good ? '#22d3ee' : !p.accepted && !p.good ? '#5b6270' : p.accepted ? '#f87171' : '#fbbf24'
+            return <circle key={i} cx={sx(p.truth)} cy={sy(p.meas)} r={p.accepted !== p.good ? 3.2 : 2} fill={color} opacity={0.85} />
+          })}
+          <text x={8} y={16} fill="#8b93a7" fontSize={10.5} fontFamily="JetBrains Mono, monospace">
+            {t.appAxisMeas}
+          </text>
+          <text x={PW - 8} y={PH - 8} textAnchor="end" fill="#8b93a7" fontSize={10.5} fontFamily="JetBrains Mono, monospace">
+            {t.appAxisTrue}
+          </text>
+        </svg>
+        <div className="border-t border-white/10 px-4 py-2 text-[12px] text-muted">{t.appLegend}</div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appU} value={U} min={1} max={15} step={0.5} onChange={setU} format={(v) => `${fmt(v, 1)} µm`} />
+          <Slider label={t.appSigma} value={sigma} min={8} max={25} step={0.5} onChange={setSigma} format={(v) => `${fmt(v, 1)} µm`} accent="#a78bfa" />
+          <div>
+            <div className="mb-1.5 text-[12px] text-muted">{t.appGuard}</div>
+            <Segmented
+              options={[
+                { value: 'off', label: 'off' },
+                { value: 'on', label: 'on' },
+              ]}
+              value={guard}
+              onChange={setGuard}
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 gap-3">
+          <Readout label={t.appFa} value={`${fa} / ${GB_N}`} accent={fa === 0 ? '#4ade80' : '#f87171'} />
+          <Readout label={t.appFr} value={`${fr} / ${GB_N}`} accent={fr === 0 ? '#4ade80' : '#fbbf24'} />
+          <Readout label={t.appRatio} value={`1 : ${fmt((2 * GB_T) / U, 1)}`} accent={(2 * GB_T) / U >= 10 ? '#4ade80' : '#fbbf24'} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function MeasurementPage() {
@@ -335,6 +455,7 @@ export function MeasurementPage() {
           { id: 'mean', label: t.meanTitle },
           { id: 'concepts', label: t.conceptTitle },
           { id: 'code', label: t.codeTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -409,6 +530,18 @@ export function MeasurementPage() {
 
       <Section id="code" title={t.codeTitle}>
         <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <GuardBandLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

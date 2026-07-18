@@ -65,6 +65,18 @@ const T = {
       'The Kalman-family intuition transfers unchanged: predict with a model, correct with measurements, and let the covariance decide the weights.',
     ],
     codeTitle: 'In practice',
+    appTitle: '🏭 In the real world: will the vacuum find its dock?',
+    appIntro:
+      'A robot vacuum must end every mission the same way: back on its charging dock, within about ±10 cm, or the charging contacts miss. Below, the same robot drives one identical lap twice — with the same noisy wheel odometry. The red run navigates by odometry alone: by lap end its position belief has drifted, and it docks blind by that amount. The cyan run additionally watches the room’s landmarks (chair legs, walls) with EKF-SLAM and comes home tight. Crank up the odometry noise — carpet slip, in vacuum terms — and watch dead reckoning blow the docking tolerance while SLAM barely notices. This picture is why even cheap vacuums grew lidar turrets.',
+    appNoise: 'wheel-odometry noise',
+    appDrErr: 'dock error: odometry only',
+    appSlamErr: 'dock error: EKF-SLAM',
+    appTol: 'docking tolerance ±10 cm',
+    appPass: 'DOCKS',
+    appFail: 'MISSES DOCK',
+    appLegend: 'white dashed = true lap · red = odometry-only belief · cyan = SLAM belief · ◆ = landmarks · ⌂ = dock',
+    appWhere:
+      'The same odometry-vs-landmarks budget decides how warehouse AMRs hit their charging pads, how AGVs align with conveyor hand-off stations, and how drones land back on the takeoff “H” without RTK GPS.',
   },
   de: {
     kicker: 'Robotik · Modul 2',
@@ -109,6 +121,18 @@ const T = {
       'Die Kalman-Intuition überträgt sich unverändert: mit einem Modell prädizieren, mit Messungen korrigieren, und die Kovarianz die Gewichte wählen lassen.',
     ],
     codeTitle: 'In der Praxis',
+    appTitle: '🏭 In der echten Welt: findet der Staubsauger seine Ladestation?',
+    appIntro:
+      'Ein Saugroboter muss jede Mission gleich beenden: zurück auf seiner Ladestation, auf etwa ±10 cm genau, sonst verfehlen die Ladekontakte. Unten fährt derselbe Roboter zweimal dieselbe Runde — mit derselben verrauschten Radodometrie. Der rote Lauf navigiert nur nach Odometrie: Am Rundenende ist seine Positionsschätzung weggedriftet, und um genau diesen Betrag dockt er blind daneben an. Der cyanfarbene Lauf beobachtet zusätzlich die Landmarken des Raums (Stuhlbeine, Wände) mit EKF-SLAM und kommt eng nach Hause. Dreh das Odometrierauschen hoch — Teppichschlupf, in Staubsaugersprache — und sieh zu, wie die Koppelnavigation die Docking-Toleranz sprengt, während SLAM es kaum bemerkt. Dieses Bild ist der Grund, warum selbst billige Staubsauger Lidar-Türmchen bekommen haben.',
+    appNoise: 'Radodometrie-Rauschen',
+    appDrErr: 'Dock-Fehler: nur Odometrie',
+    appSlamErr: 'Dock-Fehler: EKF-SLAM',
+    appTol: 'Docking-Toleranz ±10 cm',
+    appPass: 'DOCKT AN',
+    appFail: 'VERFEHLT DOCK',
+    appLegend: 'weiß gestrichelt = wahre Runde · rot = Nur-Odometrie-Schätzung · cyan = SLAM-Schätzung · ◆ = Landmarken · ⌂ = Ladestation',
+    appWhere:
+      'Dasselbe Odometrie-gegen-Landmarken-Budget entscheidet, wie Lager-AMRs ihre Ladeplatten treffen, wie FTS an Übergabestationen andocken und wie Drohnen ohne RTK-GPS wieder auf dem Start-„H“ landen.',
   },
 }
 
@@ -459,6 +483,119 @@ function EkfSlamLab() {
   )
 }
 
+// ---------------------------------------------------------------- application: return to dock
+
+const DOCK_STEPS = 230
+const DOCK_DT = 0.06
+const DOCK_TOL = 0.1 // m
+
+function runDockLap(noiseScale: number): {
+  truth: [number, number][]
+  dr: [number, number][]
+  slam: [number, number][]
+  drErr: number
+  slamErr: number
+} {
+  // same noise regime as the EKF lab above (proven consistent filter tuning)
+  const sigOdo = 0.1 * noiseScale
+  const sigMeas = 0.08
+  const g = makeGauss(4242)
+  const gm = makeGauss(4343)
+  const robot: RobotSim = { x: 1.1, y: 0, th: Math.PI / 2, wp: 0 }
+  const drPose = { x: 1.1, y: 0, th: Math.PI / 2 }
+  const s = slamInit(1.1, 0, Math.PI / 2)
+  const truth: [number, number][] = []
+  const dr: [number, number][] = []
+  const slamTraj: [number, number][] = []
+  for (let i = 0; i < DOCK_STEPS; i++) {
+    const { v, om } = control(robot)
+    trueStep(robot, v, om, DOCK_DT)
+    // both estimators see the same noisy odometry
+    const vN = v + g() * sigOdo
+    const omN = om + g() * sigOdo * 1.4
+    drPose.x += vN * DOCK_DT * Math.cos(drPose.th)
+    drPose.y += vN * DOCK_DT * Math.sin(drPose.th)
+    drPose.th = wrapAngle(drPose.th + omN * DOCK_DT)
+    slamPredict(s, vN, omN, DOCK_DT, sigOdo * 1.6, sigOdo * 2.2)
+    // range-bearing measurements to nearby landmarks
+    LANDMARKS.forEach(([lx, ly], id) => {
+      const dxm = lx - robot.x
+      const dym = ly - robot.y
+      const r = Math.hypot(dxm, dym)
+      if (r < 1.1) {
+        const phi = wrapAngle(Math.atan2(dym, dxm) - robot.th)
+        slamUpdate(s, id, r + gm() * sigMeas, wrapAngle(phi + gm() * sigMeas), sigMeas, sigMeas)
+      }
+    })
+    truth.push([robot.x, robot.y])
+    dr.push([drPose.x, drPose.y])
+    slamTraj.push([s.x[0], s.x[1]])
+  }
+  const last = truth.length - 1
+  return {
+    truth,
+    dr,
+    slam: slamTraj,
+    drErr: Math.hypot(dr[last][0] - truth[last][0], dr[last][1] - truth[last][1]),
+    slamErr: Math.hypot(slamTraj[last][0] - truth[last][0], slamTraj[last][1] - truth[last][1]),
+  }
+}
+
+function DockLab() {
+  const t = useT(T)
+  const [noise, setNoise] = useState(1)
+
+  const { truth, dr, slam, drErr, slamErr } = useMemo(() => runDockLap(noise), [noise])
+
+  const PW = 520
+  const PH = 340
+  const sx = (x: number) => PW / 2 + x * 150
+  const sy = (y: number) => PH / 2 - y * 130
+
+  const line = (pts: [number, number][]) => pts.map((p) => `${sx(p[0])},${sy(p[1])}`).join(' ')
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          {LANDMARKS.map(([lx, ly], i) => (
+            <text key={i} x={sx(lx)} y={sy(ly) + 4} textAnchor="middle" fill="#a78bfa" fontSize={11}>
+              ◆
+            </text>
+          ))}
+          <text x={sx(1.1)} y={sy(0) + 5} textAnchor="middle" fill="#4ade80" fontSize={14}>
+            ⌂
+          </text>
+          <polyline points={line(truth)} fill="none" stroke="#e2e8f077" strokeWidth={1} strokeDasharray="3 4" />
+          <polyline points={line(dr)} fill="none" stroke="#f87171" strokeWidth={1.8} />
+          <polyline points={line(slam)} fill="none" stroke="#22d3ee" strokeWidth={1.8} />
+          <circle cx={sx(dr[dr.length - 1][0])} cy={sy(dr[dr.length - 1][1])} r={4.5} fill="#f87171" />
+          <circle cx={sx(slam[slam.length - 1][0])} cy={sy(slam[slam.length - 1][1])} r={4.5} fill="#22d3ee" />
+        </svg>
+        <div className="border-t border-white/10 px-4 py-2 text-[12px] text-muted">{t.appLegend}</div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad">
+          <Slider label={t.appNoise} value={noise} min={0.3} max={2.5} step={0.1} onChange={setNoise} format={(v) => `×${fmt(v, 1)}`} />
+        </div>
+        <div className="grid grid-cols-1 gap-3">
+          <Readout
+            label={t.appDrErr}
+            value={`${fmt(drErr * 100, 0)} cm — ${drErr <= DOCK_TOL ? t.appPass : t.appFail}`}
+            accent={drErr <= DOCK_TOL ? '#4ade80' : '#f87171'}
+          />
+          <Readout
+            label={t.appSlamErr}
+            value={`${fmt(slamErr * 100, 0)} cm — ${slamErr <= DOCK_TOL ? t.appPass : t.appFail}`}
+            accent={slamErr <= DOCK_TOL ? '#4ade80' : '#f87171'}
+          />
+          <div className="text-[12px] text-muted">{t.appTol}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function SlamPage() {
@@ -473,6 +610,7 @@ export function SlamPage() {
           { id: 'math', label: t.mathTitle },
           { id: 'practice', label: t.practTitle },
           { id: 'code', label: t.codeTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -527,6 +665,18 @@ export function SlamPage() {
 
       <Section id="code" title={t.codeTitle}>
         <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <DockLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

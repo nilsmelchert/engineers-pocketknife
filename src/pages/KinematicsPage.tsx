@@ -3,7 +3,7 @@ import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { Derivation } from '../components/Derivation'
 import { PageToc } from '../components/PageToc'
-import { Readout, Section, Segmented, Slider } from '../components/ui'
+import { InfoBox, Readout, Section, Segmented, Slider } from '../components/ui'
 import { AxesTriad, Scene3D, SegmentMesh } from '../components/three/helpers'
 import { deg2rad, fmt, m4Mul, m4RotX, m4RotY, m4Trans, m4t, rad2deg, type M4, type V3 } from '../lib/math'
 import { covEllipse } from '../lib/signal'
@@ -58,6 +58,18 @@ const T = {
       'Singularity handling in practice: damped least squares (J⁺ with a λ floor — Levenberg–Marquardt again!), path planning that avoids det J ≈ 0 regions, or redundant 7-joint arms that steer around them.',
       'The kinematic chain is exactly what the hand-eye module calibrated: base→gripper is this module, gripper→camera was the X of AX = XB. Together they let a camera-guided robot act in the world.',
     ],
+    appTitle: '🏭 In the real world: can the arm reach the whole pallet?',
+    appIntro:
+      'Before buying a robot, a cell designer must answer one brutally concrete question: can this arm, mounted here, reach every position on the pallet — without stretching into its singular full-extension pose? That is a workspace calculation, pure forward kinematics. Below, a 2-link arm stands at a fixed base beside a pallet with 24 pick positions. Choose the link lengths: every cell is checked against the annulus |L₁−L₂| ≤ r ≤ L₁+L₂ (with a 5 % margin off full stretch, where the Jacobian degenerates). Green cells are reachable, red are not. Find the cheapest arm (shortest links) that still turns the whole pallet green — that is literally the trade study behind every robot purchase order.',
+    appL1: 'link length L₁',
+    appL2: 'link length L₂',
+    appReach: 'pallet coverage',
+    appVerdict: 'cell design',
+    appOk: 'ALL POSITIONS REACHED',
+    appFail: 'UNREACHABLE CELLS',
+    appLegend: 'green = reachable · red = out of reach · shaded ring = arm workspace (with 5 % singularity margin)',
+    appWhere:
+      'The same reachability sweep sizes cobots over conveyor belts, surgical arms over patient tables, gantry pickers over shelf racks — and in reverse, it places the part where the robot is strongest.',
   },
   de: {
     kicker: 'Robotik · Modul 1',
@@ -105,6 +117,18 @@ const T = {
       'Singularitätsbehandlung in der Praxis: gedämpfte kleinste Quadrate (J⁺ mit λ-Boden — wieder Levenberg-Marquardt!), Bahnplanung, die Regionen mit det J ≈ 0 meidet, oder redundante 7-Gelenk-Arme, die darum herumsteuern.',
       'Die kinematische Kette ist genau das, was das Hand-Auge-Modul kalibriert hat: Basis→Greifer ist dieses Modul, Greifer→Kamera war das X aus AX = XB. Zusammen lassen sie einen kamerageführten Roboter in der Welt handeln.',
     ],
+    appTitle: '🏭 In der echten Welt: erreicht der Arm die ganze Palette?',
+    appIntro:
+      'Vor dem Roboterkauf muss ein Zellenplaner eine brutal konkrete Frage beantworten: Erreicht dieser Arm, hier montiert, jede Position auf der Palette — ohne sich in seine singuläre Vollstreckungslage zu recken? Das ist eine Arbeitsraumrechnung, reine Vorwärtskinematik. Unten steht ein 2-Gelenk-Arm an fester Basis neben einer Palette mit 24 Greifpositionen. Wähle die Gliedlängen: Jede Zelle wird gegen den Kreisring |L₁−L₂| ≤ r ≤ L₁+L₂ geprüft (mit 5 % Abstand zur Vollstreckung, wo die Jacobi-Matrix degeneriert). Grüne Zellen sind erreichbar, rote nicht. Finde den günstigsten Arm (kürzeste Glieder), der die ganze Palette grün macht — das ist wortwörtlich die Studie hinter jeder Roboter-Bestellung.',
+    appL1: 'Gliedlänge L₁',
+    appL2: 'Gliedlänge L₂',
+    appReach: 'Palettenabdeckung',
+    appVerdict: 'Zellendesign',
+    appOk: 'ALLE POSITIONEN ERREICHT',
+    appFail: 'UNERREICHBARE ZELLEN',
+    appLegend: 'grün = erreichbar · rot = außer Reichweite · schattierter Ring = Arbeitsraum (mit 5 % Singularitätsabstand)',
+    appWhere:
+      'Derselbe Erreichbarkeits-Sweep dimensioniert Cobots über Förderbändern, OP-Arme über Patiententischen, Portal-Picker über Regalen — und umgekehrt platziert er das Bauteil dort, wo der Roboter am stärksten ist.',
   },
 }
 
@@ -381,6 +405,118 @@ function Fk3dLab() {
   )
 }
 
+// ---------------------------------------------------------------- application: pallet reach
+
+// pallet: 6×4 grid of pick positions, in meters, base at origin
+const PALLET_X0 = 0.55
+const PALLET_Y0 = -0.65
+const PALLET_W = 1.0
+const PALLET_H = 0.7
+const PALLET_NX = 6
+const PALLET_NY = 4
+
+function PalletLab() {
+  const t = useT(T)
+  const [l1, setL1] = useState(0.8)
+  const [l2, setL2] = useState(0.55)
+
+  const rMax = (l1 + l2) * 0.95 // singularity margin
+  const rMin = Math.abs(l1 - l2)
+
+  const cells = useMemo(() => {
+    const out: { x: number; y: number; ok: boolean }[] = []
+    for (let i = 0; i < PALLET_NX; i++)
+      for (let j = 0; j < PALLET_NY; j++) {
+        const x = PALLET_X0 + (i + 0.5) * (PALLET_W / PALLET_NX)
+        const y = PALLET_Y0 + (j + 0.5) * (PALLET_H / PALLET_NY)
+        const r = Math.hypot(x, y)
+        out.push({ x, y, ok: r >= rMin && r <= rMax })
+      }
+    return out
+  }, [rMin, rMax])
+
+  const reached = cells.filter((c) => c.ok).length
+  const all = reached === cells.length
+
+  const PW = 520
+  const PH = 340
+  const S = 150 // px per meter
+  const cx2 = 130
+  const cy2 = PH / 2
+  const sx = (x: number) => cx2 + x * S
+  const sy = (y: number) => cy2 - y * S
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          {/* workspace annulus */}
+          <circle cx={cx2} cy={cy2} r={rMax * S} fill="#22d3ee11" stroke="#22d3ee44" />
+          <circle cx={cx2} cy={cy2} r={Math.max(rMin * S, 0.1)} fill="#0d1120" stroke="#22d3ee33" />
+          {/* pallet outline */}
+          <rect
+            x={sx(PALLET_X0)}
+            y={sy(PALLET_Y0 + PALLET_H)}
+            width={PALLET_W * S}
+            height={PALLET_H * S}
+            fill="none"
+            stroke="#8b93a766"
+            strokeWidth={1.5}
+          />
+          {/* cells */}
+          {cells.map((c, i) => (
+            <rect
+              key={i}
+              x={sx(c.x) - (PALLET_W / PALLET_NX) * S * 0.42}
+              y={sy(c.y) - (PALLET_H / PALLET_NY) * S * 0.42}
+              width={(PALLET_W / PALLET_NX) * S * 0.84}
+              height={(PALLET_H / PALLET_NY) * S * 0.84}
+              rx={3}
+              fill={c.ok ? '#4ade8033' : '#f8717133'}
+              stroke={c.ok ? '#4ade80' : '#f87171'}
+              strokeWidth={1.2}
+            />
+          ))}
+          {/* arm drawn at a nominal pose pointing at pallet center */}
+          {(() => {
+            const tx = PALLET_X0 + PALLET_W / 2
+            const ty = PALLET_Y0 + PALLET_H / 2
+            const r = Math.min(Math.max(Math.hypot(tx, ty), rMin + 0.01), rMax - 0.01)
+            const phi = Math.atan2(ty, tx)
+            const c2 = (r * r - l1 * l1 - l2 * l2) / (2 * l1 * l2)
+            const q2 = Math.acos(Math.min(1, Math.max(-1, c2)))
+            const q1 = phi - Math.atan2(l2 * Math.sin(q2), l1 + l2 * Math.cos(q2))
+            const ex = l1 * Math.cos(q1)
+            const ey = l1 * Math.sin(q1)
+            const wx = ex + l2 * Math.cos(q1 + q2)
+            const wy = ey + l2 * Math.sin(q1 + q2)
+            return (
+              <g>
+                <line x1={cx2} y1={cy2} x2={sx(ex)} y2={sy(ey)} stroke="#a78bfa" strokeWidth={5} strokeLinecap="round" />
+                <line x1={sx(ex)} y1={sy(ey)} x2={sx(wx)} y2={sy(wy)} stroke="#22d3ee" strokeWidth={4} strokeLinecap="round" />
+                <circle cx={cx2} cy={cy2} r={7} fill="#1c2333" stroke="#8b93a7" strokeWidth={2} />
+                <circle cx={sx(ex)} cy={sy(ey)} r={4.5} fill="#a78bfa" />
+                <circle cx={sx(wx)} cy={sy(wy)} r={4} fill="#22d3ee" />
+              </g>
+            )
+          })()}
+        </svg>
+        <div className="border-t border-white/10 px-4 py-2 text-[12px] text-muted">{t.appLegend}</div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.appL1} value={l1} min={0.4} max={1.2} step={0.05} onChange={setL1} format={(v) => `${fmt(v, 2)} m`} accent="#a78bfa" />
+          <Slider label={t.appL2} value={l2} min={0.3} max={1.0} step={0.05} onChange={setL2} format={(v) => `${fmt(v, 2)} m`} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appReach} value={`${reached} / ${cells.length}`} accent={all ? '#4ade80' : '#f87171'} />
+          <Readout label={t.appVerdict} value={all ? t.appOk : t.appFail} accent={all ? '#4ade80' : '#f87171'} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function KinematicsPage() {
@@ -394,6 +530,7 @@ export function KinematicsPage() {
           { id: 'workspace', label: t.wsTitle },
           { id: 'fk3d', label: t.fk3dTitle },
           { id: 'practice', label: t.practTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -449,6 +586,18 @@ export function KinematicsPage() {
             ))}
           </ul>
         </div>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <PalletLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

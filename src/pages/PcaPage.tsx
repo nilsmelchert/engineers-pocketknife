@@ -55,6 +55,19 @@ const T = {
     tipScale:
       'PCA is unit-sensitive: variance depends on units, so a feature measured in millimeters dominates one measured in meters ×1000. Standardize features (zero mean, unit variance) before PCA unless they share a physical scale. Every PCA horror story starts with someone skipping this step.',
     codeTitle: 'In practice',
+    appTitle: '🏭 In the real world: machine-health monitoring',
+    appIntro:
+      'A pump’s vibration sensor delivers two features per hour: RMS level and crest factor. Months of healthy operation form a cloud — and PCA turns that cloud into a statistical fence. The trick: measure the distance to the healthy mean in PCA coordinates, where each axis is scaled by its own variance (the Mahalanobis distance). A new reading that is 3σ outside the fence raises an alarm — even though neither feature alone has crossed any fixed limit. Advance the bearing wear and watch the operating point creep out of the ellipse long before it would trip a naive threshold.',
+    appWear: 'bearing wear',
+    appScore: 'anomaly score (σ)',
+    appState: 'machine state',
+    appOk: 'HEALTHY',
+    appWarn: 'WATCH',
+    appAlarm: 'ALARM',
+    appLegendHealthy: 'healthy history',
+    appLegendNow: 'live reading',
+    appWhere:
+      'The same PCA fence guards gas turbines, wind-turbine gearboxes, semiconductor etch chambers and credit-card fraud scores — anywhere “normal” is a correlated cloud and trouble is a direction nobody hard-coded.',
   },
   de: {
     kicker: 'Daten · Modul 1',
@@ -102,6 +115,19 @@ const T = {
     tipScale:
       'PCA ist einheitenempfindlich: Varianz hängt von Einheiten ab, also dominiert ein in Millimetern gemessenes Merkmal eines in Metern um den Faktor 1000. Standardisiere Merkmale (Mittelwert 0, Varianz 1) vor der PCA, sofern sie keine gemeinsame physikalische Skala teilen. Jede PCA-Horrorgeschichte beginnt damit, dass jemand diesen Schritt ausgelassen hat.',
     codeTitle: 'In der Praxis',
+    appTitle: '🏭 In der echten Welt: Maschinenzustandsüberwachung',
+    appIntro:
+      'Der Schwingungssensor einer Pumpe liefert stündlich zwei Merkmale: RMS-Pegel und Crest-Faktor. Monate gesunden Betriebs bilden eine Wolke — und PCA macht aus dieser Wolke einen statistischen Zaun. Der Trick: Man misst den Abstand zum gesunden Mittelwert in PCA-Koordinaten, wo jede Achse mit ihrer eigenen Varianz skaliert ist (die Mahalanobis-Distanz). Ein neuer Messwert, der 3σ außerhalb des Zauns liegt, löst Alarm aus — obwohl keines der Merkmale allein eine feste Grenze überschritten hat. Erhöhe den Lagerverschleiß und sieh zu, wie der Betriebspunkt aus der Ellipse kriecht, lange bevor ein naiver Schwellwert anschlagen würde.',
+    appWear: 'Lagerverschleiß',
+    appScore: 'Anomalie-Score (σ)',
+    appState: 'Maschinenzustand',
+    appOk: 'GESUND',
+    appWarn: 'BEOBACHTEN',
+    appAlarm: 'ALARM',
+    appLegendHealthy: 'gesunde Historie',
+    appLegendNow: 'Live-Messwert',
+    appWhere:
+      'Derselbe PCA-Zaun bewacht Gasturbinen, Windkraft-Getriebe, Ätzkammern in der Halbleiterfertigung und Kreditkarten-Betrugsscores — überall dort, wo „normal“ eine korrelierte Wolke ist und Ärger eine Richtung, die niemand fest einprogrammiert hat.',
   },
 }
 
@@ -487,6 +513,102 @@ function ChooseK() {
   )
 }
 
+// ---------------------------------------------------------------- application: machine health
+
+// healthy history: correlated cloud in (RMS mm/s, crest factor)
+const HEALTH_DATA: number[][] = (() => {
+  const g = makeGauss(42)
+  return Array.from({ length: 90 }, () => {
+    const a = g()
+    const b = g()
+    return [2.2 + 0.45 * a, 3.1 + 0.28 * a + 0.18 * b]
+  })
+})()
+const HEALTH_PCA = pcaFit(HEALTH_DATA)
+
+function mahalanobis(m: { mean: number[]; values: number[]; vectors: number[][] }, x: number[]): number {
+  const c = x.map((v, i) => v - m.mean[i])
+  let s = 0
+  for (let j = 0; j < m.vectors.length; j++) {
+    const proj = m.vectors[j].reduce((acc, vi, i) => acc + vi * c[i], 0)
+    s += (proj * proj) / Math.max(m.values[j], 1e-9)
+  }
+  return Math.sqrt(s)
+}
+
+function HealthLab() {
+  const t = useT(T)
+  const [wear, setWear] = useState(0)
+
+  // wear pushes the operating point along a fault direction: RMS up, crest up faster
+  const live = [2.2 + wear * 1.6, 3.1 + wear * 2.4]
+  const score = mahalanobis(HEALTH_PCA, live)
+  const state = score < 3 ? 0 : score < 5 ? 1 : 2
+  const color = state === 0 ? '#4ade80' : state === 1 ? '#fbbf24' : '#f87171'
+
+  const PW = 520
+  const PH = 320
+  const sx = (v: number) => ((v - 1) / 4) * PW
+  const sy = (v: number) => PH - ((v - 2) / 3.6) * PH
+
+  const angle = (Math.atan2(HEALTH_PCA.vectors[0][1], HEALTH_PCA.vectors[0][0]) * 180) / Math.PI
+  const r1 = Math.sqrt(HEALTH_PCA.values[0])
+  const r2 = Math.sqrt(HEALTH_PCA.values[1])
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          {[1, 2, 3].map((k) => (
+            <ellipse
+              key={k}
+              cx={sx(HEALTH_PCA.mean[0])}
+              cy={sy(HEALTH_PCA.mean[1])}
+              rx={((k * r1) / 4) * PW}
+              ry={((k * r2) / 3.6) * PH}
+              transform={`rotate(${-angle} ${sx(HEALTH_PCA.mean[0])} ${sy(HEALTH_PCA.mean[1])})`}
+              fill="none"
+              stroke={k === 3 ? '#f8717155' : '#22d3ee33'}
+              strokeWidth={k === 3 ? 2 : 1.2}
+              strokeDasharray={k === 3 ? '6 4' : undefined}
+            />
+          ))}
+          {HEALTH_DATA.map((p, i) => (
+            <circle key={i} cx={sx(p[0])} cy={sy(p[1])} r={2.6} fill="#22d3ee88" />
+          ))}
+          <circle cx={sx(live[0])} cy={sy(live[1])} r={7} fill={color} stroke="#0a0e17" strokeWidth={2} />
+          <text x={10} y={18} fill="#8b93a7" fontSize={11} fontFamily="JetBrains Mono, monospace">
+            crest factor ↑
+          </text>
+          <text x={PW - 10} y={PH - 8} textAnchor="end" fill="#8b93a7" fontSize={11} fontFamily="JetBrains Mono, monospace">
+            RMS (mm/s) →
+          </text>
+        </svg>
+        <div className="flex items-center gap-4 border-t border-white/10 px-4 py-2 text-[12px] text-muted">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-full bg-[#22d3ee88]" /> {t.appLegendHealthy}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-full" style={{ background: color }} /> {t.appLegendNow}
+          </span>
+        </div>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad">
+          <Slider label={t.appWear} value={wear} min={0} max={1} step={0.01} onChange={setWear} format={(v) => `${fmt(v * 100, 0)} %`} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.appScore} value={fmt(score, 2)} accent={color} />
+          <Readout label={t.appState} value={state === 0 ? t.appOk : state === 1 ? t.appWarn : t.appAlarm} accent={color} />
+        </div>
+        <div className="card-pad">
+          <TeX block>{String.raw`d_M(\mathbf{x}) = \sqrt{\sum_j \frac{\big(\mathbf{w}_j^{\mathsf T}(\mathbf{x}-\boldsymbol{\mu})\big)^2}{\lambda_j}}`}</TeX>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function PcaPage() {
@@ -502,6 +624,7 @@ export function PcaPage() {
           { id: 'lab3d', label: t.lab3dTitle },
           { id: 'choosek', label: t.chooseTitle },
           { id: 'code', label: t.codeTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -578,6 +701,18 @@ export function PcaPage() {
 
       <Section id="code" title={t.codeTitle}>
         <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <HealthLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )

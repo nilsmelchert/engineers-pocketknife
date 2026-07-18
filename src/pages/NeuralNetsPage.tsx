@@ -19,7 +19,7 @@ import {
   type AdamState,
   type Mlp,
 } from '../lib/ml'
-import { circlesData, moons, spirals, xorData, type LabeledPoint } from '../lib/stats'
+import { circlesData, makeGauss, moons, spirals, xorData, type LabeledPoint } from '../lib/stats'
 
 const T = {
   en: {
@@ -73,6 +73,19 @@ const T = {
     outTitle: 'From here to deep learning',
     out1: 'Everything past this page is architecture, not new principles. CNNs are MLPs with weight sharing across space (the right prior for images); transformers wire layers with attention (the right prior for sequences); billions of parameters change the engineering, not the math. Training is still: mini-batch, forward, backprop, Adam step — the exact loop running in the playground above, on more silicon.',
     codeTitle: 'The same network in PyTorch',
+    appTitle: '🏭 In the real world: an end-of-line defect gate',
+    appIntro:
+      'At the end of a gearbox assembly line, every unit gets a 3-second test run while two sensors listen: vibration RMS and an acoustic peak level. Good units and three distinct defect types (imbalance, bearing damage, gear whine) form a pattern no straight line can separate — exactly the limitation that killed logistic regression one module ago. A small MLP trains live on 240 logged test runs and bends its boundary around the defect islands. But the plot managers look at is not the boundary — it is the two numbers on the right: false rejects (good units scrapped, pure cost) and false accepts (defects shipped, warranty claims). Move the gate threshold and feel the trade-off every quality engineer negotiates.',
+    appTrain: 'Train',
+    appPause: 'Pause',
+    appReset: 'Reset',
+    appThresh: 'gate threshold',
+    appAcc: 'accuracy',
+    appFa: 'false accepts (shipped defects)',
+    appFr: 'false rejects (scrapped good)',
+    appMapTitle: 'defect gate: amber = reject region, cyan = accept region · dots = 240 logged test runs',
+    appWhere:
+      'The same learned gate scores solder joints from AOI images, battery cells from formation curves, engine knock from ion currents, and credit-card swipes from purchase features — any accept/reject decision with nonlinear structure.',
   },
   de: {
     kicker: 'ML · Modul 3',
@@ -125,6 +138,19 @@ const T = {
     outTitle: 'Von hier zu Deep Learning',
     out1: 'Alles jenseits dieser Seite ist Architektur, kein neues Prinzip. CNNs sind MLPs mit räumlich geteilten Gewichten (der richtige Prior für Bilder); Transformer verdrahten Schichten mit Attention (der richtige Prior für Sequenzen); Milliarden Parameter ändern das Engineering, nicht die Mathematik. Training bleibt: Mini-Batch, vorwärts, Backprop, Adam-Schritt — exakt die Schleife aus dem Spielplatz oben, auf mehr Silizium.',
     codeTitle: 'Dasselbe Netz in PyTorch',
+    appTitle: '🏭 In der echten Welt: ein End-of-Line-Prüftor',
+    appIntro:
+      'Am Ende einer Getriebe-Montagelinie bekommt jede Einheit einen 3-Sekunden-Testlauf, während zwei Sensoren lauschen: Schwingungs-RMS und akustischer Spitzenpegel. Gute Einheiten und drei verschiedene Fehlerbilder (Unwucht, Lagerschaden, Zahneingriffspfeifen) bilden ein Muster, das keine Gerade trennen kann — genau die Grenze, an der die logistische Regression ein Modul zuvor gescheitert ist. Ein kleines MLP trainiert live auf 240 protokollierten Testläufen und biegt seine Grenze um die Fehlerinseln. Aber der Plot, auf den das Management schaut, ist nicht die Grenze — es sind die zwei Zahlen rechts: Falsch-Ausschuss (gute Einheiten verschrottet, reine Kosten) und Falsch-Durchlass (Defekte ausgeliefert, Garantiefälle). Verschiebe die Torschwelle und spüre den Kompromiss, den jeder Qualitätsingenieur aushandelt.',
+    appTrain: 'Trainieren',
+    appPause: 'Pause',
+    appReset: 'Zurücksetzen',
+    appThresh: 'Torschwelle',
+    appAcc: 'Trefferquote',
+    appFa: 'Falsch-Durchlass (ausgelieferte Defekte)',
+    appFr: 'Falsch-Ausschuss (verschrottete gute)',
+    appMapTitle: 'Prüftor: bernstein = Ausschuss-Region, cyan = Gut-Region · Punkte = 240 protokollierte Testläufe',
+    appWhere:
+      'Dasselbe gelernte Tor bewertet Lötstellen aus AOI-Bildern, Batteriezellen aus Formierungskurven, Motorklopfen aus Ionenströmen und Kreditkarten-Transaktionen aus Kaufmerkmalen — jede Gut/Schlecht-Entscheidung mit nichtlinearer Struktur.',
   },
 }
 
@@ -527,6 +553,122 @@ function GradCheck() {
   )
 }
 
+// ---------------------------------------------------------------- application: defect gate
+
+// features normalized to [-1.2, 1.2]: x = vibration RMS, y = acoustic peak. y-label 1 = defect
+const GATE_DATA: { x: number[]; y: number }[] = (() => {
+  const g = makeGauss(55)
+  const pts: { x: number[]; y: number }[] = []
+  for (let i = 0; i < 180; i++) pts.push({ x: [-0.25 + g() * 0.42, -0.25 + g() * 0.4], y: 0 })
+  const islands: [number, number][] = [
+    [0.75, 0.55], // imbalance
+    [-0.7, 0.75], // bearing damage
+    [0.65, -0.75], // gear whine
+  ]
+  for (const [cx2, cy2] of islands)
+    for (let i = 0; i < 20; i++) pts.push({ x: [cx2 + g() * 0.12, cy2 + g() * 0.12], y: 1 })
+  return pts
+})()
+
+function DefectGateLab() {
+  const t = useT(T)
+  const modelRef = useRef<Mlp>(createMlp([2, 8, 8, 1], 'tanh', 7))
+  const adamRef = useRef<AdamState>(createAdamState(modelRef.current))
+  const rngRef = useRef(mulberry32(99))
+  const [running, setRunning] = useState(false)
+  const [thresh, setThresh] = useState(0.5)
+  const [tick, setTick] = useState(0)
+
+  const reset = () => {
+    setRunning(false)
+    modelRef.current = createMlp([2, 8, 8, 1], 'tanh', 7)
+    adamRef.current = createAdamState(modelRef.current)
+    rngRef.current = mulberry32(99)
+    setTick((x) => x + 1)
+  }
+
+  useEffect(() => {
+    if (!running) return
+    const iv = setInterval(() => {
+      const m = modelRef.current
+      const rand = rngRef.current
+      for (let s = 0; s < 12; s++) {
+        const batch = Array.from({ length: 32 }, () => GATE_DATA[Math.floor(rand() * GATE_DATA.length)])
+        applyAdam(m, mlpGrad(m, batch), adamRef.current, 0.01)
+      }
+      setTick((x) => x + 1)
+    }, 50)
+    return () => clearInterval(iv)
+  }, [running])
+
+  const m = modelRef.current
+  const { fa, fr, acc } = useMemo(() => {
+    let fa2 = 0
+    let fr2 = 0
+    let ok = 0
+    for (const d of GATE_DATA) {
+      const reject = mlpPredict(m, d.x) >= thresh
+      if (d.y === 1 && !reject) fa2++
+      if (d.y === 0 && reject) fr2++
+      if ((d.y === 1) === reject) ok++
+    }
+    return { fa: fa2, fr: fr2, acc: ok / GATE_DATA.length }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick, thresh])
+
+  const GW = 440
+  const GH = 400
+  const D2 = 1.2
+  const gx = (x: number) => ((x + D2) / (2 * D2)) * GW
+  const gy = (y: number) => GH - ((y + D2) / (2 * D2)) * GH
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="lg:col-span-3">
+        <ProbMap
+          w={GW}
+          h={GH}
+          xr={[-D2, D2]}
+          yr={[-D2, D2]}
+          prob={(x, y) => mlpPredict(m, [x, y])}
+          ckey={`gate-${tick}`}
+          title={t.appMapTitle}
+        >
+          {GATE_DATA.map((d, i) => (
+            <circle
+              key={i}
+              cx={gx(d.x[0])}
+              cy={gy(d.x[1])}
+              r={2.6}
+              fill={d.y === 1 ? '#fbbf24cc' : '#22d3eecc'}
+              stroke="#0a0e17"
+              strokeWidth={0.7}
+            />
+          ))}
+        </ProbMap>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <div className="flex flex-wrap gap-2">
+            <button className="btn-primary" onClick={() => setRunning((r) => !r)}>
+              {running ? `⏸ ${t.appPause}` : `▶ ${t.appTrain}`}
+            </button>
+            <button className="btn" onClick={reset}>
+              ↺ {t.appReset}
+            </button>
+          </div>
+          <Slider label={t.appThresh} value={thresh} min={0.1} max={0.9} step={0.01} onChange={setThresh} format={(v) => fmt(v, 2)} />
+        </div>
+        <div className="grid grid-cols-1 gap-3">
+          <Readout label={t.appAcc} value={`${fmt(acc * 100, 1)} %`} accent={acc > 0.95 ? '#4ade80' : undefined} />
+          <Readout label={t.appFa} value={`${fa} / 60`} accent={fa === 0 ? '#4ade80' : '#f87171'} />
+          <Readout label={t.appFr} value={`${fr} / 180`} accent={fr === 0 ? '#4ade80' : '#fbbf24'} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function NeuralNetsPage() {
@@ -542,6 +684,7 @@ export function NeuralNetsPage() {
           { id: 'gradcheck', label: t.checkTitle },
           { id: 'pathologies', label: t.pathTitle },
           { id: 'outlook', label: t.outTitle },
+          { id: 'application', label: t.appTitle },
         ]}
       />
       <header className="pt-10 pb-2">
@@ -616,6 +759,18 @@ export function NeuralNetsPage() {
           <h3 className="mb-2 text-sm font-bold tracking-wide text-muted uppercase">{t.codeTitle}</h3>
           <pre className="card overflow-x-auto p-4 font-mono text-[12.5px] leading-6 text-ink/85">{SNIPPET}</pre>
         </div>
+      </Section>
+
+      <Section id="application" title={t.appTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.appIntro}</p>
+        </div>
+        <div className="mt-4">
+          <DefectGateLab />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.appWhere}
+        </InfoBox>
       </Section>
     </div>
   )
