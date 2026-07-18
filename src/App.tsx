@@ -18,6 +18,11 @@ import { ControlPage } from './pages/ControlPage'
 import { KalmanPage } from './pages/KalmanPage'
 import { MeasurementPage } from './pages/MeasurementPage'
 import { Metrology3dPage } from './pages/Metrology3dPage'
+import { DeepLearningPage } from './pages/DeepLearningPage'
+import { KinematicsPage } from './pages/KinematicsPage'
+import { RansacPage } from './pages/RansacPage'
+import { OdePage } from './pages/OdePage'
+import { Clustering2Page } from './pages/Clustering2Page'
 
 export function App() {
   return (
@@ -41,6 +46,11 @@ export function App() {
         <Route path="/kalman" element={<KalmanPage />} />
         <Route path="/measurement" element={<MeasurementPage />} />
         <Route path="/metrology-3d" element={<Metrology3dPage />} />
+        <Route path="/deep-learning" element={<DeepLearningPage />} />
+        <Route path="/kinematics" element={<KinematicsPage />} />
+        <Route path="/ransac" element={<RansacPage />} />
+        <Route path="/ode" element={<OdePage />} />
+        <Route path="/clustering-2" element={<Clustering2Page />} />
         <Route path="*" element={<HomePage />} />
       </Routes>
     </Layout>

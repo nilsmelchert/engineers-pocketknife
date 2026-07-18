@@ -23,9 +23,9 @@ const T = {
       'The pocketknife keeps growing. These blades are being sharpened next:',
     nextUp: 'next up',
     roadmap: [
-      { icon: '🦾', name: 'Robot Kinematics', desc: 'Forward/inverse kinematics, Jacobians and workspace — the robot from the hand-eye module, understood.', soon: true },
-      { icon: '🗺️', name: 'SLAM & EKF', desc: 'Nonlinear Kalman filtering and simultaneous localization and mapping.', soon: false },
-      { icon: '🫧', name: 'GMM & DBSCAN', desc: 'Clustering beyond k-means: soft assignments and density-based groups.', soon: false },
+      { icon: '🗺️', name: 'SLAM & EKF', desc: 'Nonlinear Kalman filtering and simultaneous localization and mapping.', soon: true },
+      { icon: '🏗️', name: 'FEM Basics', desc: 'Finite elements: how software bends beams and predicts stress.', soon: false },
+      { icon: '🎚️', name: 'Digital Filters', desc: 'FIR & IIR filter design — the practical sequel to the Fourier module.', soon: false },
     ],
     madeFor:
       'No installation required — everything runs in the browser. Formulas follow the standard notation of the field (Hartley & Zisserman, Bishop, the OpenCV and scikit-learn docs).',
@@ -44,9 +44,9 @@ const T = {
     roadmapText: 'Das Taschenmesser wächst weiter. Diese Klingen werden als Nächstes geschärft:',
     nextUp: 'als Nächstes',
     roadmap: [
-      { icon: '🦾', name: 'Roboterkinematik', desc: 'Vorwärts-/Rückwärtskinematik, Jacobimatrizen und Arbeitsraum — der Roboter aus dem Hand-Auge-Modul, verstanden.', soon: true },
-      { icon: '🗺️', name: 'SLAM & EKF', desc: 'Nichtlineare Kalman-Filterung und simultane Lokalisierung und Kartierung.', soon: false },
-      { icon: '🫧', name: 'GMM & DBSCAN', desc: 'Clustering jenseits von K-Means: weiche Zuordnungen und dichtebasierte Gruppen.', soon: false },
+      { icon: '🗺️', name: 'SLAM & EKF', desc: 'Nichtlineare Kalman-Filterung und simultane Lokalisierung und Kartierung.', soon: true },
+      { icon: '🏗️', name: 'FEM-Grundlagen', desc: 'Finite Elemente: Wie Software Balken biegt und Spannungen vorhersagt.', soon: false },
+      { icon: '🎚️', name: 'Digitale Filter', desc: 'FIR- & IIR-Filterentwurf — die praktische Fortsetzung des Fourier-Moduls.', soon: false },
     ],
     madeFor:
       'Keine Installation nötig — alles läuft im Browser. Die Notation folgt den Standards des Fachs (Hartley & Zisserman, Bishop, OpenCV- und scikit-learn-Doku).',

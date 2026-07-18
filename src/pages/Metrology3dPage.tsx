@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import * as THREE from 'three'
 import { useT } from '../i18n'
+import { TeX } from '../components/TeX'
+import { Derivation } from '../components/Derivation'
 import { PageToc } from '../components/PageToc'
 import { ImageView } from '../components/ImageView'
 import { InfoBox, Readout, Section, Segmented, Slider } from '../components/ui'
@@ -26,9 +29,32 @@ const T = {
     camView: 'camera image — the bent laser line',
     scene: '3D scene — drag to orbit',
     cloudPts: 'cloud points',
-    fringeTitle: 'Interactive: fringe projection (structured light)',
-    fringe1: 'Instead of one line, project a whole family of sinusoidal stripes and photograph how the surface bends them. The elegant part is how the deformation is decoded: project the pattern four times, shifted by 90° each, and the arctangent of the four intensities returns the phase at every pixel — sub-fringe accurate, robust against surface brightness. The phase comes out wrapped into (−π, π]; unwrapping stitches the sawtooth into a continuous map, and subtracting the flat-reference carrier leaves pure height.',
-    fringe2: 'Step through the four shifts and follow the pipeline below: wrapped sawtooth → unwrapped phase → height profile. Higher fringe frequency measures finer detail but wraps more often — push it up with noise and the unwrapping eventually fails: the classic ambiguity that multi-frequency (hierarchical) codes resolve in practice.',
+    fringe3dTitle: 'Interactive: fringe projection = many laser lines at once',
+    fringe3d1: 'The laser scanner above measures one profile per image — covering a whole part means sweeping. Fringe projection removes the sweep: replace the laser with a projector that casts many stripes simultaneously. In the scene below, every bright stripe is exactly a laser line — same triangulation geometry, same calibrated camera at an angle — so one camera image now contains N height profiles at once. Raise N, switch the part to the step, tilt the camera.',
+    fringe3d2: 'But density creates a riddle: the stripes are identical, so the camera cannot tell stripe #7 from stripe #8 — and at a sharp step a stripe can jump by a whole period without anyone noticing (try the step with many stripes: the image stays perfectly plausible, yet it is ambiguous). The fix: make the projected brightness sinusoidal and shift it — phase shifting gives every pixel its own continuous "stripe index", the phase. That is the pipeline of the next section.',
+    nStripes: 'projected stripes N',
+    objShape: 'part',
+    shapeNames: ['dome', 'step'],
+    profilesPerImage: 'profiles per image',
+    camAngle: 'camera angle',
+    projView: 'camera image — all N stripes at once',
+    fringeTitle: 'Interactive: the phase-shift pipeline, step by step',
+    fringe1: 'Four projected patterns, one formula, and a wrapped-then-unwrapped phase map — walk the stages below in order. The sliders (fringe frequency, camera noise) act on the whole pipeline: higher frequency measures finer height detail but wraps more often; with noise on top, unwrapping eventually fails — the classic ambiguity that multi-frequency codes resolve in practice.',
+    stageLabel: 'pipeline stage',
+    stageNames: ['① capture ×4', '② wrapped phase', '③ unwrap', '④ height'],
+    stageTexts: [
+      'Project the sinusoidal pattern four times, shifted by 90° each, and capture four images. Every pixel now holds four brightness samples of the same cosine — switch through the shifts and watch the stripes crawl.',
+      'Per pixel, the four samples give the phase directly — independent of surface brightness A and fringe contrast B, which real surfaces vary wildly. The result is wrapped into (−π, π]: the sawtooth image.',
+      'Unwrapping removes the 2π jumps by assuming the surface is continuous: walk along a row and stitch the sawtooth pieces together (cyan → continuous curve).',
+      'Subtract the carrier phase a flat reference would produce and scale by the triangulation factor: what remains is height. Compare the reconstruction (amber) with the true dome section (dashed).',
+    ],
+    fringeDerivTitle: 'From four brightness values to height',
+    fringeDeriv: [
+      { tex: String.raw`I_s(x,y) \;=\; A(x,y) + B(x,y)\,\cos\!\big(\varphi(x,y) + s\cdot 90^\circ\big), \qquad s = 0,1,2,3`, note: 'The four captured images of stage ①. A is ambient brightness, B fringe contrast — both unknown and different at every pixel.' },
+      { tex: String.raw`\varphi_w \;=\; \operatorname{atan2}\big(I_{270} - I_{90},\; I_{0} - I_{180}\big)`, note: 'The differences cancel A, the ratio cancels B: the arctangent recovers pure phase. This is why phase shifting works on real, unevenly lit surfaces — and it is exactly what stage ② computes.' },
+      { tex: String.raw`\varphi \;=\; \varphi_w + 2\pi k(x), \qquad k \text{ chosen so } |\varphi(x) - \varphi(x{-}1)| < \pi`, note: 'Unwrapping (stage ③): the continuity assumption picks the integer fringe count k. It fails at sharp steps — which is why industrial systems add a second, coarser fringe frequency.' },
+      { tex: String.raw`h \;=\; \frac{(\varphi - \varphi_{\text{ref}})\; p}{2\pi\,\tan\theta}`, note: 'Triangulation (stage ④): a height h shifts a stripe sideways by h·tanθ (θ = the camera tilt of the 3D scene above); one stripe period p equals 2π of phase. Same geometry as the laser line — done for every pixel at once.' },
+    ],
     shift: 'phase shift',
     freq: 'fringe frequency',
     noise: 'camera noise',
@@ -75,9 +101,32 @@ const T = {
     camView: 'Kamerabild — die gebogene Laserlinie',
     scene: '3D-Szene — ziehen zum Orbiten',
     cloudPts: 'Wolkenpunkte',
-    fringeTitle: 'Interaktiv: Streifenprojektion (strukturiertes Licht)',
-    fringe1: 'Statt einer Linie projiziert man eine ganze Familie sinusförmiger Streifen und fotografiert, wie die Oberfläche sie verbiegt. Elegant ist die Dekodierung der Verformung: Man projiziert das Muster viermal, jeweils um 90° verschoben, und der Arkustangens der vier Intensitäten liefert die Phase an jedem Pixel — sub-streifengenau, robust gegen Oberflächenhelligkeit. Die Phase kommt in (−π, π] eingewickelt heraus; das Unwrapping näht den Sägezahn zu einer stetigen Karte zusammen, und das Abziehen des ebenen Referenzträgers lässt reine Höhe übrig.',
-    fringe2: 'Schalte durch die vier Verschiebungen und folge der Pipeline unten: eingewickelter Sägezahn → entfaltete Phase → Höhenprofil. Höhere Streifenfrequenz misst feinere Details, wickelt aber öfter — treibe sie zusammen mit dem Rauschen hoch, und das Unwrapping versagt irgendwann: die klassische Mehrdeutigkeit, die in der Praxis Mehrfrequenz-Codes auflösen.',
+    fringe3dTitle: 'Interaktiv: Streifenprojektion = viele Laserlinien auf einmal',
+    fringe3d1: 'Der Laserscanner oben misst ein Profil pro Bild — ein ganzes Teil zu erfassen heißt schwenken. Die Streifenprojektion beseitigt den Schwenk: Ersetze den Laser durch einen Projektor, der viele Streifen gleichzeitig wirft. In der Szene unten ist jeder helle Streifen exakt eine Laserlinie — dieselbe Triangulationsgeometrie, dieselbe kalibrierte Kamera im Winkel — sodass ein einziges Kamerabild jetzt N Höhenprofile auf einmal enthält. Erhöhe N, wechsle das Teil auf die Stufe, kippe die Kamera.',
+    fringe3d2: 'Aber die Dichte schafft ein Rätsel: Die Streifen sind identisch, also kann die Kamera Streifen Nr. 7 nicht von Nr. 8 unterscheiden — und an einer scharfen Stufe kann ein Streifen unbemerkt um eine ganze Periode springen (probiere die Stufe mit vielen Streifen: das Bild bleibt völlig plausibel und ist doch mehrdeutig). Die Lösung: Mache die projizierte Helligkeit sinusförmig und verschiebe sie — Phasenschieben gibt jedem Pixel seinen eigenen kontinuierlichen „Streifenindex“, die Phase. Das ist die Pipeline des nächsten Abschnitts.',
+    nStripes: 'projizierte Streifen N',
+    objShape: 'Bauteil',
+    shapeNames: ['Kuppel', 'Stufe'],
+    profilesPerImage: 'Profile pro Bild',
+    camAngle: 'Kamerawinkel',
+    projView: 'Kamerabild — alle N Streifen auf einmal',
+    fringeTitle: 'Interaktiv: die Phasenschiebe-Pipeline, Schritt für Schritt',
+    fringe1: 'Vier projizierte Muster, eine Formel und eine erst eingewickelte, dann entfaltete Phasenkarte — gehe die Stufen unten der Reihe nach durch. Die Slider (Streifenfrequenz, Kamerarauschen) wirken auf die ganze Pipeline: höhere Frequenz misst feinere Höhendetails, wickelt aber öfter; mit Rauschen obendrauf versagt das Unwrapping irgendwann — die klassische Mehrdeutigkeit, die Mehrfrequenz-Codes in der Praxis auflösen.',
+    stageLabel: 'Pipeline-Stufe',
+    stageNames: ['① Aufnahme ×4', '② eingewickelte Phase', '③ Unwrapping', '④ Höhe'],
+    stageTexts: [
+      'Projiziere das Sinusmuster viermal, jeweils um 90° verschoben, und nimm vier Bilder auf. Jedes Pixel hält nun vier Helligkeitsproben desselben Kosinus — schalte durch die Verschiebungen und sieh die Streifen kriechen.',
+      'Pro Pixel liefern die vier Proben die Phase direkt — unabhängig von Oberflächenhelligkeit A und Streifenkontrast B, die auf echten Oberflächen wild variieren. Das Ergebnis ist in (−π, π] eingewickelt: das Sägezahnbild.',
+      'Das Unwrapping entfernt die 2π-Sprünge unter der Annahme einer stetigen Oberfläche: Man läuft eine Zeile entlang und näht die Sägezahnstücke zusammen (cyan → stetige Kurve).',
+      'Ziehe die Trägerphase ab, die eine ebene Referenz erzeugen würde, und skaliere mit dem Triangulationsfaktor: Übrig bleibt Höhe. Vergleiche die Rekonstruktion (bernstein) mit dem wahren Kuppelschnitt (gestrichelt).',
+    ],
+    fringeDerivTitle: 'Von vier Helligkeitswerten zur Höhe',
+    fringeDeriv: [
+      { tex: String.raw`I_s(x,y) \;=\; A(x,y) + B(x,y)\,\cos\!\big(\varphi(x,y) + s\cdot 90^\circ\big), \qquad s = 0,1,2,3`, note: 'Die vier aufgenommenen Bilder aus Stufe ①. A ist Umgebungshelligkeit, B Streifenkontrast — beide unbekannt und an jedem Pixel anders.' },
+      { tex: String.raw`\varphi_w \;=\; \operatorname{atan2}\big(I_{270} - I_{90},\; I_{0} - I_{180}\big)`, note: 'Die Differenzen löschen A, das Verhältnis löscht B: Der Arkustangens gewinnt reine Phase zurück. Deshalb funktioniert Phasenschieben auf echten, ungleich beleuchteten Oberflächen — und genau das rechnet Stufe ②.' },
+      { tex: String.raw`\varphi \;=\; \varphi_w + 2\pi k(x), \qquad k \text{ so, dass } |\varphi(x) - \varphi(x{-}1)| < \pi`, note: 'Unwrapping (Stufe ③): Die Stetigkeitsannahme wählt die ganzzahlige Streifenzahl k. An scharfen Stufen versagt sie — weshalb industrielle Systeme eine zweite, gröbere Streifenfrequenz hinzunehmen.' },
+      { tex: String.raw`h \;=\; \frac{(\varphi - \varphi_{\text{ref}})\; p}{2\pi\,\tan\theta}`, note: 'Triangulation (Stufe ④): Eine Höhe h verschiebt einen Streifen seitlich um h·tanθ (θ = der Kamerawinkel der 3D-Szene oben); eine Streifenperiode p entspricht 2π Phase. Dieselbe Geometrie wie bei der Laserlinie — für alle Pixel gleichzeitig.' },
+    ],
     shift: 'Phasenschub',
     freq: 'Streifenfrequenz',
     noise: 'Kamerarauschen',
@@ -257,6 +306,147 @@ function LaserLab() {
   )
 }
 
+// ---------------------------------------------------------------- fringe 3D scene
+
+const F3_HMAX = 0.14
+
+function f3Height(shape: 'dome' | 'step', x: number, z: number): number {
+  if (Math.abs(x) > 0.35 || Math.abs(z) > 0.25) return 0
+  if (shape === 'step') return x < 0 ? 0.05 : 0.13
+  const r2 = (x / 0.32) ** 2 + (z / 0.24) ** 2
+  return r2 < 1 ? F3_HMAX * Math.pow(1 - r2, 1.2) : 0
+}
+
+function PartMesh({ shape }: { shape: 'dome' | 'step' }) {
+  const geom = useMemo(() => {
+    const N = 44
+    const g = new THREE.BufferGeometry()
+    const pos: number[] = []
+    const idx: number[] = []
+    for (let i = 0; i <= N; i++)
+      for (let j = 0; j <= N; j++) {
+        const x = -0.36 + (i / N) * 0.72
+        const z = -0.26 + (j / N) * 0.52
+        pos.push(x, f3Height(shape, x, z), z)
+      }
+    for (let i = 0; i < N; i++)
+      for (let j = 0; j < N; j++) {
+        const a = i * (N + 1) + j
+        idx.push(a, a + 1, a + N + 1, a + 1, a + N + 2, a + N + 1)
+      }
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
+    g.setIndex(idx)
+    g.computeVertexNormals()
+    return g
+  }, [shape])
+  return (
+    <mesh geometry={geom}>
+      <meshStandardMaterial color="#3f4d75" roughness={0.75} side={THREE.DoubleSide} />
+    </mesh>
+  )
+}
+
+function Fringe3D() {
+  const t = useT(T)
+  const [n, setN] = useState(7)
+  const [shape, setShape] = useState<'dome' | 'step'>('dome')
+  const [angle, setAngle] = useState(35)
+
+  const pose = useMemo(() => {
+    const th = deg2rad(angle)
+    const D = 0.62
+    return lookAtCV([D * Math.sin(th), 0.06 + D * Math.cos(th), 0], [0, 0.06, 0])
+  }, [angle])
+
+  const stripes = useMemo(
+    () =>
+      Array.from({ length: n }, (_, i) => {
+        const x = -0.33 + ((i + 0.5) / n) * 0.66
+        return Array.from({ length: 48 }, (_, j) => {
+          const z = -0.3 + (j / 47) * 0.6
+          return [x, f3Height(shape, x, z) + 0.004, z] as V3
+        })
+      }),
+    [n, shape],
+  )
+
+  const imgStripes = useMemo(
+    () =>
+      stripes.map((line) =>
+        line
+          .map((p) => projectPoint(LASER_K, pose, p))
+          .filter((p) => p.z > 0)
+          .map((p) => [p.u, p.v] as [number, number]),
+      ),
+    [stripes, pose],
+  )
+
+  return (
+    <div>
+      <div className="grid gap-4 lg:grid-cols-5">
+        <Scene3D
+          className="lg:col-span-3"
+          height={430}
+          camera={{ position: [0.85, 0.7, -0.95], fov: 42 }}
+          target={[0, 0.08, 0]}
+          hint={t.scene}
+        >
+          <PartMesh shape={shape} />
+          {/* projector bar */}
+          <mesh position={[0, 0.5, 0]}>
+            <boxGeometry args={[0.85, 0.05, 0.1]} />
+            <meshStandardMaterial color="#28334a" metalness={0.4} roughness={0.4} />
+          </mesh>
+          {/* stripe sheets + draped stripe lines — each one is "a laser line" */}
+          {stripes.map((line, i) => {
+            const x = line[0][0]
+            return (
+              <group key={i}>
+                <Quad
+                  corners={[
+                    [x, 0, -0.3],
+                    [x, 0, 0.3],
+                    [x, 0.47, 0.3],
+                    [x, 0.47, -0.3],
+                  ]}
+                  color="#c084fc"
+                  opacity={0.05}
+                />
+                <Polyline points={line} color="#d8b4fe" lineWidth={2.5} />
+              </group>
+            )
+          })}
+          <CameraFrustumViz k={LASER_K} w={IW} h={IH} pose={pose} depth={0.16} color="#22d3ee" label="cam" rays={false} />
+        </Scene3D>
+        <div className="flex flex-col gap-4 lg:col-span-2">
+          <ImageView
+            title={t.projView}
+            w={IW}
+            h={IH}
+            polylines={imgStripes.map((pts) => ({ pts, color: '#d8b4fe', width: 2 }))}
+          />
+          <Readout label={t.profilesPerImage} value={`${n}`} accent="#c084fc" />
+        </div>
+      </div>
+      <div className="card-pad mt-4 grid gap-x-6 gap-y-3.5 md:grid-cols-3">
+        <Slider label={t.nStripes} value={n} min={3} max={16} step={1} onChange={setN} format={(v) => `${v}`} accent="#c084fc" />
+        <Slider label={t.camAngle} value={angle} min={15} max={60} step={1} onChange={setAngle} format={(v) => `${v}°`} />
+        <div>
+          <div className="mb-1.5 text-[13px] font-medium text-muted">{t.objShape}</div>
+          <Segmented<'dome' | 'step'>
+            options={[
+              { value: 'dome', label: t.shapeNames[0] },
+              { value: 'step', label: t.shapeNames[1] },
+            ]}
+            value={shape}
+            onChange={setShape}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- fringe projection lab
 
 const FW = 260
@@ -269,6 +459,7 @@ const DOME = (x: number, y: number): number => {
 
 function FringeLab() {
   const t = useT(T)
+  const [stage, setStage] = useState(0)
   const [shiftIdx, setShiftIdx] = useState(0)
   const [freq, setFreq] = useState(11)
   const [noise, setNoise] = useState(0.02)
@@ -327,7 +518,7 @@ function FringeLab() {
   }, [wrapped])
 
   // center-row pipeline
-  const { rowWrapped, height, truth } = useMemo(() => {
+  const { rowWrapped, rowUnwrapped, height, truth } = useMemo(() => {
     const y = Math.floor(FH / 2)
     const rowWrapped = Array.from({ length: FW }, (_, x) => wrapped[y * FW + x])
     const un = unwrap1d(rowWrapped)
@@ -338,7 +529,7 @@ function FringeLab() {
     off /= 8
     const height = un.map((v, x) => (v - carrier[x] - off) / KH)
     const truth = Array.from({ length: FW }, (_, x) => DOME(x, y))
-    return { rowWrapped, height, truth }
+    return { rowWrapped, rowUnwrapped: un.map((v, x) => v - carrier[x] - off), height, truth }
   }, [wrapped, freq])
 
   const PW = 540
@@ -347,61 +538,96 @@ function FringeLab() {
   const pyW = (v: number) => 60 - (v / Math.PI) * 45
   const pyH = (v: number) => PH - 18 - v * 95
 
+  const maxUn = Math.max(...rowUnwrapped.map(Math.abs), 1)
+  const pyU = (v: number) => PH - 18 - (v / maxUn) * (PH - 60)
+
   return (
     <div>
+      {/* stage selector + caption + governing equation */}
+      <div className="card-pad mb-4">
+        <div className="mb-2 text-[13px] font-medium text-muted">{t.stageLabel}</div>
+        <Segmented<'0' | '1' | '2' | '3'>
+          options={t.stageNames.map((l, i) => ({ value: `${i}` as '0', label: l }))}
+          value={`${stage}` as '0'}
+          onChange={(v) => setStage(Number(v))}
+        />
+        <p className="prose-cv mt-3 max-w-3xl">{t.stageTexts[stage]}</p>
+        <TeX block>{t.fringeDeriv[stage].tex}</TeX>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <div className="card overflow-hidden">
-          <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">
-            {t.fringeImg}
+        {stage <= 1 && (
+          <div className="card overflow-hidden">
+            <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">
+              {t.fringeImg}
+            </div>
+            <canvas ref={fringeRef} width={FW} height={FH} className="block w-full" />
           </div>
-          <canvas ref={fringeRef} width={FW} height={FH} className="block w-full" />
-        </div>
-        <div className="card overflow-hidden">
-          <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">
-            {t.wrappedImg}
+        )}
+        {stage >= 1 && stage <= 2 && (
+          <div className="card overflow-hidden">
+            <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">
+              {t.wrappedImg}
+            </div>
+            <canvas ref={wrapRef} width={FW} height={FH} className="block w-full" />
           </div>
-          <canvas ref={wrapRef} width={FW} height={FH} className="block w-full" />
-        </div>
+        )}
         <div className="card-pad space-y-3.5 self-start md:col-span-2 lg:col-span-1">
-          <div>
-            <div className="mb-1.5 text-[13px] font-medium text-muted">{t.shift}</div>
-            <Segmented<'0' | '1' | '2' | '3'>
-              options={['0°', '90°', '180°', '270°'].map((l, i) => ({ value: `${i}` as '0', label: l }))}
-              value={`${shiftIdx}` as '0'}
-              onChange={(v) => setShiftIdx(Number(v))}
-            />
-          </div>
+          {stage === 0 && (
+            <div>
+              <div className="mb-1.5 text-[13px] font-medium text-muted">{t.shift}</div>
+              <Segmented<'0' | '1' | '2' | '3'>
+                options={['0°', '90°', '180°', '270°'].map((l, i) => ({ value: `${i}` as '0', label: l }))}
+                value={`${shiftIdx}` as '0'}
+                onChange={(v) => setShiftIdx(Number(v))}
+              />
+            </div>
+          )}
           <Slider label={t.freq} value={freq} min={5} max={26} step={1} onChange={setFreq} format={(v) => `${v}`} />
           <Slider label={t.noise} value={noise} min={0} max={0.09} step={0.005} onChange={setNoise} format={(v) => fmt(v, 3)} accent="#f87171" />
         </div>
       </div>
-      <div className="card mt-4 overflow-hidden">
-        <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">{t.profile}</div>
-        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
-          {/* wrapped sawtooth */}
-          <polyline
-            points={rowWrapped.map((v, x) => `${px(x)},${pyW(v)}`).join(' ')}
-            fill="none"
-            stroke="#22d3ee"
-            strokeWidth={1.6}
-          />
-          <line x1={0} y1={118} x2={PW} y2={118} stroke="rgba(255,255,255,0.12)" />
-          {/* reconstructed height vs truth */}
-          <polyline
-            points={truth.map((v, x) => `${px(x)},${pyH(v)}`).join(' ')}
-            fill="none"
-            stroke="rgba(255,255,255,0.4)"
-            strokeWidth={1.5}
-            strokeDasharray="5 4"
-          />
-          <polyline
-            points={height.map((v, x) => `${px(x)},${pyH(Math.min(Math.max(v, -0.3), 1.4))}`).join(' ')}
-            fill="none"
-            stroke="#fbbf24"
-            strokeWidth={2.2}
-          />
-        </svg>
-      </div>
+
+      {stage >= 2 && (
+        <div className="card mt-4 overflow-hidden">
+          <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">{t.profile}</div>
+          <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+            {/* wrapped sawtooth (always shown from stage 2 on, for context) */}
+            <polyline
+              points={rowWrapped.map((v, x) => `${px(x)},${pyW(v)}`).join(' ')}
+              fill="none"
+              stroke="#22d3ee"
+              strokeWidth={1.6}
+            />
+            <line x1={0} y1={118} x2={PW} y2={118} stroke="rgba(255,255,255,0.12)" />
+            {stage === 2 && (
+              <polyline
+                points={rowUnwrapped.map((v, x) => `${px(x)},${pyU(v)}`).join(' ')}
+                fill="none"
+                stroke="#4ade80"
+                strokeWidth={2}
+              />
+            )}
+            {stage === 3 && (
+              <>
+                <polyline
+                  points={truth.map((v, x) => `${px(x)},${pyH(v)}`).join(' ')}
+                  fill="none"
+                  stroke="rgba(255,255,255,0.4)"
+                  strokeWidth={1.5}
+                  strokeDasharray="5 4"
+                />
+                <polyline
+                  points={height.map((v, x) => `${px(x)},${pyH(Math.min(Math.max(v, -0.3), 1.4))}`).join(' ')}
+                  fill="none"
+                  stroke="#fbbf24"
+                  strokeWidth={2.2}
+                />
+              </>
+            )}
+          </svg>
+        </div>
+      )}
     </div>
   )
 }
@@ -465,6 +691,7 @@ export function Metrology3dPage() {
       <PageToc
         items={[
           { id: 'laser', label: t.laserTitle },
+          { id: 'fringe3d', label: t.fringe3dTitle },
           { id: 'fringe', label: t.fringeTitle },
           { id: 'interferometry', label: t.interTitle },
           { id: 'compare', label: t.compTitle },
@@ -489,14 +716,26 @@ export function Metrology3dPage() {
         </InfoBox>
       </Section>
 
+      <Section id="fringe3d" title={t.fringe3dTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.fringe3d1}</p>
+        </div>
+        <div className="mt-4">
+          <Fringe3D />
+        </div>
+        <InfoBox tone="tip" title="💡">
+          {t.fringe3d2}
+        </InfoBox>
+      </Section>
+
       <Section id="fringe" title={t.fringeTitle}>
         <div className="prose-cv max-w-3xl">
           <p>{t.fringe1}</p>
-          <p>{t.fringe2}</p>
         </div>
         <div className="mt-4">
           <FringeLab />
         </div>
+        <Derivation title={t.fringeDerivTitle} steps={t.fringeDeriv} />
       </Section>
 
       <Section id="interferometry" title={t.interTitle}>

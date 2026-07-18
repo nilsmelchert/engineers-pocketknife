@@ -15,15 +15,22 @@ bilingual (English / German, toggle in the navbar).
 **📊 Data & Patterns**
 1. **PCA** — covariance, eigenvectors, variance explained, 2D + 3D projection labs, scree plot
 2. **K-Means** — Lloyd's algorithm stepper with Voronoi shading, k-means++, elbow method, failure modes
+3. **Clustering II: GMM & DBSCAN** — EM with learning covariance ellipses, density-based clustering that solves the moons
+4. **Robust Fitting & RANSAC** — animated hypothesis voting, inlier thresholds, robust losses
 
 **🧠 Machine Learning**
 1. **ML Fundamentals** — linear/logistic regression, overfitting U-curve, ridge regularization
 2. **Stochastic & Global Optimization** — SGD noise, optimizer race (GD/momentum/Adam), LR schedules, simulated annealing, Lagrange constraints
 3. **Neural Networks & Deep Learning** — live-training MLP playground with decision boundaries, network diagram, backprop, gradient checking
+4. **Modern Deep Learning: CNNs & Transformers** — convolution kernel lab, feature hierarchies, live self-attention heatmap with causal masking
 
 **🧮 Math Foundations**
 1. **Probability & Bayes** — distributions, central limit theorem, base-rate fallacy with 1000 dots, Bayesian coin updating
 2. **SVD & Linear Algebra** — rotate–stretch–rotate animation, singular values, low-rank image compression
+3. **ODE Solvers & Simulation** — Euler vs. RK4 energy drift, the stability cliff, stiffness
+
+**🤖 Robotics**
+1. **Robot Kinematics** — draggable FK/IK arm, workspace analysis, Jacobian manipulability ellipse and singularities
 
 **🎛️ Signals & Control**
 1. **Fourier & Signals** — Fourier series with Gibbs ringing, sampling/aliasing, DFT + low-pass filtering, convolution

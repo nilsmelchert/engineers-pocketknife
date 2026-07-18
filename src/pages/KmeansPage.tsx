@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { PageToc } from '../components/PageToc'
@@ -67,6 +68,8 @@ const T = {
       'Clusters of very different sizes/densities: k-means steals points from big sparse clusters for small dense ones. Gaussian mixture models (GMM) with full covariances handle this.',
       'Unknown k with hierarchy in the data: agglomerative clustering gives you the whole merge tree instead of one cut.',
     ],
+    failLink: 'Both failure modes are solved in the next module:',
+    failLinkBtn: 'Clustering II: GMM & DBSCAN →',
     mathTitle: 'The math in one breath',
     math1: 'K-means minimizes the within-cluster sum of squares over both the assignments and the centroids:',
     math2: 'Fix μ → the optimal assignment is the nearest centroid. Fix the assignments → the optimal μⱼ is the cluster mean (set the gradient to zero). Alternating the two exact minimizations makes the objective monotonically non-increasing — convergence is guaranteed, global optimality is not (the problem is NP-hard in general).',
@@ -118,6 +121,8 @@ const T = {
       'Cluster sehr unterschiedlicher Größe/Dichte: K-Means stiehlt großen dünnen Clustern Punkte für kleine dichte. Gaußsche Mischmodelle (GMM) mit vollen Kovarianzen können das.',
       'Unbekanntes k mit Hierarchie in den Daten: Agglomeratives Clustering liefert den ganzen Verschmelzungsbaum statt eines einzelnen Schnitts.',
     ],
+    failLink: 'Beide Grenzfälle löst das nächste Modul:',
+    failLinkBtn: 'Clustering II: GMM & DBSCAN →',
     mathTitle: 'Die Mathematik in einem Atemzug',
     math1: 'K-Means minimiert die Summe der quadrierten Abstände innerhalb der Cluster über Zuweisungen und Zentroide gemeinsam:',
     math2: 'Fixiere μ → die optimale Zuweisung ist der nächste Zentroid. Fixiere die Zuweisungen → das optimale μⱼ ist der Clustermittelwert (Gradient null setzen). Das Abwechseln der beiden exakten Minimierungen macht die Zielfunktion monoton nicht-steigend — Konvergenz ist garantiert, globale Optimalität nicht (das Problem ist im Allgemeinen NP-schwer).',
@@ -536,6 +541,14 @@ export function KmeansPage() {
             ))}
           </ul>
         </div>
+        <InfoBox tone="tip">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span>{t.failLink}</span>
+            <Link to="/clustering-2" className="btn-primary text-[13px]">
+              {t.failLinkBtn}
+            </Link>
+          </div>
+        </InfoBox>
       </Section>
 
       <Section id="math" title={t.mathTitle}>

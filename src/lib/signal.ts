@@ -398,5 +398,22 @@ export function unwrap1d(phi: number[]): number[] {
   return out
 }
 
+// ---------------------------------------------------------------- ODE integrators
+
+export type Deriv = (t: number, y: number[]) => number[]
+
+export function eulerStep(f: Deriv, t: number, y: number[], h: number): number[] {
+  const k = f(t, y)
+  return y.map((v, i) => v + h * k[i])
+}
+
+export function rk4Step(f: Deriv, t: number, y: number[], h: number): number[] {
+  const k1 = f(t, y)
+  const k2 = f(t + h / 2, y.map((v, i) => v + (h / 2) * k1[i]))
+  const k3 = f(t + h / 2, y.map((v, i) => v + (h / 2) * k2[i]))
+  const k4 = f(t + h, y.map((v, i) => v + h * k3[i]))
+  return y.map((v, i) => v + (h / 6) * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]))
+}
+
 /** Deterministic uniform generator passthrough (convenience re-export pattern). */
 export const seededRand = mulberry32

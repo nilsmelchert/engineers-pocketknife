@@ -314,6 +314,120 @@ export function kppInit(pts: P2[], k: number, rand: () => number): P2[] {
   return centroids
 }
 
+// ---------------------------------------------------------------- Gaussian mixture (2D, full covariance)
+
+export interface Gmm2 {
+  weights: number[]
+  means: P2[]
+  /** per-component covariance as [σxx, σxy, σyy] */
+  covs: [number, number, number][]
+}
+
+const REG = 1e-4
+
+function gauss2pdf(p: P2, m: P2, c: [number, number, number]): number {
+  const [sxx, sxy, syy] = [c[0] + REG, c[1], c[2] + REG]
+  const det = sxx * syy - sxy * sxy
+  const dx = p[0] - m[0]
+  const dy = p[1] - m[1]
+  const q = (syy * dx * dx - 2 * sxy * dx * dy + sxx * dy * dy) / det
+  return Math.exp(-0.5 * q) / (2 * Math.PI * Math.sqrt(det))
+}
+
+export function gmmInit(pts: P2[], k: number, rand: () => number): Gmm2 {
+  const means = kppInit(pts, k, rand)
+  const varAll =
+    pts.reduce((s, p) => s + p[0] * p[0] + p[1] * p[1], 0) / pts.length / 4 + 0.05
+  return {
+    weights: new Array(k).fill(1 / k),
+    means,
+    covs: Array.from({ length: k }, () => [varAll, 0, varAll] as [number, number, number]),
+  }
+}
+
+/** E-step: responsibilities γ[i][k] = P(component k | point i). */
+export function gmmEStep(pts: P2[], m: Gmm2): number[][] {
+  return pts.map((p) => {
+    const raw = m.means.map((mu, k) => m.weights[k] * gauss2pdf(p, mu, m.covs[k]))
+    const sum = raw.reduce((a, b) => a + b, 0) || 1e-300
+    return raw.map((r) => r / sum)
+  })
+}
+
+/** M-step: re-estimate weights, means and covariances from responsibilities. */
+export function gmmMStep(pts: P2[], resp: number[][], k: number): Gmm2 {
+  const n = pts.length
+  const Nk = Array.from({ length: k }, (_, kk) => resp.reduce((s, r) => s + r[kk], 0))
+  const means = Array.from({ length: k }, (_, kk) => {
+    let mx = 0
+    let my = 0
+    pts.forEach((p, i) => {
+      mx += resp[i][kk] * p[0]
+      my += resp[i][kk] * p[1]
+    })
+    return [mx / Nk[kk], my / Nk[kk]] as P2
+  })
+  const covs = Array.from({ length: k }, (_, kk) => {
+    let sxx = 0
+    let sxy = 0
+    let syy = 0
+    pts.forEach((p, i) => {
+      const dx = p[0] - means[kk][0]
+      const dy = p[1] - means[kk][1]
+      sxx += resp[i][kk] * dx * dx
+      sxy += resp[i][kk] * dx * dy
+      syy += resp[i][kk] * dy * dy
+    })
+    return [sxx / Nk[kk], sxy / Nk[kk], syy / Nk[kk]] as [number, number, number]
+  })
+  return { weights: Nk.map((v) => v / n), means, covs }
+}
+
+export function gmmLogLik(pts: P2[], m: Gmm2): number {
+  return pts.reduce((s, p) => {
+    const lik = m.means.reduce((a, mu, k) => a + m.weights[k] * gauss2pdf(p, mu, m.covs[k]), 0)
+    return s + Math.log(Math.max(lik, 1e-300))
+  }, 0)
+}
+
+// ---------------------------------------------------------------- DBSCAN
+
+/** Density-based clustering. Returns labels (−1 = noise) and the core-point mask. */
+export function dbscan(
+  pts: P2[],
+  eps: number,
+  minPts: number,
+): { labels: number[]; core: boolean[] } {
+  const n = pts.length
+  const eps2 = eps * eps
+  const neighbors = pts.map((p, i) => {
+    const list: number[] = []
+    for (let j = 0; j < n; j++) if (j !== i && dist2(p, pts[j]) <= eps2) list.push(j)
+    return list
+  })
+  const core = neighbors.map((nb) => nb.length + 1 >= minPts)
+  const labels = new Array(n).fill(-2) // -2 unvisited, -1 noise
+  let cluster = 0
+  for (let i = 0; i < n; i++) {
+    if (labels[i] !== -2) continue
+    if (!core[i]) {
+      labels[i] = -1
+      continue
+    }
+    labels[i] = cluster
+    const queue = [...neighbors[i]]
+    while (queue.length) {
+      const j = queue.pop()!
+      if (labels[j] === -1) labels[j] = cluster // border point
+      if (labels[j] !== -2) continue
+      labels[j] = cluster
+      if (core[j]) queue.push(...neighbors[j])
+    }
+    cluster++
+  }
+  return { labels, core }
+}
+
 /** Run k-means to convergence (for elbow plots); returns the final WCSS. */
 export function kmeansRun(pts: P2[], k: number, seed: number, maxIter = 50): number {
   const rand = mulberry32(seed)

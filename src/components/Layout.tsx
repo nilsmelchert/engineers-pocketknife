@@ -141,6 +141,34 @@ export const TRACKS: TrackDef[] = [
           de: ['Lloyds Algorithmus', 'k-means++', 'Ellbogenmethode', 'Grenzfälle'],
         },
       },
+      {
+        path: '/clustering-2',
+        num: 3,
+        title: { en: 'Clustering II: GMM & DBSCAN', de: 'Clustering II: GMM & DBSCAN' },
+        short: { en: 'GMM & DBSCAN', de: 'GMM & DBSCAN' },
+        desc: {
+          en: 'Beyond k-means: elastic Gaussian mixtures fitted by EM (watch the ellipses learn), and density-based DBSCAN that solves the moons.',
+          de: 'Jenseits von K-Means: elastische Gauß-Mischungen per EM (sieh die Ellipsen lernen) und dichtebasiertes DBSCAN, das die Monde löst.',
+        },
+        topics: {
+          en: ['Gaussian mixtures', 'EM algorithm', 'Soft assignment', 'DBSCAN'],
+          de: ['Gauß-Mischungen', 'EM-Algorithmus', 'Weiche Zuordnung', 'DBSCAN'],
+        },
+      },
+      {
+        path: '/ransac',
+        num: 4,
+        title: { en: 'Robust Fitting & RANSAC', de: 'Robustes Fitten & RANSAC' },
+        short: { en: 'RANSAC', de: 'RANSAC' },
+        desc: {
+          en: 'When data lies: how outliers destroy least squares, and how RANSAC’s random consensus voting survives them — animated.',
+          de: 'Wenn Daten lügen: Wie Ausreißer kleinste Quadrate zerstören und wie RANSACs zufällige Konsensabstimmung sie überlebt — animiert.',
+        },
+        topics: {
+          en: ['Outliers', 'RANSAC', 'Inlier consensus', 'Robust losses'],
+          de: ['Ausreißer', 'RANSAC', 'Inlier-Konsens', 'Robuste Verluste'],
+        },
+      },
     ],
   },
   {
@@ -195,6 +223,20 @@ export const TRACKS: TrackDef[] = [
           de: ['Neuronen & Schichten', 'Backpropagation', 'Live-Training', 'Deep Learning'],
         },
       },
+      {
+        path: '/deep-learning',
+        num: 4,
+        title: { en: 'Modern Deep Learning: CNNs & Transformers', de: 'Modernes Deep Learning: CNNs & Transformer' },
+        short: { en: 'CNNs & Transformers', de: 'CNNs & Transformer' },
+        desc: {
+          en: 'Inductive bias in the wiring: convolution and feature hierarchies for images, self-attention for sequences — with a live attention heatmap.',
+          de: 'Induktiver Bias in der Verdrahtung: Faltung und Merkmalshierarchien für Bilder, Self-Attention für Sequenzen — mit Live-Attention-Heatmap.',
+        },
+        topics: {
+          en: ['Convolutions', 'Feature hierarchies', 'Self-attention', 'Transformers'],
+          de: ['Faltungen', 'Merkmalshierarchien', 'Self-Attention', 'Transformer'],
+        },
+      },
     ],
   },
   {
@@ -233,6 +275,20 @@ export const TRACKS: TrackDef[] = [
         topics: {
           en: ['Matrix as transform', 'Singular values', 'Low-rank approximation', 'Compression'],
           de: ['Matrix als Abbildung', 'Singulärwerte', 'Niedrigrang-Approximation', 'Kompression'],
+        },
+      },
+      {
+        path: '/ode',
+        num: 3,
+        title: { en: 'ODE Solvers & Simulation', de: 'ODE-Löser & Simulation' },
+        short: { en: 'ODE Solvers', de: 'ODE-Löser' },
+        desc: {
+          en: 'The numerics behind every simulation: Euler vs. RK4 on an oscillator (watch Euler invent energy), step size and the stability cliff.',
+          de: 'Die Numerik hinter jeder Simulation: Euler vs. RK4 am Oszillator (sieh Euler Energie erfinden), Schrittweite und die Stabilitätsklippe.',
+        },
+        topics: {
+          en: ['Euler & RK4', 'Energy drift', 'Stability limits', 'Stiffness'],
+          de: ['Euler & RK4', 'Energiedrift', 'Stabilitätsgrenzen', 'Steifheit'],
         },
       },
     ],
@@ -287,6 +343,32 @@ export const TRACKS: TrackDef[] = [
         topics: {
           en: ['Sensor fusion', 'Predict & update', 'Kalman gain', 'Tracking'],
           de: ['Sensorfusion', 'Prädiktion & Korrektur', 'Kalman-Gain', 'Tracking'],
+        },
+      },
+    ],
+  },
+  {
+    id: 'robotics',
+    icon: '🤖',
+    title: { en: 'Robotics', de: 'Robotik' },
+    short: { en: 'Robotics', de: 'Robotik' },
+    blurb: {
+      en: 'Making machines move with intent: kinematic chains, inverse kinematics and the singularities in between.',
+      de: 'Maschinen zielgerichtet bewegen: kinematische Ketten, Rückwärtskinematik und die Singularitäten dazwischen.',
+    },
+    modules: [
+      {
+        path: '/kinematics',
+        num: 1,
+        title: { en: 'Robot Kinematics', de: 'Roboterkinematik' },
+        short: { en: 'Kinematics', de: 'Kinematik' },
+        desc: {
+          en: 'Forward and inverse kinematics on a draggable arm, workspace analysis, and the Jacobian — watch the manipulability ellipse collapse at a singularity.',
+          de: 'Vorwärts- und Rückwärtskinematik an einem ziehbaren Arm, Arbeitsraumanalyse und die Jacobimatrix — sieh die Manipulierbarkeitsellipse an der Singularität kollabieren.',
+        },
+        topics: {
+          en: ['Forward kinematics', 'Inverse kinematics', 'Jacobian', 'Singularities'],
+          de: ['Vorwärtskinematik', 'Rückwärtskinematik', 'Jacobimatrix', 'Singularitäten'],
         },
       },
     ],
