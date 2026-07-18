@@ -5,9 +5,12 @@ import { TeX } from '../components/TeX'
 import { ImageView } from '../components/ImageView'
 import { PageToc } from '../components/PageToc'
 import { InfoBox, Readout, Section, Segmented, Slider } from '../components/ui'
+import { Derivation } from '../components/Derivation'
 import {
   boardCorners,
   distortNormalized,
+  equidistantRadius,
+  fisheyeProjectCamPoint,
   fmt,
   m4MulChain,
   m4MulP,
@@ -16,6 +19,7 @@ import {
   m4RotZ,
   m4Trans,
   mulberry32,
+  pinholeRadius,
   projectCamPoint,
   undistortNormalized,
   deg2rad,
@@ -23,6 +27,9 @@ import {
   type Intrinsics,
   type V3,
 } from '../lib/math'
+import { makeGauss, jacobiEigen } from '../lib/stats'
+import { homographyDLT, zhangIntrinsics, type P2 as HP2 } from '../lib/homography'
+import { calibCovariance, lmSolve, makeObservationsN } from '../lib/optim'
 
 const W = 640
 const H = 480
@@ -72,6 +79,61 @@ const T = {
       'The closed-form solution only provides the starting point; the numbers you actually use come from the final nonlinear refinement.',
     zhangLink: 'How does that minimization actually work — and why Levenberg–Marquardt?',
     zhangLinkBtn: 'Module 3: Numerical Optimization →',
+    zhangLabTitle: 'Zhang, live on synthetic views',
+    zhangLab1:
+      'Theory is cheap — here is the closed form actually running. Six virtual checkerboard views are generated with a hidden ground-truth camera (fx = fy = 560, cx = 320, cy = 240); per view a homography is estimated from the corners, and Zhang’s linear system recovers K. Watch it need at least 3 views — and watch it collapse when all views are frontal, no matter how many there are: exactly the degeneracy the tilt lab below makes visceral.',
+    zhangViews: 'views used',
+    zhangNoise: 'corner noise σ',
+    zhangSet: 'view poses',
+    zhangSetNames: [
+      { value: 'varied', label: 'varied tilts' },
+      { value: 'frontal', label: 'frontal only' },
+    ],
+    zhangFx: 'estimated fx (true 560)',
+    zhangC: 'estimated cx / cy (true 320 / 240)',
+    zhangCond: 'conditioning',
+    zhangOk: 'CONSTRAINED',
+    zhangBad: 'UNDER-CONSTRAINED',
+    zhangBadHint: 'needs ≥ 3 views with real tilt — the linear system has no unique solution',
+    zhangDerivTitle: 'Zhang’s method, step by step',
+    zhangDeriv: [
+      { tex: String.raw`H_i = K\,[\mathbf{r}_1\;\mathbf{r}_2\;\mathbf{t}]_i`, note: 'Each board view is a plane, so module 1’s homography applies: H mixes the intrinsics with the first two rotation columns of that view.' },
+      { tex: String.raw`\mathbf{r}_1^{\mathsf T}\mathbf{r}_2 = 0, \qquad \mathbf{r}_1^{\mathsf T}\mathbf{r}_1 = \mathbf{r}_2^{\mathsf T}\mathbf{r}_2`, note: 'R is orthonormal — two facts per view that do not depend on where the board stood. This is the entire leverage of the method.' },
+      { tex: String.raw`\omega = K^{-\mathsf T}K^{-1} \quad\Rightarrow\quad \mathbf{h}_1^{\mathsf T}\omega\,\mathbf{h}_2 = 0, \;\; \mathbf{h}_1^{\mathsf T}\omega\,\mathbf{h}_1 = \mathbf{h}_2^{\mathsf T}\omega\,\mathbf{h}_2`, note: 'Substituting rᵢ = K⁻¹hᵢ turns both facts into constraints on ω, the “image of the absolute conic” — a symmetric 3×3 that contains only intrinsics.' },
+      { tex: String.raw`\mathbf{v}_{12}^{\mathsf T}\mathbf{b} = 0, \qquad (\mathbf{v}_{11}-\mathbf{v}_{22})^{\mathsf T}\mathbf{b} = 0`, note: 'ω has 6 free entries b = (B₁₁,B₁₂,B₂₂,B₁₃,B₂₃,B₃₃). Each view contributes two LINEAR equations in b — nonlinear geometry became linear algebra.' },
+      { tex: String.raw`V\mathbf{b} = 0, \quad \geq 3 \text{ views} \;\Rightarrow\; \mathbf{b} = \text{smallest eigenvector of } V^{\mathsf T}V`, note: 'Two equations per view, five unknowns up to scale: three genuinely different views make the system solvable — the same null-vector trick as the DLT.' },
+      { tex: String.raw`\omega \;\xrightarrow{\text{closed form}}\; f_x, f_y, s, c_x, c_y`, note: 'K falls out of b with a few divisions and square roots (Zhang 2000, App. B). Frontal-only views make those square roots meaningless — the badge in the lab.' },
+      { tex: String.raw`\min_{K, d, \{R_i, \mathbf{t}_i\}} \sum \| \mathbf{x}_{ij} - \pi(K, d, R_i, \mathbf{t}_i, \mathbf{X}_j) \|^2`, note: 'The closed form is only the launchpad: the reported calibration comes from joint nonlinear refinement over everything — module 3’s Levenberg–Marquardt.' },
+    ],
+    fishTitle: 'When tan θ explodes: fisheye lenses',
+    fish1:
+      'The pinhole model hides a bomb: the image radius grows with tan θ, and tan θ → ∞ as a ray approaches 90° off-axis. No finite sensor can hold a 180° pinhole image — wide-angle optics need a different projection law. Fisheye lenses use (approximately) the equidistant model r = f·θ: image height LINEAR in the angle. The curve plot shows the two laws racing; the dot panels show a hemisphere of directions (rings of constant θ) under each model — watch the pinhole panel run out of sensor while the fisheye calmly keeps stacking rings.',
+    fish2:
+      'The price of the fisheye law: straight world lines are no longer straight in the image (only rays through the center are), and the Brown–Conrady polynomial above cannot express the difference — fisheye calibration uses its own model (OpenCV: cv2.fisheye, a polynomial in θ). Choosing the wrong model family is one of the classic ways calibrations silently fail.',
+    fishFov: 'lens field of view',
+    fishCurve: 'image radius r(θ) — pinhole vs. equidistant, sensor half-width marked',
+    fishPin: 'pinhole r = f·tanθ',
+    fishEqui: 'equidistant r = f·θ',
+    fishPinNeed: 'sensor needed (pinhole)',
+    fishEquiNeed: 'sensor needed (fisheye)',
+    fishImpossible: 'impossible ≥ 180°',
+    fishDerivTitle: 'Projection laws in one family',
+    fishDeriv: [
+      { tex: String.raw`r_{\text{pinhole}} = f\tan\theta \;\xrightarrow{\theta\to90^\circ}\; \infty`, note: 'Perspective projection: preserves straight lines, but the sensor cost per degree explodes toward the edge.' },
+      { tex: String.raw`r_{\text{equidistant}} = f\,\theta`, note: 'Every degree of view costs the same millimeters of sensor — the natural choice for surveillance domes, robot navigation, automotive surround view.' },
+      { tex: String.raw`r = f\sin\theta \quad\big|\quad r = 2f\sin(\tfrac{\theta}{2}) \quad\big|\quad r = 2f\tan(\tfrac{\theta}{2})`, note: 'Orthographic, equisolid-angle and stereographic siblings — real lenses approximate one of these, and calibration fits a polynomial in θ on top (cv2.fisheye).' },
+    ],
+    uncTitle: 'How sure is the calibration?',
+    unc1:
+      'A calibration is a measurement, and module Metrology·1 taught the rule: a measurement without an uncertainty is not a result. Here the module-3 solver is run on 40 independently re-noised datasets — each cyan dot is one full calibration’s answer for (f, k1). On top, the amber 2σ ellipse is computed WITHOUT any repetition, analytically from a single run: Cov(θ) ≈ σ²(JᵀJ)⁻¹, the GUM-style linear propagation. The two views agree — and the tilted ellipse exposes a secret: f and k1 are correlated, because extra barrel distortion can partially imitate a shorter focal length.',
+    unc2:
+      'Slide the number of views: the ellipse shrinks like 1/√n — the statistical payoff of the capture checklist. This JᵀJ⁻¹ trick is not calibration-specific: it prices the uncertainty of every least-squares fit on this site, from the thermistor lab to bundle adjustment.',
+    uncNoise: 'corner noise σ',
+    uncViews: 'views used',
+    uncPlot: '40 Monte-Carlo calibrations (cyan) vs. analytic 2σ ellipse (amber) · green ✕ = truth',
+    uncSigmaF: 'σ(f)',
+    uncSigmaK1: 'σ(k1)',
+    uncRho: 'correlation ρ(f, k1)',
     capTitle: 'Interactive: capture good calibration views',
     cap1: 'This is a virtual calibration session. Pose the checkerboard in front of the camera and capture views. The checklist tells you when your dataset would produce a trustworthy calibration — try to make it fully green.',
     capWhy:
@@ -184,6 +246,61 @@ const T = {
       'Die geschlossene Lösung liefert nur den Startwert; die Zahlen, mit denen man wirklich arbeitet, stammen aus der finalen nichtlinearen Optimierung.',
     zhangLink: 'Wie funktioniert diese Minimierung eigentlich — und warum Levenberg–Marquardt?',
     zhangLinkBtn: 'Modul 3: Numerische Optimierung →',
+    zhangLabTitle: 'Zhang, live auf synthetischen Ansichten',
+    zhangLab1:
+      'Theorie ist billig — hier läuft die geschlossene Lösung wirklich. Sechs virtuelle Schachbrettansichten werden mit einer versteckten Ground-Truth-Kamera erzeugt (fx = fy = 560, cx = 320, cy = 240); pro Ansicht wird eine Homographie aus den Ecken geschätzt, und Zhangs lineares System rekonstruiert K. Sieh zu, wie es mindestens 3 Ansichten braucht — und wie es kollabiert, wenn alle Ansichten frontal sind, egal wie viele: exakt die Degeneration, die das Kipp-Labor unten fühlbar macht.',
+    zhangViews: 'verwendete Ansichten',
+    zhangNoise: 'Eckenrauschen σ',
+    zhangSet: 'Ansichtsposen',
+    zhangSetNames: [
+      { value: 'varied', label: 'variierte Kippungen' },
+      { value: 'frontal', label: 'nur frontal' },
+    ],
+    zhangFx: 'geschätztes fx (wahr 560)',
+    zhangC: 'geschätztes cx / cy (wahr 320 / 240)',
+    zhangCond: 'Konditionierung',
+    zhangOk: 'BESTIMMT',
+    zhangBad: 'UNTERBESTIMMT',
+    zhangBadHint: 'braucht ≥ 3 Ansichten mit echter Kippung — das lineare System hat keine eindeutige Lösung',
+    zhangDerivTitle: 'Zhangs Methode, Schritt für Schritt',
+    zhangDeriv: [
+      { tex: String.raw`H_i = K\,[\mathbf{r}_1\;\mathbf{r}_2\;\mathbf{t}]_i`, note: 'Jede Brettansicht ist eine Ebene, also greift die Homographie aus Modul 1: H mischt die Intrinsik mit den ersten beiden Rotationsspalten dieser Ansicht.' },
+      { tex: String.raw`\mathbf{r}_1^{\mathsf T}\mathbf{r}_2 = 0, \qquad \mathbf{r}_1^{\mathsf T}\mathbf{r}_1 = \mathbf{r}_2^{\mathsf T}\mathbf{r}_2`, note: 'R ist orthonormal — zwei Fakten pro Ansicht, die nicht davon abhängen, wo das Brett stand. Das ist der gesamte Hebel der Methode.' },
+      { tex: String.raw`\omega = K^{-\mathsf T}K^{-1} \quad\Rightarrow\quad \mathbf{h}_1^{\mathsf T}\omega\,\mathbf{h}_2 = 0, \;\; \mathbf{h}_1^{\mathsf T}\omega\,\mathbf{h}_1 = \mathbf{h}_2^{\mathsf T}\omega\,\mathbf{h}_2`, note: 'Einsetzen von rᵢ = K⁻¹hᵢ verwandelt beide Fakten in Bedingungen an ω, das „Bild des absoluten Kegelschnitts“ — eine symmetrische 3×3, die nur Intrinsik enthält.' },
+      { tex: String.raw`\mathbf{v}_{12}^{\mathsf T}\mathbf{b} = 0, \qquad (\mathbf{v}_{11}-\mathbf{v}_{22})^{\mathsf T}\mathbf{b} = 0`, note: 'ω hat 6 freie Einträge b = (B₁₁,B₁₂,B₂₂,B₁₃,B₂₃,B₃₃). Jede Ansicht liefert zwei LINEARE Gleichungen in b — nichtlineare Geometrie wurde lineare Algebra.' },
+      { tex: String.raw`V\mathbf{b} = 0, \quad \geq 3 \text{ Ansichten} \;\Rightarrow\; \mathbf{b} = \text{kleinster Eigenvektor von } V^{\mathsf T}V`, note: 'Zwei Gleichungen pro Ansicht, fünf Unbekannte bis auf Skalierung: drei wirklich verschiedene Ansichten machen das System lösbar — derselbe Nullvektor-Trick wie bei der DLT.' },
+      { tex: String.raw`\omega \;\xrightarrow{\text{geschlossene Form}}\; f_x, f_y, s, c_x, c_y`, note: 'K fällt mit ein paar Divisionen und Quadratwurzeln aus b heraus (Zhang 2000, App. B). Nur-frontale Ansichten machen diese Wurzeln bedeutungslos — das Badge im Labor.' },
+      { tex: String.raw`\min_{K, d, \{R_i, \mathbf{t}_i\}} \sum \| \mathbf{x}_{ij} - \pi(K, d, R_i, \mathbf{t}_i, \mathbf{X}_j) \|^2`, note: 'Die geschlossene Form ist nur die Startrampe: Die berichtete Kalibrierung stammt aus der gemeinsamen nichtlinearen Verfeinerung über alles — Modul 3s Levenberg–Marquardt.' },
+    ],
+    fishTitle: 'Wenn tan θ explodiert: Fisheye-Objektive',
+    fish1:
+      'Das Lochkameramodell versteckt eine Bombe: Der Bildradius wächst mit tan θ, und tan θ → ∞, wenn ein Strahl sich 90° zur Achse nähert. Kein endlicher Sensor kann ein 180°-Lochkamerabild fassen — Weitwinkeloptik braucht ein anderes Projektionsgesetz. Fisheye-Objektive nutzen (näherungsweise) das äquidistante Modell r = f·θ: Bildhöhe LINEAR im Winkel. Der Kurvenplot zeigt die beiden Gesetze im Wettrennen; die Punktepanels zeigen eine Hemisphäre von Richtungen (Ringe konstanten θs) unter jedem Modell — sieh zu, wie dem Lochkamera-Panel der Sensor ausgeht, während das Fisheye ruhig weiter Ringe stapelt.',
+    fish2:
+      'Der Preis des Fisheye-Gesetzes: Gerade Weltlinien sind im Bild nicht mehr gerade (nur Strahlen durchs Zentrum), und das Brown–Conrady-Polynom oben kann den Unterschied nicht ausdrücken — Fisheye-Kalibrierung nutzt ihr eigenes Modell (OpenCV: cv2.fisheye, ein Polynom in θ). Die falsche Modellfamilie zu wählen ist einer der Klassiker, mit denen Kalibrierungen leise scheitern.',
+    fishFov: 'Sichtfeld des Objektivs',
+    fishCurve: 'Bildradius r(θ) — Lochkamera vs. äquidistant, halbe Sensorbreite markiert',
+    fishPin: 'Lochkamera r = f·tanθ',
+    fishEqui: 'äquidistant r = f·θ',
+    fishPinNeed: 'benötigter Sensor (Lochkamera)',
+    fishEquiNeed: 'benötigter Sensor (Fisheye)',
+    fishImpossible: 'unmöglich ≥ 180°',
+    fishDerivTitle: 'Projektionsgesetze als Familie',
+    fishDeriv: [
+      { tex: String.raw`r_{\text{Lochkamera}} = f\tan\theta \;\xrightarrow{\theta\to90^\circ}\; \infty`, note: 'Perspektivische Projektion: erhält Geraden, aber die Sensorkosten pro Grad explodieren zum Rand hin.' },
+      { tex: String.raw`r_{\text{äquidistant}} = f\,\theta`, note: 'Jedes Grad Sichtfeld kostet dieselben Millimeter Sensor — die natürliche Wahl für Überwachungskuppeln, Roboternavigation, Automotive-Rundumsicht.' },
+      { tex: String.raw`r = f\sin\theta \quad\big|\quad r = 2f\sin(\tfrac{\theta}{2}) \quad\big|\quad r = 2f\tan(\tfrac{\theta}{2})`, note: 'Die Geschwister: orthographisch, flächentreu und stereographisch — echte Objektive nähern eines davon an, und die Kalibrierung fittet obendrauf ein Polynom in θ (cv2.fisheye).' },
+    ],
+    uncTitle: 'Wie sicher ist die Kalibrierung?',
+    unc1:
+      'Eine Kalibrierung ist eine Messung, und Modul Messtechnik·1 hat die Regel gelehrt: Eine Messung ohne Unsicherheit ist kein Ergebnis. Hier läuft der Löser aus Modul 3 auf 40 unabhängig neu verrauschten Datensätzen — jeder cyanfarbene Punkt ist die Antwort einer kompletten Kalibrierung für (f, k1). Darüber liegt die bernsteinfarbene 2σ-Ellipse, berechnet OHNE jede Wiederholung, analytisch aus einem einzigen Lauf: Cov(θ) ≈ σ²(JᵀJ)⁻¹, die lineare GUM-Fortpflanzung. Beide Sichten stimmen überein — und die gekippte Ellipse verrät ein Geheimnis: f und k1 sind korreliert, weil zusätzliche Tonnenverzeichnung eine kürzere Brennweite teilweise imitieren kann.',
+    unc2:
+      'Schiebe die Anzahl der Ansichten: Die Ellipse schrumpft wie 1/√n — der statistische Lohn der Aufnahme-Checkliste. Der JᵀJ⁻¹-Trick ist nicht kalibrierspezifisch: Er bepreist die Unsicherheit jedes Kleinste-Quadrate-Fits auf dieser Seite, vom Thermistor-Labor bis zum Bündelausgleich.',
+    uncNoise: 'Eckenrauschen σ',
+    uncViews: 'verwendete Ansichten',
+    uncPlot: '40 Monte-Carlo-Kalibrierungen (cyan) vs. analytische 2σ-Ellipse (bernstein) · grünes ✕ = Wahrheit',
+    uncSigmaF: 'σ(f)',
+    uncSigmaK1: 'σ(k1)',
+    uncRho: 'Korrelation ρ(f, k1)',
     capTitle: 'Interaktiv: gute Kalibrieransichten aufnehmen',
     cap1: 'Eine virtuelle Kalibriersitzung: Positioniere das Schachbrett vor der Kamera und nimm Ansichten auf. Die Checkliste zeigt, wann der Datensatz eine vertrauenswürdige Kalibrierung ergäbe — versuche, alles grün zu bekommen.',
     capWhy:
@@ -783,6 +900,278 @@ function GaugeLab() {
   )
 }
 
+// ---------------------------------------------------------------- Zhang mini-solver
+
+const ZK_TRUE: Intrinsics = { fx: 560, fy: 560, s: 0, cx: 320, cy: 240 }
+const Z_CORNERS = boardCorners(7, 5, 0.04)
+const zPose = ([ox, oy, d, rx, ry, rz]: number[]) =>
+  m4MulChain(m4Trans(ox, oy, d), m4RotX(deg2rad(rx)), m4RotY(deg2rad(ry)), m4RotZ(deg2rad(rz)))
+const Z_POSES_VARIED = [
+  [0.0, 0.02, 0.55, 8, -6, 0],
+  [-0.1, -0.05, 0.42, -28, 14, 12],
+  [0.12, 0.06, 0.5, 20, 26, -18],
+  [-0.13, 0.07, 0.62, 12, -30, 30],
+  [0.1, -0.08, 0.47, -18, -22, -35],
+  [0.0, 0.0, 0.38, 32, 8, 60],
+].map(zPose)
+const Z_POSES_FRONTAL = [
+  [0.0, 0.0, 0.5, 0, 0, 0],
+  [-0.08, 0.04, 0.42, 0, 0, 25],
+  [0.09, -0.05, 0.56, 0, 0, -40],
+  [-0.1, -0.06, 0.62, 0, 0, 60],
+  [0.06, 0.07, 0.46, 0, 0, 110],
+  [0.0, 0.0, 0.38, 0, 0, 150],
+].map(zPose)
+
+function ZhangLab() {
+  const t = useT(T)
+  const [nViews, setNViews] = useState(6)
+  const [noise, setNoise] = useState(0.3)
+  const [poseSet, setPoseSet] = useState<'varied' | 'frontal'>('varied')
+
+  const res = useMemo(() => {
+    const poses = (poseSet === 'varied' ? Z_POSES_VARIED : Z_POSES_FRONTAL).slice(0, nViews)
+    const g = makeGauss(Math.round(noise * 100) * 13 + nViews + (poseSet === 'varied' ? 0 : 500))
+    const Hs = poses.flatMap((P) => {
+      const src: HP2[] = []
+      const dst: HP2[] = []
+      for (const c of Z_CORNERS) {
+        const p = projectCamPoint(ZK_TRUE, m4MulP(P, c))
+        src.push([c[0], c[1]])
+        dst.push([p.u + g() * noise, p.v + g() * noise])
+      }
+      const Hh = homographyDLT(src, dst)
+      return Hh ? [Hh] : []
+    })
+    return zhangIntrinsics(Hs)
+  }, [nViews, noise, poseSet])
+
+  const good = res.ok
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="card-pad space-y-3.5">
+        <Slider label={t.zhangViews} value={nViews} min={1} max={6} step={1} onChange={setNViews} />
+        <Slider label={t.zhangNoise} value={noise} min={0} max={1.5} step={0.1} onChange={setNoise} format={(v) => `${fmt(v, 1)} px`} />
+        <div>
+          <div className="mb-1.5 text-[12px] text-muted">{t.zhangSet}</div>
+          <Segmented options={t.zhangSetNames} value={poseSet} onChange={(v) => setPoseSet(v as 'varied' | 'frontal')} />
+        </div>
+      </div>
+      <div className="flex flex-col gap-3 self-start">
+        <div
+          className="rounded-lg border px-3 py-2 text-[13px] font-bold tracking-wide"
+          style={{ borderColor: good ? '#4ade8066' : '#f8717166', color: good ? '#4ade80' : '#f87171' }}
+        >
+          {good ? `✓ ${t.zhangOk}` : `✗ ${t.zhangBad}`}
+          {!good && <div className="mt-0.5 text-[12px] font-normal text-muted">{t.zhangBadHint}</div>}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Readout
+            label={t.zhangFx}
+            value={good ? fmt(res.k.fx, 1) : '—'}
+            accent={good && Math.abs(res.k.fx - 560) < 5 ? '#4ade80' : undefined}
+          />
+          <Readout label={t.zhangC} value={good ? `${fmt(res.k.cx, 0)} / ${fmt(res.k.cy, 0)}` : '—'} />
+        </div>
+        <Readout
+          label={t.zhangCond}
+          value={!good ? '—' : res.conditioning > 1e6 ? '> 10⁶' : fmt(res.conditioning, 0)}
+          accent={good ? '#4ade80' : '#f87171'}
+        />
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- fisheye lab
+
+const FISH_F = 300 // px, both models
+const FISH_K: Intrinsics = { fx: FISH_F, fy: FISH_F, s: 0, cx: 320, cy: 240 }
+
+function FisheyeLab() {
+  const t = useT(T)
+  const [fovDeg, setFovDeg] = useState(140)
+  const thMax = deg2rad(fovDeg / 2)
+
+  const PW = 520
+  const PH = 260
+  const sx = (thDeg: number) => (thDeg / 110) * PW
+  const sy = (r: number) => PH - 18 - Math.min(r / 1100, 1) * (PH - 36)
+
+  const pinCurve = Array.from({ length: 110 }, (_, i) => {
+    const th = deg2rad(i * 0.8)
+    return th < deg2rad(88) ? `${sx(i * 0.8)},${sy(pinholeRadius(FISH_F, th))}` : null
+  })
+    .filter(Boolean)
+    .join(' ')
+  const equiCurve = Array.from({ length: 138 }, (_, i) => `${sx(i * 0.8)},${sy(equidistantRadius(FISH_F, deg2rad(i * 0.8)))}`).join(' ')
+
+  const rings = useMemo(() => {
+    const out: { pin: { u: number; v: number }[]; fish: { u: number; v: number }[]; color: string }[] = []
+    const colors = ['#22d3ee', '#4ade80', '#fbbf24', '#f87171', '#a78bfa', '#38bdf8', '#f472b6', '#a3e635']
+    for (let ti = 0; ti < 8; ti++) {
+      const th = deg2rad(((ti + 1) * fovDeg) / 2 / 8)
+      const pin: { u: number; v: number }[] = []
+      const fish: { u: number; v: number }[] = []
+      for (let a = 0; a < 28; a++) {
+        const phi = (a / 28) * Math.PI * 2
+        const c: V3 = [Math.sin(th) * Math.cos(phi), Math.sin(th) * Math.sin(phi), Math.cos(th)]
+        if (th < deg2rad(88)) {
+          const p = projectCamPoint(FISH_K, c)
+          if (p.u >= 0 && p.u <= 640 && p.v >= 0 && p.v <= 480) pin.push({ u: p.u, v: p.v })
+        }
+        const q = fisheyeProjectCamPoint(FISH_K, c)
+        if (q.u >= 0 && q.u <= 640 && q.v >= 0 && q.v <= 480) fish.push({ u: q.u, v: q.v })
+      }
+      out.push({ pin, fish, color: colors[ti % colors.length] })
+    }
+    return out
+  }, [fovDeg])
+
+  const pinNeed = fovDeg < 178 ? 2 * pinholeRadius(FISH_F, thMax) : Infinity
+  const equiNeed = 2 * equidistantRadius(FISH_F, thMax)
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="card overflow-hidden lg:col-span-2">
+        <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">{t.fishCurve}</div>
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          <line x1={0} y1={sy(320)} x2={PW} y2={sy(320)} stroke="#8b93a766" strokeDasharray="5 4" />
+          <line x1={sx(fovDeg / 2)} y1={10} x2={sx(fovDeg / 2)} y2={PH - 18} stroke="#ffffff33" strokeDasharray="3 4" />
+          <polyline points={pinCurve} fill="none" stroke="#f87171" strokeWidth={2} />
+          <polyline points={equiCurve} fill="none" stroke="#22d3ee" strokeWidth={2} />
+          <text x={8} y={sy(320) - 5} fill="#8b93a7" fontSize={10.5} fontFamily="JetBrains Mono, monospace">
+            320 px
+          </text>
+          <text x={PW - 8} y={PH - 5} textAnchor="end" fill="#8b93a7" fontSize={10.5} fontFamily="JetBrains Mono, monospace">
+            θ →
+          </text>
+          <text x={sx(45)} y={22} fill="#f87171" fontSize={11.5} fontFamily="JetBrains Mono, monospace">
+            {t.fishPin}
+          </text>
+          <text x={sx(72)} y={sy(equidistantRadius(FISH_F, deg2rad(74))) - 8} fill="#22d3ee" fontSize={11.5} fontFamily="JetBrains Mono, monospace">
+            {t.fishEqui}
+          </text>
+        </svg>
+      </div>
+      <ImageView
+        w={640}
+        h={480}
+        title={t.fishPin}
+        grid={false}
+        points={rings.flatMap((r) => r.pin.map((p) => ({ u: p.u, v: p.v, color: r.color, r: 2.5 })))}
+      />
+      <ImageView
+        w={640}
+        h={480}
+        title={t.fishEqui}
+        grid={false}
+        points={rings.flatMap((r) => r.fish.map((p) => ({ u: p.u, v: p.v, color: r.color, r: 2.5 })))}
+      />
+      <div className="card-pad">
+        <Slider label={t.fishFov} value={fovDeg} min={60} max={220} step={2} onChange={setFovDeg} format={(v) => `${v}°`} />
+      </div>
+      <div className="grid grid-cols-2 gap-3 self-start">
+        <Readout
+          label={t.fishPinNeed}
+          value={Number.isFinite(pinNeed) ? fmt(pinNeed, 0) : t.fishImpossible}
+          unit={Number.isFinite(pinNeed) ? 'px' : undefined}
+          accent={Number.isFinite(pinNeed) && pinNeed < 700 ? '#4ade80' : '#f87171'}
+        />
+        <Readout label={t.fishEquiNeed} value={fmt(equiNeed, 0)} unit="px" accent="#22d3ee" />
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- uncertainty lab
+
+function UncertaintyLab() {
+  const t = useT(T)
+  const [noise, setNoise] = useState(0.6)
+  const [nViews, setNViews] = useState(6)
+
+  const { runs, thRef, cov } = useMemo(() => {
+    const rs: [number, number][] = []
+    for (let i = 0; i < 40; i++) {
+      const obs = makeObservationsN(noise, 1000 + i * 17, nViews)
+      const th = lmSolve(obs)
+      rs.push([th.f, th.k1])
+    }
+    const obsRef = makeObservationsN(noise, 999, nViews)
+    const ref = lmSolve(obsRef)
+    return { runs: rs, thRef: ref, cov: calibCovariance(ref, obsRef) }
+  }, [noise, nViews])
+
+  const sf = Math.sqrt(Math.max(cov[0][0], 0))
+  const sk = Math.sqrt(Math.max(cov[3][3], 0))
+  const rho = sf > 0 && sk > 0 ? cov[0][3] / (sf * sk) : 0
+
+  // plot: x = f, y = k1, ranges from scatter + ellipse
+  const PW = 520
+  const PH = 340
+  const xr: [number, number] = [560 - Math.max(4 * sf, 1.2), 560 + Math.max(4 * sf, 1.2)]
+  const yr: [number, number] = [-0.18 - Math.max(4 * sk, 0.004), -0.18 + Math.max(4 * sk, 0.004)]
+  const px = (f: number) => ((f - xr[0]) / (xr[1] - xr[0])) * PW
+  const py = (k1: number) => PH - ((k1 - yr[0]) / (yr[1] - yr[0])) * PH
+
+  // parametric 2σ ellipse from the (f, k1) marginal covariance
+  const ellipse = useMemo(() => {
+    const eig = jacobiEigen([
+      [cov[0][0], cov[0][3]],
+      [cov[3][0], cov[3][3]],
+    ])
+    const a = 2 * Math.sqrt(Math.max(eig.values[0], 0))
+    const b = 2 * Math.sqrt(Math.max(eig.values[1], 0))
+    const v1 = eig.vectors[0]
+    const v2 = eig.vectors[1]
+    return Array.from({ length: 49 }, (_, i) => {
+      const phi = (i / 48) * Math.PI * 2
+      const f = thRef.f + a * Math.cos(phi) * v1[0] + b * Math.sin(phi) * v2[0]
+      const k1 = thRef.k1 + a * Math.cos(phi) * v1[1] + b * Math.sin(phi) * v2[1]
+      return `${px(f)},${py(k1)}`
+    }).join(' ')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cov, thRef, xr[0], xr[1], yr[0], yr[1]])
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-5">
+      <div className="card overflow-hidden lg:col-span-3">
+        <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">{t.uncPlot}</div>
+        <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
+          <polyline points={ellipse} fill="none" stroke="#fbbf24" strokeWidth={1.8} />
+          {runs.map(([f, k1], i) => (
+            <circle key={i} cx={px(f)} cy={py(k1)} r={3} fill="#22d3ee99" />
+          ))}
+          <text x={px(560)} y={py(-0.18) + 4} textAnchor="middle" fill="#4ade80" fontSize={14}>
+            ✕
+          </text>
+          <text x={PW - 8} y={PH - 6} textAnchor="end" fill="#8b93a7" fontSize={10.5} fontFamily="JetBrains Mono, monospace">
+            f (px) →
+          </text>
+          <text x={8} y={14} fill="#8b93a7" fontSize={10.5} fontFamily="JetBrains Mono, monospace">
+            k₁ ↑
+          </text>
+        </svg>
+      </div>
+      <div className="flex flex-col gap-4 self-start lg:col-span-2">
+        <div className="card-pad space-y-3.5">
+          <Slider label={t.uncNoise} value={noise} min={0.1} max={1.5} step={0.1} onChange={setNoise} format={(v) => `${fmt(v, 1)} px`} />
+          <Slider label={t.uncViews} value={nViews} min={2} max={6} step={1} onChange={setNViews} accent="#a78bfa" />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <Readout label={t.uncSigmaF} value={fmt(sf, 2)} unit="px" />
+          <Readout label={t.uncSigmaK1} value={fmt(sk * 1000, 2)} unit="·10⁻³" />
+          <Readout label={t.uncRho} value={fmt(rho, 2)} accent={Math.abs(rho) > 0.4 ? '#fbbf24' : undefined} />
+        </div>
+        <div className="card-pad">
+          <TeX block>{String.raw`\mathrm{Cov}(\hat{\boldsymbol{\theta}}) \;\approx\; \hat{\sigma}^2\,(J^{\mathsf T}J)^{-1}`}</TeX>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- page
 
 export function CalibrationPage() {
@@ -793,10 +1182,12 @@ export function CalibrationPage() {
         items={[
           { id: 'why', label: t.whyTitle },
           { id: 'distortion', label: t.distTitle },
+          { id: 'fisheye', label: t.fishTitle },
           { id: 'zhang', label: t.zhangTitle },
           { id: 'capture', label: t.capTitle },
           { id: 'tilt', label: t.tiltTitle },
           { id: 'reprojection', label: t.reprojTitle },
+          { id: 'uncertainty', label: t.uncTitle },
           { id: 'opencv', label: t.tipsTitle },
           { id: 'application', label: t.appTitle },
         ]}
@@ -836,6 +1227,19 @@ export function CalibrationPage() {
         </InfoBox>
       </Section>
 
+      <Section id="fisheye" title={t.fishTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.fish1}</p>
+        </div>
+        <div className="mt-4">
+          <FisheyeLab />
+        </div>
+        <div className="prose-cv mt-4 max-w-3xl">
+          <p>{t.fish2}</p>
+        </div>
+        <Derivation title={t.fishDerivTitle} steps={t.fishDeriv} />
+      </Section>
+
       <Section id="zhang" title={t.zhangTitle}>
         <div className="prose-cv max-w-3xl">
           <p>{t.zhang1}</p>
@@ -846,6 +1250,14 @@ export function CalibrationPage() {
             ))}
           </ol>
           <p>{t.zhang2}</p>
+        </div>
+        <Derivation title={t.zhangDerivTitle} steps={t.zhangDeriv} />
+        <div className="prose-cv mt-4 max-w-3xl">
+          <h3 className="text-[16px] font-bold">{t.zhangLabTitle}</h3>
+          <p>{t.zhangLab1}</p>
+        </div>
+        <div className="mt-4">
+          <ZhangLab />
         </div>
         <InfoBox>
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -893,6 +1305,18 @@ export function CalibrationPage() {
           <ReprojectionDemo />
         </div>
         <InfoBox tone="warn">{t.reproj2}</InfoBox>
+      </Section>
+
+      <Section id="uncertainty" title={t.uncTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.unc1}</p>
+        </div>
+        <div className="mt-4">
+          <UncertaintyLab />
+        </div>
+        <div className="prose-cv mt-4 max-w-3xl">
+          <p>{t.unc2}</p>
+        </div>
       </Section>
 
       <Section id="opencv" title={t.tipsTitle}>

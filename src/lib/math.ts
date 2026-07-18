@@ -266,6 +266,27 @@ export function undistortNormalized(
   return [x, y]
 }
 
+// ---------------------------------------------------------------- fisheye (equidistant model)
+
+/** Pinhole radial image height for a ray at angle θ off the optical axis: r = f·tanθ. */
+export const pinholeRadius = (f: number, thetaRad: number): number => f * Math.tan(thetaRad)
+
+/** Equidistant-fisheye radial image height: r = f·θ — linear in the angle, never diverges. */
+export const equidistantRadius = (f: number, thetaRad: number): number => f * thetaRad
+
+/**
+ * Equidistant-fisheye projection of a camera-frame point: the image radius is
+ * proportional to the ray angle θ instead of tan θ. Points behind the camera
+ * (θ > 90°) still project — that is how >180° lenses work.
+ */
+export function fisheyeProjectCamPoint(k: Intrinsics, c: V3): ProjectedPoint {
+  const rxy = Math.hypot(c[0], c[1])
+  const theta = Math.atan2(rxy, c[2])
+  if (rxy < 1e-12) return { u: k.cx, v: k.cy, z: c[2] }
+  const rd = k.fx * theta
+  return { u: k.cx + (rd * c[0]) / rxy, v: k.cy + ((k.fy / k.fx) * rd * c[1]) / rxy, z: c[2] }
+}
+
 // ---------------------------------------------------------------- two-view geometry
 
 /** Essential matrix for x_c2 = R x_c1 + t (relates normalized coords: x̂2ᵀ E x̂1 = 0). */

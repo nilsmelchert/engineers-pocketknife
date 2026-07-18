@@ -87,6 +87,9 @@ export const LAB_INDEX: LabEntry[] = [
   { path: '/metrology-3d', sectionId: 'interferometry', emoji: '🎯', title: { en: 'Michelson interferometry (nm scale)', de: 'Michelson-Interferometrie (nm-Skala)' } },
   { path: '/camera-matrix', sectionId: 'homography', emoji: '🗺️', title: { en: 'Homography: bird’s-eye view from 4 points', de: 'Homographie: Vogelperspektive aus 4 Punkten' } },
   { path: '/camera-matrix', sectionId: 'pnp', emoji: '📍', title: { en: 'PnP: camera pose locks onto a known object', de: 'PnP: Kamerapose rastet auf bekanntem Objekt ein' } },
+  { path: '/calibration', sectionId: 'fisheye', emoji: '🐟', title: { en: 'Fisheye vs. pinhole: when tan θ explodes', de: 'Fisheye vs. Lochkamera: wenn tan θ explodiert' } },
+  { path: '/calibration', sectionId: 'zhang', emoji: '🧮', title: { en: "Zhang's method running live", de: 'Zhangs Methode live' } },
+  { path: '/calibration', sectionId: 'uncertainty', emoji: '🎲', title: { en: 'Calibration uncertainty: Monte Carlo vs. (JᵀJ)⁻¹', de: 'Kalibrier-Unsicherheit: Monte Carlo vs. (JᵀJ)⁻¹' } },
   // 🏭 Real-world application labs (one per module)
   { path: '/camera-matrix', sectionId: 'application', emoji: '🚗', title: { en: 'ADAS: how far is that car? (mono distance)', de: 'ADAS: Wie weit ist das Auto? (Mono-Distanz)' } },
   { path: '/calibration', sectionId: 'application', emoji: '🔩', title: { en: 'Vision gauge: measuring a bolt in mm', de: 'Messmaschine: eine Schraube in mm messen' } },

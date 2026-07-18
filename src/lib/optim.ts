@@ -176,9 +176,14 @@ export function calibProject(th: CalibTheta, p: V3): Vec2 {
 export type Observations = Vec2[][] // [view][corner] detected pixel
 
 export function makeObservations(noiseSigma: number, seed: number): Observations {
+  return makeObservationsN(noiseSigma, seed, CAM_POINTS.length)
+}
+
+/** Like makeObservations, but only the first `nViews` views (for the uncertainty lab). */
+export function makeObservationsN(noiseSigma: number, seed: number, nViews: number): Observations {
   const rand = mulberry32(seed)
   const gauss = () => (rand() + rand() + rand() + rand() - 2) * 1.732 // ≈ N(0,1): sum of 4 U(0,1) has σ = 1/√3
-  return CAM_POINTS.map((view) =>
+  return CAM_POINTS.slice(0, nViews).map((view) =>
     view.map((p) => {
       const [u, v] = calibProject(CALIB_TRUE, p)
       return [u + gauss() * noiseSigma, v + gauss() * noiseSigma] as Vec2
@@ -190,12 +195,12 @@ export function calibReprojections(th: CalibTheta): Vec2[][] {
   return CAM_POINTS.map((view) => view.map((p) => calibProject(th, p)))
 }
 
-/** Root-mean-square reprojection error over all corners of all views. */
+/** Root-mean-square reprojection error over all corners of the observed views. */
 export function calibRms(th: CalibTheta, obs: Observations): number {
   let se = 0
   let n = 0
-  for (let i = 0; i < CAM_POINTS.length; i++)
-    for (let j = 0; j < CAM_POINTS[i].length; j++) {
+  for (let i = 0; i < obs.length; i++)
+    for (let j = 0; j < obs[i].length; j++) {
       const [u, v] = calibProject(th, CAM_POINTS[i][j])
       se += (u - obs[i][j][0]) ** 2 + (v - obs[i][j][1]) ** 2
       n++
@@ -209,8 +214,8 @@ const vecTh = (v: number[]): CalibTheta => ({ f: v[0], cx: v[1], cy: v[2], k1: v
 function residuals(v: number[], obs: Observations): number[] {
   const th = vecTh(v)
   const r: number[] = []
-  for (let i = 0; i < CAM_POINTS.length; i++)
-    for (let j = 0; j < CAM_POINTS[i].length; j++) {
+  for (let i = 0; i < obs.length; i++)
+    for (let j = 0; j < obs[i].length; j++) {
       const [u, vv] = calibProject(th, CAM_POINTS[i][j])
       r.push(u - obs[i][j][0], vv - obs[i][j][1])
     }
@@ -309,4 +314,48 @@ export function lmCalibStep(th: CalibTheta, obs: Observations, lambda: number): 
     lam *= 4
   }
   return { th, lambda: lam, accepted: false }
+}
+
+/** Run LM to convergence — the workhorse of the calibration-uncertainty lab. */
+export function lmSolve(obs: Observations, maxIter = 15, start: CalibTheta = CALIB_START): CalibTheta {
+  let th = start
+  let lambda = 1e-3
+  for (let i = 0; i < maxIter; i++) {
+    const st = lmCalibStep(th, obs, lambda)
+    th = st.th
+    lambda = st.lambda
+    if (!st.accepted && lambda > 1e6) break
+  }
+  return th
+}
+
+/**
+ * First-order parameter covariance at the LM solution: Cov(θ) ≈ s²·(JᵀJ)⁻¹
+ * with s² = ‖r‖²/(m − 4). The GUM-style analytic counterpart of the
+ * Monte-Carlo scatter in the uncertainty lab.
+ */
+export function calibCovariance(th: CalibTheta, obs: Observations): number[][] {
+  const v = thVec(th)
+  const r = residuals(v, obs)
+  const J = jacobian(v, obs)
+  const n = 4
+  const JtJ: number[][] = Array.from({ length: n }, () => new Array<number>(n).fill(0))
+  for (let a = 0; a < n; a++)
+    for (let b = a; b < n; b++) {
+      let s = 0
+      for (let i = 0; i < r.length; i++) s += J[a][i] * J[b][i]
+      JtJ[a][b] = s
+      JtJ[b][a] = s
+    }
+  const s2 = r.reduce((s, x) => s + x * x, 0) / Math.max(r.length - n, 1)
+  // invert via solveN column by column
+  const inv: number[][] = Array.from({ length: n }, () => new Array<number>(n).fill(0))
+  for (let c = 0; c < n; c++) {
+    const e = new Array<number>(n).fill(0)
+    e[c] = 1
+    const col = solveN(JtJ, e)
+    if (!col) return inv
+    for (let rIdx = 0; rIdx < n; rIdx++) inv[rIdx][c] = col[rIdx] * s2
+  }
+  return inv
 }
