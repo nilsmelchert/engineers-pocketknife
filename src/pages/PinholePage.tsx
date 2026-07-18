@@ -1,18 +1,23 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useT } from '../i18n'
 import { TeX } from '../components/TeX'
 import { MatrixView } from '../components/MatrixView'
 import { ImageView, type ImagePoint } from '../components/ImageView'
 import { PageToc } from '../components/PageToc'
-import { InfoBox, Readout, Section, Slider } from '../components/ui'
+import { Derivation } from '../components/Derivation'
+import { InfoBox, Readout, Section, Segmented, Slider } from '../components/ui'
 import { AxesTriad, CameraFrustumViz, Polyline, Scene3D } from '../components/three/helpers'
 import {
   add,
   cameraCenter,
   deg2rad,
   fmt,
+  fmtSci,
   lookAtCV,
+  m3Inv,
+  m3Mul,
   m3MulV,
+  m3T,
   norm,
   pMat,
   projectPoint,
@@ -20,8 +25,12 @@ import {
   scale,
   sub,
   type Intrinsics,
+  type M3,
+  type Pose,
   type V3,
 } from '../lib/math'
+import { makeGauss } from '../lib/stats'
+import { applyH, homographyDLT, homographyRms, pnpRefine, poseFromHomography, type P2 } from '../lib/homography'
 
 const W = 640
 const H = 480
@@ -150,6 +159,51 @@ const T = {
     s6a: 'Chaining both stages gives a single 3×4 matrix acting on homogeneous coordinates. Homogeneous coordinates are the trick that turns the nonlinear division by Z into linear algebra — the division is postponed to the very last step:',
     s6b: 'Count the degrees of freedom: 5 in K (or 4 with s = 0) + 3 rotation + 3 translation = 11 — matching a 3×4 matrix up to scale. Camera calibration (module 2) is precisely the task of estimating these numbers.',
     dofChips: ['K: 5 DoF', 'R: 3 DoF', 't: 3 DoF', 'P: 11 DoF (up to scale)'],
+    homTitle: 'When the world is flat: the homography',
+    hom1: 'Set Z = 0 in the projection and something remarkable happens: the 3×4 matrix P loses a column and collapses into an invertible 3×3 matrix H — the homography. For any planar scene (a floor, a wall, a calibration board), the mapping between plane and image is a plain matrix, and unlike P it can be run BACKWARDS: H⁻¹ turns pixels back into meters. Below, a camera looks obliquely at a floor grid. From a handful of point correspondences the homography is estimated live (with the same least-squares machinery as everything else on this site) — and the right panel uses H⁻¹ to un-warp the perspective view into a metric top-down map.',
+    hom2: 'Play with the noise and the number of correspondences: 4 points determine H exactly (8 equations, 8 unknowns) but inherit every pixel of noise; more points average it away. This exact estimate-H-then-invert loop is how sports broadcasts paint lines on the pitch, how parking cameras compute bird’s-eye views — and how camera calibration begins (module 2).',
+    homNPts: 'correspondences',
+    homNoise: 'detection noise σ',
+    homRms: 'warp RMS',
+    homRecon: 'top-down error',
+    homLeft: 'camera view — detected plane points',
+    homRight: 'metric top-down view — H⁻¹ applied to the detections',
+    homTry: [
+      'Set 4 correspondences and σ = 1.5 px: the reconstruction visibly shears — with zero redundancy, H chases the noise.',
+      'Switch to 35 correspondences: same noise, but the grid snaps back — least squares averages 70 equations over 8 unknowns.',
+      'Steepen the tilt: pixels near the horizon cover more meters, so the same pixel noise costs more metric accuracy at the far edge.',
+    ],
+    homDerivTitle: 'From P to H, step by step',
+    homDeriv: [
+      { tex: String.raw`\lambda\tilde{\mathbf{x}} = K[R\,|\,\mathbf{t}]\begin{bmatrix}X\\Y\\0\\1\end{bmatrix} = K[\mathbf{r}_1\;\mathbf{r}_2\;\mathbf{t}]\begin{bmatrix}X\\Y\\1\end{bmatrix}`, note: 'Points on the plane Z = 0 never touch the third rotation column r₃ — the 3×4 projection collapses to a 3×3 matrix.' },
+      { tex: String.raw`H = K[\mathbf{r}_1\;\mathbf{r}_2\;\mathbf{t}], \qquad \tilde{\mathbf{x}} \sim H\begin{bmatrix}X\\Y\\1\end{bmatrix}`, note: 'H has 9 entries but only 8 degrees of freedom — the overall scale cancels in the homogeneous division.' },
+      { tex: String.raw`u = \frac{h_1 X + h_2 Y + h_3}{h_7 X + h_8 Y + h_9}, \quad v = \frac{h_4 X + h_5 Y + h_6}{h_7 X + h_8 Y + h_9}`, note: 'Cross-multiplying each equation makes it LINEAR in the entries of H: every correspondence contributes two linear equations.' },
+      { tex: String.raw`\mathbf{h}^\star = \arg\min_{\|\mathbf{h}\|=1} \|A\mathbf{h}\|^2 \;=\; \text{smallest eigenvector of } A^{\mathsf T}A`, note: 'Stack ≥4 correspondences into A (2N×9) and take the least-squares null vector — the classic Direct Linear Transform (DLT).' },
+      { tex: String.raw`\hat{\mathbf{x}} = T'\tilde{\mathbf{x}}, \quad \hat{\mathbf{X}} = T\tilde{\mathbf{X}} \quad\text{(center + scale to } \sqrt{2}\text{)}`, note: 'One practical trap: at raw pixel scale AᵀA is numerically ill-conditioned. Normalizing both point sets first (Hartley) fixes it — this lab does exactly that.' },
+    ],
+    pnpTitle: 'Where am I? Pose from one image (PnP)',
+    pnp1: 'Flip the question of this module on its head: the intrinsics K are known, the 3D shape of the house is known — but where does the camera stand? That is the Perspective-n-Point problem, and it is how AR headsets anchor content, how robots localize against known parts, and how every marker tracker works. Watch it solve live: the amber reprojections of the current pose guess are pulled onto the cyan detections, and in the 3D view the estimated camera glides into the true one.',
+    pnp2: 'The solver is the Gauss–Newton loop from module 3, run over just 6 numbers (3 rotation, 3 translation): linearize the reprojection error about the current pose, solve the normal equations, step, repeat. The starting guess comes from the homography of the house’s floor square — planar geometry bootstraps full 3D pose.',
+    pnpInit: 'Init from homography',
+    pnpStep: 'Iterate',
+    pnpRun: 'Auto-run',
+    pnpReset: 'Reset',
+    pnpNoise: 'detection noise σ',
+    pnpNPts: 'points used',
+    pnpRms: 'reprojection RMS',
+    pnpPosErr: 'position error',
+    pnpRotErr: 'rotation error',
+    pnpIter: 'iteration',
+    pnpLeft: 'camera image — detections (cyan) vs. current-pose reprojections (amber)',
+    pnpRight: '3D — true camera (gray) vs. estimated camera (cyan)',
+    pnpDerivTitle: 'The PnP normal equations',
+    pnpDeriv: [
+      { tex: String.raw`\text{unknowns: } (R, \mathbf{t}) \;\;\hat{=}\;\; 6 \text{ DoF}, \qquad \text{each point} \Rightarrow 2 \text{ equations}`, note: 'Three points already suffice in principle (P3P has closed-form solutions); real systems use more points plus least squares.' },
+      { tex: String.raw`\mathbf{r}_i(\boldsymbol{\theta}) = \pi\big(K(R\mathbf{X}_i + \mathbf{t})\big) - \mathbf{x}_i`, note: 'The residual is the reprojection error of point i — exactly the quantity module 2 minimizes, but now over the pose instead of over K.' },
+      { tex: String.raw`R \leftarrow R\,\exp([\boldsymbol{\omega}]_\times), \qquad \mathbf{t} \leftarrow \mathbf{t} + \delta\mathbf{t}`, note: 'Rotations are updated multiplicatively with a small axis-angle vector ω — the standard trick to optimize on the rotation group without breaking orthonormality.' },
+      { tex: String.raw`(J^{\mathsf T}J)\,\boldsymbol{\delta} = -J^{\mathsf T}\mathbf{r}`, note: 'Linearize, form the 6×6 normal equations, solve, step — the Gauss–Newton core of module Vision·3, in its smallest natural habitat.' },
+      { tex: String.raw`\text{AR anchors} \cdot \text{robot picking} \cdot \text{marker tracking} \cdot \text{camera relocalization}`, note: 'cv2.solvePnP ships exactly this (plus P3P/EPnP initializers and RANSAC wrappers for outliers — module Data·4).' },
+    ],
   },
   de: {
     kicker: 'Vision · Modul 1',
@@ -251,6 +305,51 @@ const T = {
     s6a: 'Die Verkettung beider Stufen ergibt eine einzige 3×4-Matrix auf homogenen Koordinaten. Homogene Koordinaten sind der Trick, der die nichtlineare Division durch Z in lineare Algebra verwandelt — die Division wird auf den allerletzten Schritt verschoben:',
     s6b: 'Zählen wir die Freiheitsgrade: 5 in K (bzw. 4 mit s = 0) + 3 Rotation + 3 Translation = 11 — passend zu einer 3×4-Matrix bis auf Skalierung. Kamerakalibrierung (Modul 2) ist genau die Aufgabe, diese Zahlen zu schätzen.',
     dofChips: ['K: 5 FG', 'R: 3 FG', 't: 3 FG', 'P: 11 FG (bis auf Skalierung)'],
+    homTitle: 'Wenn die Welt flach ist: die Homographie',
+    hom1: 'Setze Z = 0 in der Projektion, und etwas Bemerkenswertes passiert: Die 3×4-Matrix P verliert eine Spalte und kollabiert zu einer invertierbaren 3×3-Matrix H — der Homographie. Für jede ebene Szene (ein Boden, eine Wand, ein Kalibrierbrett) ist die Abbildung zwischen Ebene und Bild eine schlichte Matrix, und anders als P lässt sie sich RÜCKWÄRTS ausführen: H⁻¹ verwandelt Pixel zurück in Meter. Unten blickt eine Kamera schräg auf ein Bodenraster. Aus einer Handvoll Punktkorrespondenzen wird die Homographie live geschätzt (mit derselben Kleinste-Quadrate-Maschinerie wie alles auf dieser Seite) — und das rechte Panel entzerrt mit H⁻¹ die Perspektivansicht in eine metrische Draufsicht.',
+    hom2: 'Spiele mit dem Rauschen und der Anzahl der Korrespondenzen: 4 Punkte bestimmen H exakt (8 Gleichungen, 8 Unbekannte), erben aber jedes Pixel Rauschen; mehr Punkte mitteln es weg. Genau diese Schleife aus H-Schätzen und Invertieren malt in Sportübertragungen Linien aufs Spielfeld, berechnet in Einparkkameras die Vogelperspektive — und eröffnet die Kamerakalibrierung (Modul 2).',
+    homNPts: 'Korrespondenzen',
+    homNoise: 'Detektionsrauschen σ',
+    homRms: 'Warp-RMS',
+    homRecon: 'Draufsicht-Fehler',
+    homLeft: 'Kamerabild — detektierte Ebenenpunkte',
+    homRight: 'metrische Draufsicht — H⁻¹ auf die Detektionen angewandt',
+    homTry: [
+      'Stelle 4 Korrespondenzen und σ = 1,5 px ein: Die Rekonstruktion schert sichtbar — ohne Redundanz jagt H dem Rauschen hinterher.',
+      'Wechsle auf 35 Korrespondenzen: gleiches Rauschen, aber das Raster rastet ein — kleinste Quadrate mitteln 70 Gleichungen über 8 Unbekannte.',
+      'Kippe die Kamera steiler: Pixel nahe dem Horizont decken mehr Meter ab, also kostet dasselbe Pixelrauschen am fernen Rand mehr metrische Genauigkeit.',
+    ],
+    homDerivTitle: 'Von P zu H, Schritt für Schritt',
+    homDeriv: [
+      { tex: String.raw`\lambda\tilde{\mathbf{x}} = K[R\,|\,\mathbf{t}]\begin{bmatrix}X\\Y\\0\\1\end{bmatrix} = K[\mathbf{r}_1\;\mathbf{r}_2\;\mathbf{t}]\begin{bmatrix}X\\Y\\1\end{bmatrix}`, note: 'Punkte auf der Ebene Z = 0 berühren die dritte Rotationsspalte r₃ nie — die 3×4-Projektion kollabiert zu einer 3×3-Matrix.' },
+      { tex: String.raw`H = K[\mathbf{r}_1\;\mathbf{r}_2\;\mathbf{t}], \qquad \tilde{\mathbf{x}} \sim H\begin{bmatrix}X\\Y\\1\end{bmatrix}`, note: 'H hat 9 Einträge, aber nur 8 Freiheitsgrade — die Gesamtskalierung kürzt sich in der homogenen Division heraus.' },
+      { tex: String.raw`u = \frac{h_1 X + h_2 Y + h_3}{h_7 X + h_8 Y + h_9}, \quad v = \frac{h_4 X + h_5 Y + h_6}{h_7 X + h_8 Y + h_9}`, note: 'Kreuzmultiplizieren macht jede Gleichung LINEAR in den Einträgen von H: Jede Korrespondenz liefert zwei lineare Gleichungen.' },
+      { tex: String.raw`\mathbf{h}^\star = \arg\min_{\|\mathbf{h}\|=1} \|A\mathbf{h}\|^2 \;=\; \text{kleinster Eigenvektor von } A^{\mathsf T}A`, note: 'Staple ≥4 Korrespondenzen in A (2N×9) und nimm den Kleinste-Quadrate-Nullvektor — die klassische Direct Linear Transform (DLT).' },
+      { tex: String.raw`\hat{\mathbf{x}} = T'\tilde{\mathbf{x}}, \quad \hat{\mathbf{X}} = T\tilde{\mathbf{X}} \quad\text{(zentrieren + auf } \sqrt{2}\text{ skalieren)}`, note: 'Eine praktische Falle: Auf roher Pixelskala ist AᵀA numerisch schlecht konditioniert. Beide Punktmengen vorher zu normalisieren (Hartley) behebt das — genau das tut dieses Labor.' },
+    ],
+    pnpTitle: 'Wo bin ich? Pose aus einem Bild (PnP)',
+    pnp1: 'Dreh die Frage dieses Moduls um: Die Intrinsik K ist bekannt, die 3D-Form des Hauses ist bekannt — aber wo steht die Kamera? Das ist das Perspective-n-Point-Problem, und es ist der Kern davon, wie AR-Headsets Inhalte verankern, wie Roboter sich an bekannten Bauteilen lokalisieren und wie jeder Marker-Tracker funktioniert. Sieh zu, wie es live gelöst wird: Die bernsteinfarbenen Reprojektionen der aktuellen Posen-Schätzung werden auf die cyanfarbenen Detektionen gezogen, und in der 3D-Ansicht gleitet die geschätzte Kamera in die wahre hinein.',
+    pnp2: 'Der Löser ist die Gauß-Newton-Schleife aus Modul 3, ausgeführt über nur 6 Zahlen (3 Rotation, 3 Translation): Reprojektionsfehler um die aktuelle Pose linearisieren, Normalengleichungen lösen, Schritt machen, wiederholen. Der Startwert kommt aus der Homographie des Bodenquadrats des Hauses — ebene Geometrie bootstrappt die volle 3D-Pose.',
+    pnpInit: 'Init aus Homographie',
+    pnpStep: 'Iterieren',
+    pnpRun: 'Auto-Lauf',
+    pnpReset: 'Zurücksetzen',
+    pnpNoise: 'Detektionsrauschen σ',
+    pnpNPts: 'verwendete Punkte',
+    pnpRms: 'Reprojektions-RMS',
+    pnpPosErr: 'Positionsfehler',
+    pnpRotErr: 'Rotationsfehler',
+    pnpIter: 'Iteration',
+    pnpLeft: 'Kamerabild — Detektionen (cyan) vs. Reprojektionen der aktuellen Pose (bernstein)',
+    pnpRight: '3D — wahre Kamera (grau) vs. geschätzte Kamera (cyan)',
+    pnpDerivTitle: 'Die PnP-Normalengleichungen',
+    pnpDeriv: [
+      { tex: String.raw`\text{Unbekannte: } (R, \mathbf{t}) \;\;\hat{=}\;\; 6 \text{ FG}, \qquad \text{jeder Punkt} \Rightarrow 2 \text{ Gleichungen}`, note: 'Drei Punkte genügen im Prinzip (P3P hat geschlossene Lösungen); echte Systeme nutzen mehr Punkte plus kleinste Quadrate.' },
+      { tex: String.raw`\mathbf{r}_i(\boldsymbol{\theta}) = \pi\big(K(R\mathbf{X}_i + \mathbf{t})\big) - \mathbf{x}_i`, note: 'Das Residuum ist der Reprojektionsfehler von Punkt i — exakt die Größe, die Modul 2 minimiert, nur über die Pose statt über K.' },
+      { tex: String.raw`R \leftarrow R\,\exp([\boldsymbol{\omega}]_\times), \qquad \mathbf{t} \leftarrow \mathbf{t} + \delta\mathbf{t}`, note: 'Rotationen werden multiplikativ mit einem kleinen Achse-Winkel-Vektor ω aktualisiert — der Standardtrick, um auf der Rotationsgruppe zu optimieren, ohne die Orthonormalität zu zerstören.' },
+      { tex: String.raw`(J^{\mathsf T}J)\,\boldsymbol{\delta} = -J^{\mathsf T}\mathbf{r}`, note: 'Linearisieren, die 6×6-Normalengleichungen aufstellen, lösen, Schritt machen — der Gauß-Newton-Kern von Modul Vision·3, in seinem kleinsten natürlichen Habitat.' },
+      { tex: String.raw`\text{AR-Anker} \cdot \text{Roboter-Greifen} \cdot \text{Marker-Tracking} \cdot \text{Kamera-Relokalisierung}`, note: 'cv2.solvePnP liefert genau das (plus P3P/EPnP-Initialisierer und RANSAC-Wrapper gegen Ausreißer — Modul Daten·4).' },
+    ],
   },
 }
 
@@ -364,6 +463,269 @@ function AdasLab() {
           <Readout label={t.appErr} value={`+${fmt(errPct, 1)}`} unit="%" accent={errPct > 10 ? '#f87171' : '#4ade80'} />
         </div>
         <TeX block>{String.raw`Z = \frac{f \cdot H}{h_{px}} = \frac{${f2} \cdot 1.5}{${hMeasured}} = ${fmt(zEst, 1)}\text{ m}`}</TeX>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- homography lab
+
+const HOM_K: Intrinsics = { fx: 640, fy: 640, s: 0, cx: 320, cy: 240 }
+const HOM_COLS = 7
+const HOM_ROWS = 5
+const HOM_SP = 0.5
+// floor-plane points (X, Z) in meters, centered on the origin
+const HOM_PLANE: P2[] = (() => {
+  const pts: P2[] = []
+  for (let r = 0; r < HOM_ROWS; r++)
+    for (let c = 0; c < HOM_COLS; c++)
+      pts.push([(c - (HOM_COLS - 1) / 2) * HOM_SP, (r - (HOM_ROWS - 1) / 2) * HOM_SP])
+  return pts
+})()
+const HOM_SUBSETS: Record<string, number[]> = {
+  '4': [0, HOM_COLS - 1, HOM_COLS * (HOM_ROWS - 1), HOM_COLS * HOM_ROWS - 1],
+  '12': [0, 3, 6, 14, 17, 20, 28, 31, 34, 8, 12, 26],
+  '35': Array.from({ length: 35 }, (_, i) => i),
+}
+
+function HomographyLab() {
+  const t = useT(T)
+  const [nSel, setNSel] = useState<'4' | '12' | '35'>('12')
+  const [noise, setNoise] = useState(0.5)
+  const [tilt, setTilt] = useState(32)
+
+  const pose = useMemo(() => {
+    const el = deg2rad(tilt)
+    const r = 3.4
+    const eye: V3 = [0.4, r * Math.sin(el), -r * Math.cos(el)]
+    return lookAtCV(eye, [0, 0, 0.2])
+  }, [tilt])
+
+  const det = useMemo(() => {
+    const g = makeGauss(Math.round(noise * 100) * 7 + Math.round(tilt) + 5)
+    const tp = HOM_PLANE.map(([X, Z]) => projectPoint(HOM_K, pose, [X, 0, Z]))
+    return tp.map((p) => [p.u + g() * noise, p.v + g() * noise] as P2)
+  }, [pose, noise, tilt])
+
+  const sel = HOM_SUBSETS[nSel]
+  const { H, rms, recon, reconErr } = useMemo(() => {
+    const src = sel.map((i) => HOM_PLANE[i])
+    const dst = sel.map((i) => det[i])
+    const H2 = homographyDLT(src, dst)
+    if (!H2) return { H: null, rms: 0, recon: [] as P2[], reconErr: 0 }
+    const Hi = m3Inv(H2)
+    const rec = det.map((d) => applyH(Hi, d))
+    const err =
+      (rec.reduce((s, p, i) => s + Math.hypot(p[0] - HOM_PLANE[i][0], p[1] - HOM_PLANE[i][1]), 0) /
+        rec.length) *
+      1000
+    return { H: H2, rms: homographyRms(H2, src, dst), recon: rec, reconErr: err }
+  }, [det, sel])
+
+  // top-down view scaling: world meters → SVG px
+  const TW = 460
+  const TH = 320
+  const tx = (X: number) => TW / 2 + X * 120
+  const tz = (Z: number) => TH / 2 - Z * 100
+
+  const imgPts: ImagePoint[] = det.map((d, i) => ({
+    u: d[0],
+    v: d[1],
+    color: sel.includes(i) ? '#fbbf24' : '#22d3ee',
+    r: sel.includes(i) ? 4.5 : 3,
+  }))
+  // orientation marker: arrow along +X at the grid origin, projected
+  const arrowPix = ([0, 0.35] as const).map((s2) => projectPoint(HOM_K, pose, [s2, 0, -HOM_SP]))
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <ImageView
+        w={640}
+        h={480}
+        title={t.homLeft}
+        points={imgPts}
+        polylines={[
+          {
+            pts: arrowPix.map((p) => [p.u, p.v] as [number, number]),
+            color: '#f87171',
+            width: 2,
+          },
+        ]}
+      />
+      <div className="card overflow-hidden">
+        <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">{t.homRight}</div>
+        <svg viewBox={`0 0 ${TW} ${TH}`} className="block w-full">
+          {/* true metric grid */}
+          {HOM_PLANE.map(([X, Z], i) => (
+            <circle key={`t${i}`} cx={tx(X)} cy={tz(Z)} r={2.5} fill="rgba(255,255,255,0.25)" />
+          ))}
+          {/* error whiskers + reconstructed points */}
+          {recon.map((p, i) => (
+            <g key={`r${i}`}>
+              <line x1={tx(HOM_PLANE[i][0])} y1={tz(HOM_PLANE[i][1])} x2={tx(p[0])} y2={tz(p[1])} stroke="#f87171" strokeWidth={1.4} />
+              <circle cx={tx(p[0])} cy={tz(p[1])} r={3} fill="#22d3ee" />
+            </g>
+          ))}
+          <line x1={tx(0)} y1={tz(-HOM_SP)} x2={tx(0.35)} y2={tz(-HOM_SP)} stroke="#f87171" strokeWidth={2} />
+        </svg>
+      </div>
+      <div className="card-pad space-y-3.5">
+        <div>
+          <div className="mb-1.5 text-[12px] text-muted">{t.homNPts}</div>
+          <Segmented
+            options={(['4', '12', '35'] as const).map((v) => ({ value: v, label: v }))}
+            value={nSel}
+            onChange={setNSel}
+          />
+        </div>
+        <Slider label={t.homNoise} value={noise} min={0} max={2} step={0.1} onChange={setNoise} format={(v) => `${fmt(v, 1)} px`} />
+        <Slider label="⦩" value={tilt} min={18} max={55} step={1} onChange={setTilt} format={(v) => `${v}°`} accent="#a78bfa" />
+      </div>
+      <div className="flex flex-col gap-3 self-start">
+        {H && (
+          <MatrixView
+            label={<TeX>{String.raw`H =`}</TeX>}
+            values={[0, 1, 2].map((r) => [0, 1, 2].map((c) => fmtSci(H[r * 3 + c])))}
+          />
+        )}
+        <div className="grid grid-cols-2 gap-3">
+          <Readout label={t.homRms} value={fmt(rms, 2)} unit="px" accent={rms < 1 ? '#4ade80' : '#fbbf24'} />
+          <Readout label={t.homRecon} value={fmt(reconErr, 1)} unit="mm" accent={reconErr < 10 ? '#4ade80' : '#fbbf24'} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------- PnP lab
+
+const PNP_TRUE_POSE: Pose = (() => {
+  const az = deg2rad(42)
+  const el = deg2rad(26)
+  const r = 3.4
+  const eye = add(TARGET, [r * Math.cos(el) * Math.sin(az), r * Math.sin(el), r * Math.cos(el) * Math.cos(az)])
+  return lookAtCV(eye, TARGET)
+})()
+// floor square of the house (y = 0.02) — coplanar, used for the homography init
+const PNP_BASE_IDX = [0, 1, 2, 3]
+// plane frame (X, Z) → world rotation: columns e1=(1,0,0), e2=(0,0,1), e3=(0,−1,0)
+const PNP_RP: M3 = [1, 0, 0, 0, 0, -1, 0, 1, 0]
+
+function PnpLab() {
+  const t = useT(T)
+  const [noise, setNoise] = useState(0.5)
+  const [nPts, setNPts] = useState<'4' | '6' | '10'>('10')
+  const [traceIdx, setTraceIdx] = useState(0)
+  const [running, setRunning] = useState(false)
+
+  const detections = useMemo(() => {
+    const g = makeGauss(Math.round(noise * 100) * 3 + 17)
+    return HOUSE_PTS.map((hp) => {
+      const p = projectPoint(HOM_K, PNP_TRUE_POSE, hp.p)
+      return [p.u + g() * noise, p.v + g() * noise] as P2
+    })
+  }, [noise])
+
+  const result = useMemo(() => {
+    const src: P2[] = PNP_BASE_IDX.map((i) => [HOUSE_PTS[i].p[0], HOUSE_PTS[i].p[2]])
+    const dst = PNP_BASE_IDX.map((i) => detections[i])
+    const Hb = homographyDLT(src, dst)
+    if (!Hb) return null
+    const cp = poseFromHomography(HOM_K, Hb)
+    const R0 = m3Mul(cp.R, m3T(PNP_RP))
+    const init: Pose = { R: R0, t: sub(cp.t, m3MulV(R0, [0, 0.02, 0])) }
+    const n = Number(nPts)
+    return pnpRefine(
+      HOM_K,
+      HOUSE_PTS.slice(0, n).map((h) => h.p),
+      detections.slice(0, n),
+      init,
+    )
+  }, [detections, nPts])
+
+  useEffect(() => {
+    setTraceIdx(0)
+    setRunning(false)
+  }, [detections, nPts])
+
+  useEffect(() => {
+    if (!running || !result) return
+    const iv = setInterval(() => {
+      setTraceIdx((i) => {
+        if (i >= result.trace.length - 1) {
+          setRunning(false)
+          return i
+        }
+        return i + 1
+      })
+    }, 350)
+    return () => clearInterval(iv)
+  }, [running, result])
+
+  if (!result) return null
+  const idx = Math.min(traceIdx, result.trace.length - 1)
+  const cur = result.trace[idx]
+  const n = Number(nPts)
+
+  const reproj = HOUSE_PTS.slice(0, n).map((hp) => projectPoint(HOM_K, cur.pose, hp.p))
+  const posErr = norm(sub(cameraCenter(cur.pose), cameraCenter(PNP_TRUE_POSE))) * 100
+  const rel = m3Mul(m3T(cur.pose.R), PNP_TRUE_POSE.R)
+  const rotErr = rad2deg(Math.acos(Math.min(1, Math.max(-1, (rel[0] + rel[4] + rel[8] - 1) / 2))))
+
+  const imgPts: ImagePoint[] = [
+    ...detections.slice(0, n).map((d) => ({ u: d[0], v: d[1], color: '#22d3ee', r: 4 })),
+    ...reproj.map((p) => ({ u: p.u, v: p.v, color: '#fbbf24', r: 3 })),
+  ]
+  const whiskers = reproj.map((p, i) => ({
+    pts: [
+      [p.u, p.v],
+      [detections[i][0], detections[i][1]],
+    ] as [number, number][],
+    color: 'rgba(248,113,113,0.8)',
+    width: 1.3,
+  }))
+  const houseEdges3d = HOUSE_EDGES.map(([a, b]) => [HOUSE_PTS[a].p, HOUSE_PTS[b].p] as V3[])
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <ImageView w={640} h={480} title={t.pnpLeft} points={imgPts} polylines={whiskers} />
+      <div className="card overflow-hidden">
+        <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">{t.pnpRight}</div>
+        <Scene3D height={330} target={[0, 0.6, 0]} camera={{ position: [4.2, 3.2, -4.6], fov: 42 }}>
+          {houseEdges3d.map((pts, i) => (
+            <Polyline key={i} points={pts} color="rgba(255,255,255,0.4)" lineWidth={1.2} />
+          ))}
+          <CameraFrustumViz k={HOM_K} w={W} h={H} pose={PNP_TRUE_POSE} color="#8b93a7" depth={0.5} rays={false} />
+          <CameraFrustumViz k={HOM_K} w={W} h={H} pose={cur.pose} color="#22d3ee" depth={0.5} rays={false} />
+        </Scene3D>
+      </div>
+      <div className="card-pad space-y-3.5">
+        <div className="flex flex-wrap gap-2">
+          <button className="btn" onClick={() => { setTraceIdx(0); setRunning(false) }}>
+            ↺ {t.pnpReset}
+          </button>
+          <button className="btn" onClick={() => setTraceIdx((i) => Math.min(i + 1, result.trace.length - 1))}>
+            {t.pnpStep}
+          </button>
+          <button className="btn-primary" onClick={() => { setTraceIdx(0); setRunning(true) }}>
+            ▶ {t.pnpRun}
+          </button>
+        </div>
+        <Slider label={t.pnpNoise} value={noise} min={0} max={2} step={0.1} onChange={setNoise} format={(v) => `${fmt(v, 1)} px`} />
+        <div>
+          <div className="mb-1.5 text-[12px] text-muted">{t.pnpNPts}</div>
+          <Segmented
+            options={(['4', '6', '10'] as const).map((v) => ({ value: v, label: v }))}
+            value={nPts}
+            onChange={setNPts}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3 self-start">
+        <Readout label={t.pnpIter} value={`${idx} / ${result.trace.length - 1}`} />
+        <Readout label={t.pnpRms} value={fmt(cur.rms, 2)} unit="px" accent={cur.rms < 1 ? '#4ade80' : '#fbbf24'} />
+        <Readout label={t.pnpPosErr} value={fmt(posErr, 1)} unit="cm" accent={posErr < 2 ? '#4ade80' : '#fbbf24'} />
+        <Readout label={t.pnpRotErr} value={fmt(rotErr, 2)} unit="°" accent={rotErr < 0.5 ? '#4ade80' : '#fbbf24'} />
       </div>
     </div>
   )
@@ -500,6 +862,8 @@ export function PinholePage() {
           { id: 'intrinsics', label: t.s4Title },
           { id: 'extrinsics', label: t.s5Title },
           { id: 'projection-matrix', label: t.s6Title },
+          { id: 'homography', label: t.homTitle },
+          { id: 'pnp', label: t.pnpTitle },
           { id: 'application', label: t.appTitle },
         ]}
       />
@@ -777,6 +1141,39 @@ export function PinholePage() {
             ))}
           </div>
         </div>
+      </Section>
+
+      <Section id="homography" title={t.homTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.hom1}</p>
+        </div>
+        <Derivation title={t.homDerivTitle} steps={t.homDeriv} />
+        <div className="mt-4">
+          <HomographyLab />
+        </div>
+        <div className="prose-cv mt-4 max-w-3xl">
+          <p>{t.hom2}</p>
+        </div>
+        <InfoBox title="⚡ Try it">
+          <ul className="my-1 list-disc space-y-1 pl-5">
+            {t.homTry.map((s, i) => (
+              <li key={i}>{s}</li>
+            ))}
+          </ul>
+        </InfoBox>
+      </Section>
+
+      <Section id="pnp" title={t.pnpTitle}>
+        <div className="prose-cv max-w-3xl">
+          <p>{t.pnp1}</p>
+        </div>
+        <div className="mt-4">
+          <PnpLab />
+        </div>
+        <div className="prose-cv mt-4 max-w-3xl">
+          <p>{t.pnp2}</p>
+        </div>
+        <Derivation title={t.pnpDerivTitle} steps={t.pnpDeriv} />
       </Section>
 
       <Section id="application" title={t.appTitle}>
