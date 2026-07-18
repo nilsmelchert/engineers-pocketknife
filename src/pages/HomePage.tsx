@@ -4,37 +4,54 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { Line } from '@react-three/drei'
 import type { Group } from 'three'
 import { useLangState, useT } from '../i18n'
-import { MODULES } from '../components/Layout'
+import { TRACKS } from '../components/Layout'
 import { mulberry32, type V3 } from '../lib/math'
 
 const T = {
   en: {
-    heroKicker: 'An interactive guide for students',
-    heroTitle1: 'See how cameras',
-    heroTitle2: 'measure the world',
+    heroKicker: 'Interactive engineering essentials',
+    heroTitle1: 'The Engineer’s',
+    heroTitle2: 'Pocketknife',
     heroText:
-      'From a single pixel to a robot that grabs what it sees: learn the geometry of cameras — the camera matrix, calibration, stereo vision and hand-eye calibration — with live 3D scenes and interactive math you can grab and move.',
-    start: 'Start with module 1',
-    browse: 'All modules',
-    pathTitle: 'The learning path',
-    pathText:
-      'The five modules build on each other. Module 1 explains how a camera maps 3D to 2D; module 2 shows how to measure that mapping for a real camera; module 3 reveals the numerical optimization engine behind it; module 4 uses two calibrated cameras to recover 3D; module 5 connects the camera to a robot.',
+      'The concepts every engineer keeps reaching for — cameras and 3D vision, PCA and clustering, optimization, machine learning — explained in depth, with live 3D scenes and interactive math you can grab, drag and train right in the browser.',
+    start: 'Start learning',
+    browse: 'All tracks',
     open: 'Open module',
-    madeFor: 'No installation required — everything runs in the browser. Formulas follow the notation of Hartley & Zisserman and the OpenCV documentation.',
+    moduleWord: 'modules',
+    roadmapTitle: 'More tools in the making',
+    roadmapText:
+      'The pocketknife keeps growing. These blades are being sharpened next:',
+    nextUp: 'next up',
+    roadmap: [
+      { icon: '🛰️', name: 'Kalman Filter', desc: 'State estimation & sensor fusion — tracking under uncertainty.', soon: true },
+      { icon: '🌊', name: 'Fourier & Signals', desc: 'FFT intuition, convolution and filtering, visually.', soon: false },
+      { icon: '🎲', name: 'Probability & Bayes', desc: 'Distributions, Bayes’ rule and reasoning under uncertainty.', soon: false },
+      { icon: '🧮', name: 'SVD & Linear Algebra', desc: 'The decomposition behind PCA, least squares and compression.', soon: false },
+    ],
+    madeFor:
+      'No installation required — everything runs in the browser. Formulas follow the standard notation of the field (Hartley & Zisserman, Bishop, the OpenCV and scikit-learn docs).',
   },
   de: {
-    heroKicker: 'Ein interaktiver Leitfaden für Studierende',
-    heroTitle1: 'Sieh, wie Kameras',
-    heroTitle2: 'die Welt vermessen',
+    heroKicker: 'Interaktive Ingenieurgrundlagen',
+    heroTitle1: 'The Engineer’s',
+    heroTitle2: 'Pocketknife',
     heroText:
-      'Vom einzelnen Pixel bis zum Roboter, der greift, was er sieht: Lerne die Geometrie von Kameras — Kameramatrix, Kalibrierung, Stereosehen und Hand-Auge-Kalibrierung — mit live berechneten 3D-Szenen und interaktiver Mathematik zum Anfassen.',
-    start: 'Mit Modul 1 starten',
-    browse: 'Alle Module',
-    pathTitle: 'Der Lernpfad',
-    pathText:
-      'Die fünf Module bauen aufeinander auf. Modul 1 erklärt, wie eine Kamera 3D auf 2D abbildet; Modul 2 zeigt, wie man diese Abbildung für eine echte Kamera vermisst; Modul 3 enthüllt den numerischen Optimierungsmotor dahinter; Modul 4 rekonstruiert mit zwei kalibrierten Kameras 3D; Modul 5 verbindet die Kamera mit einem Roboter.',
+      'Die Konzepte, zu denen jede Ingenieurin und jeder Ingenieur immer wieder greift — Kameras und 3D-Vision, PCA und Clustering, Optimierung, maschinelles Lernen — in der Tiefe erklärt, mit live berechneten 3D-Szenen und interaktiver Mathematik zum Anfassen, Ziehen und Trainieren direkt im Browser.',
+    start: 'Loslegen',
+    browse: 'Alle Themen',
     open: 'Modul öffnen',
-    madeFor: 'Keine Installation nötig — alles läuft im Browser. Die Notation folgt Hartley & Zisserman und der OpenCV-Dokumentation.',
+    moduleWord: 'Module',
+    roadmapTitle: 'Weitere Werkzeuge in Arbeit',
+    roadmapText: 'Das Taschenmesser wächst weiter. Diese Klingen werden als Nächstes geschärft:',
+    nextUp: 'als Nächstes',
+    roadmap: [
+      { icon: '🛰️', name: 'Kalman-Filter', desc: 'Zustandsschätzung & Sensorfusion — Tracking unter Unsicherheit.', soon: true },
+      { icon: '🌊', name: 'Fourier & Signale', desc: 'FFT-Intuition, Faltung und Filterung, visuell.', soon: false },
+      { icon: '🎲', name: 'Wahrscheinlichkeit & Bayes', desc: 'Verteilungen, Satz von Bayes und Schließen unter Unsicherheit.', soon: false },
+      { icon: '🧮', name: 'SVD & Lineare Algebra', desc: 'Die Zerlegung hinter PCA, Ausgleichsrechnung und Kompression.', soon: false },
+    ],
+    madeFor:
+      'Keine Installation nötig — alles läuft im Browser. Die Notation folgt den Standards des Fachs (Hartley & Zisserman, Bishop, OpenCV- und scikit-learn-Doku).',
   },
 }
 
@@ -54,10 +71,7 @@ function HeroScene() {
       [hw, hh, d],
       [-hw, hh, d],
     ]
-    const frustum: V3[][] = [
-      ...corners.map((c) => [[0, 0, 0] as V3, c]),
-      [...corners, corners[0]],
-    ]
+    const frustum: V3[][] = [...corners.map((c) => [[0, 0, 0] as V3, c]), [...corners, corners[0]]]
     const rand = mulberry32(7)
     const points: V3[] = Array.from({ length: 42 }, () => [
       (rand() - 0.5) * 2.2,
@@ -110,47 +124,73 @@ export function HomePage() {
             <Link to="/camera-matrix" className="btn-primary px-5 py-2.5 text-[15px]">
               {t.start} →
             </Link>
-            <a href="#modules" className="btn px-5 py-2.5 text-[15px]">
+            <a href="#tracks" className="btn px-5 py-2.5 text-[15px]">
               {t.browse}
             </a>
           </div>
         </div>
       </div>
 
-      {/* modules */}
-      <div id="modules" className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-8">
-        <h2 className="mb-2 text-2xl font-bold tracking-tight md:text-3xl">{t.pathTitle}</h2>
-        <p className="mb-8 max-w-3xl text-[15px] leading-7 text-muted">{t.pathText}</p>
-        <div className="grid gap-5 md:grid-cols-2">
-          {MODULES.map((m) => (
-            <Link
-              key={m.path}
-              to={m.path}
-              className="card group p-6 transition hover:border-accent/50 hover:bg-accent/[0.04]"
-            >
-              <div className="flex items-baseline gap-3">
-                <span className="bg-gradient-to-br from-accent to-accent2 bg-clip-text font-mono text-3xl font-bold text-transparent">
-                  {String(m.num).padStart(2, '0')}
-                </span>
-                <h3 className="text-lg font-bold tracking-tight group-hover:text-accent">
-                  {m.title[lang]}
-                </h3>
-              </div>
-              <p className="mt-3 text-[14px] leading-6 text-ink/80">{m.desc[lang]}</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {m.topics[lang].map((topic, i) => (
-                  <span key={i} className="chip">
-                    {topic}
+      {/* tracks */}
+      <div id="tracks" className="mx-auto max-w-6xl scroll-mt-20 px-4 pb-8">
+        {TRACKS.map((track) => (
+          <section key={track.id} className="mb-14">
+            <div className="mb-1 flex items-baseline gap-3">
+              <span className="text-xl">{track.icon}</span>
+              <h2 className="text-2xl font-bold tracking-tight md:text-3xl">{track.title[lang]}</h2>
+              <span className="chip">{track.modules.length} {t.moduleWord}</span>
+            </div>
+            <p className="mb-6 max-w-3xl text-[15px] leading-7 text-muted">{track.blurb[lang]}</p>
+            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {track.modules.map((m) => (
+                <Link
+                  key={m.path}
+                  to={m.path}
+                  className="card group flex flex-col p-5 transition hover:border-accent/50 hover:bg-accent/[0.04]"
+                >
+                  <div className="flex items-baseline gap-3">
+                    <span className="bg-gradient-to-br from-accent to-accent2 bg-clip-text font-mono text-2xl font-bold text-transparent">
+                      {String(m.num).padStart(2, '0')}
+                    </span>
+                    <h3 className="text-[16px] font-bold tracking-tight group-hover:text-accent">
+                      {m.title[lang]}
+                    </h3>
+                  </div>
+                  <p className="mt-2.5 flex-1 text-[13.5px] leading-6 text-ink/80">{m.desc[lang]}</p>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {m.topics[lang].map((topic, i) => (
+                      <span key={i} className="chip text-[11px]">
+                        {topic}
+                      </span>
+                    ))}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ))}
+
+        {/* roadmap */}
+        <section className="mb-10">
+          <h2 className="mb-1 text-2xl font-bold tracking-tight md:text-3xl">{t.roadmapTitle}</h2>
+          <p className="mb-6 max-w-3xl text-[15px] leading-7 text-muted">{t.roadmapText}</p>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {t.roadmap.map((r, i) => (
+              <div key={i} className="card relative p-5 opacity-70">
+                {r.soon && (
+                  <span className="absolute top-3 right-3 rounded-full border border-warn/50 bg-warn/10 px-2 py-0.5 text-[10px] font-semibold text-warn uppercase">
+                    ⏳ {t.nextUp}
                   </span>
-                ))}
+                )}
+                <div className="text-2xl">{r.icon}</div>
+                <div className="mt-2 text-[15px] font-bold">{r.name}</div>
+                <p className="mt-1.5 text-[13px] leading-5.5 text-muted">{r.desc}</p>
               </div>
-              <div className="mt-4 text-[13px] font-semibold text-accent opacity-0 transition group-hover:opacity-100">
-                {t.open} →
-              </div>
-            </Link>
-          ))}
-        </div>
-        <p className="mt-10 max-w-3xl text-[13px] leading-6 text-muted">{t.madeFor}</p>
+            ))}
+          </div>
+        </section>
+
+        <p className="mt-6 max-w-3xl text-[13px] leading-6 text-muted">{t.madeFor}</p>
       </div>
     </div>
   )

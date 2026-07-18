@@ -1,15 +1,31 @@
-# Camera Calibration — Interactive Guide
+# The Engineer's Pocketknife
 
-An interactive learning website for students covering the geometry of cameras:
+An interactive learning hub for engineering essentials — everything runs live in the browser,
+bilingual (English / German, toggle in the navbar).
 
-1. **The Camera Matrix** — pinhole model, homogeneous coordinates, intrinsics `K`, extrinsics `[R|t]`, projection matrix `P = K[R|t]`, with a live 3D projection lab.
-2. **Camera Calibration** — Zhang's method, Brown–Conrady lens distortion playground, a virtual capture session with coverage checklist, and a reprojection-error demo.
-3. **Stereo Vision** — stereo extrinsics, interactive triangulation, epipolar geometry (drag a point, see its epipolar line), rectification, and the disparity–depth relation.
-4. **Hand-Eye Calibration** — eye-in-hand vs. eye-to-hand with a movable 3-DOF robot arm, the kinematic loop, `AX = XB` and the robot-world variant `AX = ZB`.
+## Tracks & modules
 
-All content is bilingual (English / German, toggle in the navbar). All interactive math is computed in
-[`src/lib/math.ts`](src/lib/math.ts) — the same numbers drive the 3D scenes (react-three-fiber),
-the 2D sensor views (SVG) and the live matrix displays.
+**📷 Camera & 3D Vision**
+1. **The Camera Matrix** — pinhole model, homogeneous coordinates, `K`, `[R|t]`, `P = K[R|t]`, live 3D projection lab
+2. **Camera Calibration** — Zhang's method, lens distortion playground, virtual capture session, reprojection error
+3. **Numerical Optimization** — cost landscapes, gradient descent, Gauss-Newton, Levenberg–Marquardt, live calibration solver
+4. **Stereo Vision** — epipolar geometry, triangulation, rectification, disparity–depth
+5. **Hand-Eye Calibration** — eye-in-hand/eye-to-hand, `AX = XB`, `AX = ZB`, interactive robot arm
+
+**📊 Data & Patterns**
+1. **PCA** — covariance, eigenvectors, variance explained, 2D + 3D projection labs, scree plot
+2. **K-Means** — Lloyd's algorithm stepper with Voronoi shading, k-means++, elbow method, failure modes
+
+**🧠 Machine Learning**
+1. **ML Fundamentals** — linear/logistic regression, overfitting U-curve, ridge regularization
+2. **Stochastic & Global Optimization** — SGD noise, optimizer race (GD/momentum/Adam), LR schedules, simulated annealing, Lagrange constraints
+3. **Neural Networks & Deep Learning** — live-training MLP playground with decision boundaries, network diagram, backprop, gradient checking
+
+All interactive math lives in small dependency-free libraries: [`src/lib/math.ts`](src/lib/math.ts)
+(3D/camera geometry), [`src/lib/optim.ts`](src/lib/optim.ts) (optimizers, LM),
+[`src/lib/stats.ts`](src/lib/stats.ts) (PCA, k-means, datasets), [`src/lib/ml.ts`](src/lib/ml.ts)
+(MLP + backprop, Adam, regression). The same numbers drive the 3D scenes (react-three-fiber), the 2D
+SVG/canvas views and the live matrix displays.
 
 ## Tech stack
 

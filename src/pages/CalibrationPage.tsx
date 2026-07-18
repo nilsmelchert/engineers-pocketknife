@@ -31,7 +31,7 @@ const H = 480
 
 const T = {
   en: {
-    kicker: 'Module 2',
+    kicker: 'Vision · Module 2',
     title: 'Camera Calibration',
     intro:
       'Module 1 assumed we know K. In reality every camera–lens combination is unique: focal length, principal point and lens distortion must be measured. Calibration estimates them from images of a known pattern — usually a checkerboard.',
@@ -131,7 +131,7 @@ const T = {
     ],
   },
   de: {
-    kicker: 'Modul 2',
+    kicker: 'Vision · Modul 2',
     title: 'Kamerakalibrierung',
     intro:
       'Modul 1 hat K als bekannt vorausgesetzt. In Wirklichkeit ist jede Kamera-Objektiv-Kombination einzigartig: Brennweite, Hauptpunkt und Verzeichnung müssen gemessen werden. Die Kalibrierung schätzt sie aus Bildern eines bekannten Musters — meist eines Schachbretts.',

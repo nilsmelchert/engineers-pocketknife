@@ -51,7 +51,7 @@ const TARGET: V3 = [0, 0.6, 0]
 
 const T = {
   en: {
-    kicker: 'Module 1',
+    kicker: 'Vision · Module 1',
     title: 'The Pinhole Camera & the Camera Matrix',
     intro:
       'Every camera answers one question: which pixel does a 3D point land on? This module builds that answer step by step — from a ray of light through a pinhole to the famous 3×4 projection matrix P = K[R|t].',
@@ -142,7 +142,7 @@ const T = {
     dofChips: ['K: 5 DoF', 'R: 3 DoF', 't: 3 DoF', 'P: 11 DoF (up to scale)'],
   },
   de: {
-    kicker: 'Modul 1',
+    kicker: 'Vision · Modul 1',
     title: 'Die Lochkamera & die Kameramatrix',
     intro:
       'Jede Kamera beantwortet eine Frage: Auf welchem Pixel landet ein 3D-Punkt? Dieses Modul baut die Antwort Schritt für Schritt auf — vom Lichtstrahl durch eine Lochblende bis zur berühmten 3×4-Projektionsmatrix P = K[R|t].',

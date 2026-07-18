@@ -27,7 +27,7 @@ import {
 
 const T = {
   en: {
-    kicker: 'Module 3',
+    kicker: 'Vision · Module 3',
     title: 'Numerical Optimization',
     intro:
       'Module 2 ended with a sentence that deserves a whole module: “refine everything by minimizing the reprojection error”. This is how nearly every geometric parameter in computer vision — camera intrinsics, distortion, stereo extrinsics, hand-eye transforms — is actually found: as the minimum of a cost function, located numerically.',
@@ -131,7 +131,7 @@ const T = {
     codeTitle: 'Try it on real data',
   },
   de: {
-    kicker: 'Modul 3',
+    kicker: 'Vision · Modul 3',
     title: 'Numerische Optimierung',
     intro:
       'Modul 2 endete mit einem Satz, der ein eigenes Modul verdient: „alles gemeinsam verfeinern durch Minimierung des Reprojektionsfehlers“. Genau so werden fast alle geometrischen Parameter der Computer Vision — Intrinsik, Verzeichnung, Stereo-Extrinsik, Hand-Auge-Transformationen — tatsächlich gefunden: als Minimum einer Kostenfunktion, numerisch aufgespürt.',

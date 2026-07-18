@@ -251,8 +251,8 @@ export function gdCalibStep(th: CalibTheta, obs: Observations, lr: number): Cali
   return vecTh(out)
 }
 
-/** Solve a small dense symmetric system A·x = b by Gaussian elimination. */
-function solveN(A: number[][], b: number[]): number[] | null {
+/** Solve a small dense system A·x = b by Gaussian elimination with partial pivoting. */
+export function solveN(A: number[][], b: number[]): number[] | null {
   const n = b.length
   const M = A.map((row, i) => [...row, b[i]])
   for (let c = 0; c < n; c++) {

@@ -79,7 +79,7 @@ function forwardKinematics(q1: number, q2: number, q3: number, q4: number): FK {
 
 const T = {
   en: {
-    kicker: 'Module 5',
+    kicker: 'Vision · Module 5',
     title: 'Hand-Eye Calibration',
     intro:
       'A calibrated camera can measure poses — but in its own frame. A robot moves in its base frame. Before "the part is at pixel (412, 210)" can become "move the gripper to x = 0.31 m", one missing transform must be found: that is hand-eye calibration.',
@@ -152,7 +152,7 @@ const T = {
     ],
   },
   de: {
-    kicker: 'Modul 5',
+    kicker: 'Vision · Modul 5',
     title: 'Hand-Auge-Kalibrierung',
     intro:
       'Eine kalibrierte Kamera kann Posen messen — aber in ihrem eigenen System. Ein Roboter bewegt sich im Basissystem. Bevor aus „das Teil ist bei Pixel (412, 210)“ ein „fahre den Greifer nach x = 0,31 m“ werden kann, fehlt genau eine Transformation: Das ist die Hand-Auge-Kalibrierung.',
