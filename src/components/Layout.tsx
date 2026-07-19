@@ -519,7 +519,7 @@ function TrackMenu({ track }: { track: TrackDef }) {
       </button>
       {open && (
         <div className="absolute top-full left-0 z-50 w-64 pt-1">
-          <div className="card overflow-hidden bg-[#10141f]/95 p-1.5 shadow-xl shadow-black/40">
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#141a28] p-1.5 shadow-xl shadow-black/50">
             {track.modules.map((m) => (
               <NavLink
                 key={m.path}
