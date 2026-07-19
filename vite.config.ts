@@ -17,7 +17,7 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
       manifest: {
-        name: "The Engineer's Pocketknife",
+        name: "The Engineer's Pocket Knife",
         short_name: 'pocket·knife',
         description:
           'Interactive engineering essentials: computer vision, data analysis, optimization, machine learning, signals, robotics and metrology.',

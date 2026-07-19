@@ -40,7 +40,7 @@ const T = {
   en: {
     heroKicker: 'Interactive engineering essentials',
     heroTitle1: 'The Engineer’s',
-    heroTitle2: 'Pocketknife',
+    heroTitle2: 'Pocket Knife',
     heroText:
       'The concepts every engineer keeps reaching for — cameras and 3D vision, PCA and clustering, optimization, machine learning — explained in depth, with live 3D scenes and interactive math you can grab, drag and train right in the browser.',
     start: 'Start learning',
@@ -54,7 +54,7 @@ const T = {
     pathsText: 'Not sure where to start? Follow one of these cross-track sequences, ordered so that each module builds on the previous ones.',
     roadmapTitle: 'More tools in the making',
     roadmapText:
-      'The pocketknife keeps growing. These blades are being sharpened next:',
+      'The pocket knife keeps growing. These blades are being sharpened next:',
     nextUp: 'next up',
     roadmap: [
       { icon: '🧭', name: 'Path Planning (A*)', desc: 'Grid and graph search, heuristics, smooth trajectories — the planner behind every robot route.', soon: true },
@@ -67,7 +67,7 @@ const T = {
   de: {
     heroKicker: 'Interaktive Ingenieurgrundlagen',
     heroTitle1: 'The Engineer’s',
-    heroTitle2: 'Pocketknife',
+    heroTitle2: 'Pocket Knife',
     heroText:
       'Die Konzepte, zu denen jede Ingenieurin und jeder Ingenieur immer wieder greift — Kameras und 3D-Vision, PCA und Clustering, Optimierung, maschinelles Lernen — in der Tiefe erklärt, mit live berechneten 3D-Szenen und interaktiver Mathematik zum Anfassen, Ziehen und Trainieren direkt im Browser.',
     start: 'Loslegen',

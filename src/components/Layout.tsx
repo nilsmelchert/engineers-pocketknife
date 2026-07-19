@@ -451,7 +451,7 @@ const UI = {
     prev: 'Previous',
     next: 'Next',
     footer:
-      'The Engineer’s Pocketknife — interactive essentials: computer vision, data analysis, optimization and machine learning.',
+      'The Engineer’s Pocket Knife — interactive essentials: computer vision, data analysis, optimization and machine learning.',
     labs: 'Labs',
     glossary: 'Glossary',
     formulas: 'Formulas',
@@ -465,7 +465,7 @@ const UI = {
     prev: 'Zurück',
     next: 'Weiter',
     footer:
-      'The Engineer’s Pocketknife — interaktive Grundlagen: Computer Vision, Datenanalyse, Optimierung und maschinelles Lernen.',
+      'The Engineer’s Pocket Knife — interaktive Grundlagen: Computer Vision, Datenanalyse, Optimierung und maschinelles Lernen.',
     labs: 'Labore',
     glossary: 'Glossar',
     formulas: 'Formeln',

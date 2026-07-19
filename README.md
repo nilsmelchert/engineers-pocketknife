@@ -1,4 +1,4 @@
-# The Engineer's Pocketknife
+# The Engineer's Pocket Knife
 
 An interactive learning hub for engineering essentials — everything runs live in the browser,
 bilingual (English / German, toggle in the navbar).
