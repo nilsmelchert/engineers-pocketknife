@@ -14,12 +14,12 @@ const T = {
     kicker: 'Data · Module 4',
     title: 'Robust Fitting & RANSAC',
     intro:
-      'Every fitting method so far had a hidden assumption: all data points are honest. Real data lies — a glare pixel, a mismatched feature, a sensor glitch. Least squares, which squares errors, is catastrophically gullible: a single wild point can drag the whole fit away. Robust estimation is the immune system of data fitting, and RANSAC is its most famous antibody.',
+      'Every fitting method so far had a hidden assumption: all data points are honest. Real data lies - a glare pixel, a mismatched feature, a sensor glitch. Least squares, which squares errors, is catastrophically gullible: a single wild point can drag the whole fit away. Robust estimation is the immune system of data fitting, and RANSAC is its most famous antibody.',
     probTitle: 'The outlier problem',
-    prob1: 'Squared loss grows quadratically, so the farther a point is, the MORE power it has over the fit — precisely backwards for outliers. Click into the lab below to add outliers and watch the amber least-squares line chase them while the truth stays put. In vision pipelines (feature matching!) 30–50 % outliers are routine; without robustness, nothing downstream survives.',
+    prob1: 'Squared loss grows quadratically, so the farther a point is, the MORE power it has over the fit - precisely backwards for outliers. Click into the lab below to add outliers and watch the amber least-squares line chase them while the truth stays put. In vision pipelines (feature matching!) 30-50 % outliers are routine; without robustness, nothing downstream survives.',
     labTitle: 'Interactive: RANSAC',
-    lab1: 'RANSAC (random sample consensus) flips the logic: instead of using all points and hoping, it repeatedly fits a candidate model to a minimal random sample — two points define a line — and asks the rest of the data to vote: how many points lie within the threshold band? Wild hypotheses get no votes; a hypothesis from two inliers collects the whole inlier population. Keep the best, then refit least squares on its supporters only.',
-    lab2: 'Press ▶ and watch hypotheses flicker: most are nonsense, some are gold. Add outliers by clicking — RANSAC shrugs where least squares panics. Then tighten or loosen the band: too tight rejects noisy inliers, too loose lets outliers vote.',
+    lab1: 'RANSAC (random sample consensus) flips the logic: instead of using all points and hoping, it repeatedly fits a candidate model to a minimal random sample - two points define a line - and asks the rest of the data to vote: how many points lie within the threshold band? Wild hypotheses get no votes; a hypothesis from two inliers collects the whole inlier population. Keep the best, then refit least squares on its supporters only.',
+    lab2: 'Press ▶ and watch hypotheses flicker: most are nonsense, some are gold. Add outliers by clicking - RANSAC shrugs where least squares panics. Then tighten or loosen the band: too tight rejects noisy inliers, too loose lets outliers vote.',
     addHint: 'click into the plot to add outliers',
     tau: 'inlier threshold τ',
     stepBtn: 'Hypothesis',
@@ -34,23 +34,23 @@ const T = {
     deriv: [
       { tex: String.raw`P(\text{one sample all-inlier}) = w^{s}, \qquad w = \text{inlier fraction},\; s = 2 \text{ points}`, note: 'Both sampled points must be inliers for the hypothesis to be good; w is estimated from the best consensus so far (see readouts).' },
       { tex: String.raw`P(\text{all } N \text{ samples fail}) = (1 - w^{s})^{N} \;\overset{!}{\le}\; 1 - p`, note: 'Demand overall success probability p (say 99 %).' },
-      { tex: String.raw`N \;\ge\; \frac{\log(1-p)}{\log(1 - w^{s})}`, note: 'The live readout computes exactly this with p = 0.99 and the current w — note how mild it is: even at 50 % outliers, a line needs only ~16 hypotheses.' },
+      { tex: String.raw`N \;\ge\; \frac{\log(1-p)}{\log(1 - w^{s})}`, note: 'The live readout computes exactly this with p = 0.99 and the current w - note how mild it is: even at 50 % outliers, a line needs only ~16 hypotheses.' },
     ],
     lossTitle: 'The gentler alternative: robust losses',
-    loss1: 'RANSAC is a hard in/out vote. Robust losses soften it: keep least squares near zero error but let the penalty grow only linearly (Huber) or saturate entirely (Tukey, Cauchy) for large residuals — outliers keep a voice, but a quiet one. These kernels are exactly what bundle adjustment (Vision track) and the big optimization libraries plug into their least-squares machinery; RANSAC finds the inliers, a robust refinement polishes the answer.',
+    loss1: 'RANSAC is a hard in/out vote. Robust losses soften it: keep least squares near zero error but let the penalty grow only linearly (Huber) or saturate entirely (Tukey, Cauchy) for large residuals - outliers keep a voice, but a quiet one. These kernels are exactly what bundle adjustment (Vision track) and the big optimization libraries plug into their least-squares machinery; RANSAC finds the inliers, a robust refinement polishes the answer.',
     lossSquared: 'squared',
     lossHuber: 'Huber',
     whereTitle: 'Where you will meet it',
     whereList: [
       'Homography and fundamental-matrix estimation (Vision track): feature matches are outlier-ridden; every panorama stitcher and SfM pipeline runs RANSAC before the least-squares refinement.',
-      'Plane and primitive fitting in point clouds — including the cloud your laser scanner built in the Metrology track.',
+      'Plane and primitive fitting in point clouds - including the cloud your laser scanner built in the Metrology track.',
       'Any sensor pipeline with gross errors: GPS jumps, radar ghosts, mismatched fiducials. If your residual histogram has heavy tails, you need this module.',
       'Rule of thumb: RANSAC for finding the consensus set, robust kernels for the final polish, plain least squares only after the outliers are gone.',
     ],
     codeTitle: 'In practice',
     appTitle: '🏭 In the real world: lane detection',
     appIntro:
-      'A lane-keeping camera extracts bright edge points from every frame and must fit the lane line through them — while shadows, tar seams, guardrail reflections and old repainted markings all produce edge points too. Least squares averages over all of that clutter and steers the fit into the bushes; RANSAC finds the largest consensus among the points and locks onto the true marking. Crank up the clutter and compare the two lines — then imagine each of them steering your car at 130 km/h.',
+      'A lane-keeping camera extracts bright edge points from every frame and must fit the lane line through them - while shadows, tar seams, guardrail reflections and old repainted markings all produce edge points too. Least squares averages over all of that clutter and steers the fit into the bushes; RANSAC finds the largest consensus among the points and locks onto the true marking. Crank up the clutter and compare the two lines - then imagine each of them steering your car at 130 km/h.',
     appClutter: 'clutter points',
     appThresh: 'inlier threshold',
     appInliers: 'RANSAC consensus',
@@ -64,12 +64,12 @@ const T = {
     kicker: 'Daten · Modul 4',
     title: 'Robustes Fitten & RANSAC',
     intro:
-      'Jede bisherige Fitting-Methode hatte eine versteckte Annahme: Alle Datenpunkte sind ehrlich. Echte Daten lügen — ein Glanzpixel, ein falsch zugeordnetes Merkmal, ein Sensoraussetzer. Kleinste Quadrate, die Fehler quadrieren, sind katastrophal leichtgläubig: Ein einziger wilder Punkt kann den ganzen Fit wegziehen. Robuste Schätzung ist das Immunsystem des Datenfittens, und RANSAC ist sein berühmtester Antikörper.',
+      'Jede bisherige Fitting-Methode hatte eine versteckte Annahme: Alle Datenpunkte sind ehrlich. Echte Daten lügen - ein Glanzpixel, ein falsch zugeordnetes Merkmal, ein Sensoraussetzer. Kleinste Quadrate, die Fehler quadrieren, sind katastrophal leichtgläubig: Ein einziger wilder Punkt kann den ganzen Fit wegziehen. Robuste Schätzung ist das Immunsystem des Datenfittens, und RANSAC ist sein berühmtester Antikörper.',
     probTitle: 'Das Ausreißerproblem',
-    prob1: 'Quadratischer Verlust wächst quadratisch — je weiter ein Punkt weg ist, desto MEHR Macht hat er über den Fit: für Ausreißer genau verkehrt herum. Klicke unten ins Labor, füge Ausreißer hinzu und sieh zu, wie die bernsteinfarbene Kleinste-Quadrate-Gerade ihnen hinterherjagt, während die Wahrheit stehen bleibt. In Vision-Pipelines (Feature-Matching!) sind 30–50 % Ausreißer Routine; ohne Robustheit überlebt nichts danach.',
+    prob1: 'Quadratischer Verlust wächst quadratisch - je weiter ein Punkt weg ist, desto MEHR Macht hat er über den Fit: für Ausreißer genau verkehrt herum. Klicke unten ins Labor, füge Ausreißer hinzu und sieh zu, wie die bernsteinfarbene Kleinste-Quadrate-Gerade ihnen hinterherjagt, während die Wahrheit stehen bleibt. In Vision-Pipelines (Feature-Matching!) sind 30-50 % Ausreißer Routine; ohne Robustheit überlebt nichts danach.',
     labTitle: 'Interaktiv: RANSAC',
-    lab1: 'RANSAC (Random Sample Consensus) dreht die Logik um: Statt alle Punkte zu nutzen und zu hoffen, passt es wiederholt ein Kandidatenmodell an eine minimale Zufallsstichprobe an — zwei Punkte definieren eine Gerade — und lässt den Rest der Daten abstimmen: Wie viele Punkte liegen im Schwellenband? Wilde Hypothesen bekommen keine Stimmen; eine Hypothese aus zwei Inliern sammelt die ganze Inlier-Population ein. Behalte die beste, dann fitte kleinste Quadrate nur auf ihren Unterstützern.',
-    lab2: 'Drücke ▶ und sieh Hypothesen aufflackern: die meisten Unsinn, manche Gold. Füge per Klick Ausreißer hinzu — RANSAC zuckt mit den Schultern, wo kleinste Quadrate in Panik geraten. Verenge oder weite dann das Band: zu eng verwirft verrauschte Inlier, zu weit lässt Ausreißer mitstimmen.',
+    lab1: 'RANSAC (Random Sample Consensus) dreht die Logik um: Statt alle Punkte zu nutzen und zu hoffen, passt es wiederholt ein Kandidatenmodell an eine minimale Zufallsstichprobe an - zwei Punkte definieren eine Gerade - und lässt den Rest der Daten abstimmen: Wie viele Punkte liegen im Schwellenband? Wilde Hypothesen bekommen keine Stimmen; eine Hypothese aus zwei Inliern sammelt die ganze Inlier-Population ein. Behalte die beste, dann fitte kleinste Quadrate nur auf ihren Unterstützern.',
+    lab2: 'Drücke ▶ und sieh Hypothesen aufflackern: die meisten Unsinn, manche Gold. Füge per Klick Ausreißer hinzu - RANSAC zuckt mit den Schultern, wo kleinste Quadrate in Panik geraten. Verenge oder weite dann das Band: zu eng verwirft verrauschte Inlier, zu weit lässt Ausreißer mitstimmen.',
     addHint: 'in den Plot klicken, um Ausreißer hinzuzufügen',
     tau: 'Inlier-Schwelle τ',
     stepBtn: 'Hypothese',
@@ -84,23 +84,23 @@ const T = {
     deriv: [
       { tex: String.raw`P(\text{Stichprobe rein aus Inliern}) = w^{s}, \qquad w = \text{Inlier-Anteil},\; s = 2 \text{ Punkte}`, note: 'Beide gezogenen Punkte müssen Inlier sein, damit die Hypothese gut ist; w wird aus dem bisher besten Konsens geschätzt (siehe Readouts).' },
       { tex: String.raw`P(\text{alle } N \text{ Stichproben scheitern}) = (1 - w^{s})^{N} \;\overset{!}{\le}\; 1 - p`, note: 'Fordere Gesamterfolgswahrscheinlichkeit p (etwa 99 %).' },
-      { tex: String.raw`N \;\ge\; \frac{\log(1-p)}{\log(1 - w^{s})}`, note: 'Das Live-Readout rechnet exakt das mit p = 0,99 und dem aktuellen w — und wie mild es ist: Selbst bei 50 % Ausreißern braucht eine Gerade nur ~16 Hypothesen.' },
+      { tex: String.raw`N \;\ge\; \frac{\log(1-p)}{\log(1 - w^{s})}`, note: 'Das Live-Readout rechnet exakt das mit p = 0,99 und dem aktuellen w - und wie mild es ist: Selbst bei 50 % Ausreißern braucht eine Gerade nur ~16 Hypothesen.' },
     ],
     lossTitle: 'Die sanftere Alternative: robuste Verlustfunktionen',
-    loss1: 'RANSAC ist eine harte Drinnen/Draußen-Abstimmung. Robuste Verluste weichen sie auf: nahe null Fehler bleibt es bei kleinsten Quadraten, aber die Strafe wächst für große Residuen nur noch linear (Huber) oder sättigt ganz (Tukey, Cauchy) — Ausreißer behalten eine Stimme, aber eine leise. Genau diese Kerne stecken Bündelausgleich (Vision-Track) und die großen Optimierungsbibliotheken in ihre Kleinste-Quadrate-Maschinerie; RANSAC findet die Inlier, eine robuste Verfeinerung poliert die Antwort.',
+    loss1: 'RANSAC ist eine harte Drinnen/Draußen-Abstimmung. Robuste Verluste weichen sie auf: nahe null Fehler bleibt es bei kleinsten Quadraten, aber die Strafe wächst für große Residuen nur noch linear (Huber) oder sättigt ganz (Tukey, Cauchy) - Ausreißer behalten eine Stimme, aber eine leise. Genau diese Kerne stecken Bündelausgleich (Vision-Track) und die großen Optimierungsbibliotheken in ihre Kleinste-Quadrate-Maschinerie; RANSAC findet die Inlier, eine robuste Verfeinerung poliert die Antwort.',
     lossSquared: 'quadratisch',
     lossHuber: 'Huber',
     whereTitle: 'Wo es dir begegnet',
     whereList: [
       'Homographie- und Fundamentalmatrix-Schätzung (Vision-Track): Feature-Matches strotzen vor Ausreißern; jeder Panorama-Stitcher und jede SfM-Pipeline lässt RANSAC vor der Kleinste-Quadrate-Verfeinerung laufen.',
-      'Ebenen- und Primitiv-Fitting in Punktwolken — auch in der Wolke, die dein Laserscanner im Messtechnik-Track gebaut hat.',
+      'Ebenen- und Primitiv-Fitting in Punktwolken - auch in der Wolke, die dein Laserscanner im Messtechnik-Track gebaut hat.',
       'Jede Sensorpipeline mit groben Fehlern: GPS-Sprünge, Radar-Geister, falsch zugeordnete Marken. Hat dein Residuen-Histogramm schwere Ränder, brauchst du dieses Modul.',
       'Faustregel: RANSAC zum Finden der Konsensmenge, robuste Kerne für die Politur, reine kleinste Quadrate erst, wenn die Ausreißer weg sind.',
     ],
     codeTitle: 'In der Praxis',
     appTitle: '🏭 In der echten Welt: Spurerkennung',
     appIntro:
-      'Eine Spurhaltekamera extrahiert aus jedem Frame helle Kantenpunkte und muss die Spurlinie hindurchfitten — während Schatten, Teernähte, Leitplankenreflexe und alte, übermalte Markierungen ebenfalls Kantenpunkte erzeugen. Kleinste Quadrate mitteln über all diesen Müll und lenken den Fit ins Gebüsch; RANSAC findet den größten Konsens unter den Punkten und rastet auf der echten Markierung ein. Dreh den Störpunkte-Regler hoch und vergleiche die beiden Linien — und stell dir dann vor, jede von ihnen lenkt dein Auto bei 130 km/h.',
+      'Eine Spurhaltekamera extrahiert aus jedem Frame helle Kantenpunkte und muss die Spurlinie hindurchfitten - während Schatten, Teernähte, Leitplankenreflexe und alte, übermalte Markierungen ebenfalls Kantenpunkte erzeugen. Kleinste Quadrate mitteln über all diesen Müll und lenken den Fit ins Gebüsch; RANSAC findet den größten Konsens unter den Punkten und rastet auf der echten Markierung ein. Dreh den Störpunkte-Regler hoch und vergleiche die beiden Linien - und stell dir dann vor, jede von ihnen lenkt dein Auto bei 130 km/h.',
     appClutter: 'Störpunkte',
     appThresh: 'Inlier-Schwelle',
     appInliers: 'RANSAC-Konsens',
@@ -311,12 +311,12 @@ function RansacLab() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Readout label={t.iter} value={`${state.iter}`} />
-          <Readout label={t.bestIn} value={state.best ? `${state.best.inliers.length} / ${pts.length}` : '—'} accent="#4ade80" />
+          <Readout label={t.bestIn} value={state.best ? `${state.best.inliers.length} / ${pts.length}` : '-'} accent="#4ade80" />
           <Readout
             label={t.slopes}
-            value={`${fmt(TRUE_B, 2)} / ${refined ? fmt(refined.b, 2) : '—'} / ${fmt(ls.b, 2)}`}
+            value={`${fmt(TRUE_B, 2)} / ${refined ? fmt(refined.b, 2) : '-'} / ${fmt(ls.b, 2)}`}
           />
-          <Readout label={t.n99} value={n99 !== null ? `${n99}` : '—'} accent="#a78bfa" />
+          <Readout label={t.n99} value={n99 !== null ? `${n99}` : '-'} accent="#a78bfa" />
         </div>
       </div>
     </div>

@@ -53,8 +53,8 @@ export const TRACKS: TrackDef[] = [
         title: { en: 'Camera Calibration', de: 'Kamerakalibrierung' },
         short: { en: 'Calibration', de: 'Kalibrierung' },
         desc: {
-          en: "Estimating K and lens distortion from checkerboard images: Zhang's method, the Brown–Conrady model and what makes a calibration good.",
-          de: 'K und Verzeichnung aus Schachbrettbildern schätzen: Zhangs Methode, das Brown–Conrady-Modell und was eine gute Kalibrierung ausmacht.',
+          en: "Estimating K and lens distortion from checkerboard images: Zhang's method, the Brown-Conrady model and what makes a calibration good.",
+          de: 'K und Verzeichnung aus Schachbrettbildern schätzen: Zhangs Methode, das Brown-Conrady-Modell und was eine gute Kalibrierung ausmacht.',
         },
         topics: {
           en: ['Zhang’s method', 'Lens distortion', 'Reprojection error', 'Capture strategy'],
@@ -67,12 +67,12 @@ export const TRACKS: TrackDef[] = [
         title: { en: 'Numerical Optimization', de: 'Numerische Optimierung' },
         short: { en: 'Optimization', de: 'Optimierung' },
         desc: {
-          en: 'How the parameters are actually found: cost landscapes, gradient descent, momentum, Gauss-Newton and Levenberg–Marquardt — with a live calibration solver.',
-          de: 'Wie die Parameter wirklich gefunden werden: Kostenlandschaften, Gradientenabstieg, Momentum, Gauß-Newton und Levenberg–Marquardt — mit einem live laufenden Kalibrierlöser.',
+          en: 'How the parameters are actually found: cost landscapes, gradient descent, momentum, Gauss-Newton and Levenberg-Marquardt - with a live calibration solver.',
+          de: 'Wie die Parameter wirklich gefunden werden: Kostenlandschaften, Gradientenabstieg, Momentum, Gauß-Newton und Levenberg-Marquardt - mit einem live laufenden Kalibrierlöser.',
         },
         topics: {
-          en: ['Cost functions', 'Gradient descent', 'Levenberg–Marquardt', 'Bundle adjustment'],
-          de: ['Kostenfunktionen', 'Gradientenabstieg', 'Levenberg–Marquardt', 'Bündelausgleich'],
+          en: ['Cost functions', 'Gradient descent', 'Levenberg-Marquardt', 'Bundle adjustment'],
+          de: ['Kostenfunktionen', 'Gradientenabstieg', 'Levenberg-Marquardt', 'Bündelausgleich'],
         },
       },
       {
@@ -81,7 +81,7 @@ export const TRACKS: TrackDef[] = [
         title: { en: 'Stereo Vision', de: 'Stereosehen' },
         short: { en: 'Stereo', de: 'Stereo' },
         desc: {
-          en: 'Two calibrated cameras recover depth: stereo extrinsics, epipolar geometry, rectification and the disparity–depth relation.',
+          en: 'Two calibrated cameras recover depth: stereo extrinsics, epipolar geometry, rectification and the disparity-depth relation.',
           de: 'Zwei kalibrierte Kameras rekonstruieren Tiefe: Stereo-Extrinsik, Epipolargeometrie, Rektifizierung und der Disparität-Tiefe-Zusammenhang.',
         },
         topics: {
@@ -121,8 +121,8 @@ export const TRACKS: TrackDef[] = [
         title: { en: 'Principal Component Analysis', de: 'Hauptkomponentenanalyse' },
         short: { en: 'PCA', de: 'PCA' },
         desc: {
-          en: 'The best flat shadow of your data: covariance, eigenvectors, variance explained and dimensionality reduction — in 2D and 3D.',
-          de: 'Der beste flache Schatten deiner Daten: Kovarianz, Eigenvektoren, erklärte Varianz und Dimensionsreduktion — in 2D und 3D.',
+          en: 'The best flat shadow of your data: covariance, eigenvectors, variance explained and dimensionality reduction - in 2D and 3D.',
+          de: 'Der beste flache Schatten deiner Daten: Kovarianz, Eigenvektoren, erklärte Varianz und Dimensionsreduktion - in 2D und 3D.',
         },
         topics: {
           en: ['Covariance', 'Eigenvectors', 'Variance explained', 'Dimensionality reduction'],
@@ -163,8 +163,8 @@ export const TRACKS: TrackDef[] = [
         title: { en: 'Robust Fitting & RANSAC', de: 'Robustes Fitten & RANSAC' },
         short: { en: 'RANSAC', de: 'RANSAC' },
         desc: {
-          en: 'When data lies: how outliers destroy least squares, and how RANSAC’s random consensus voting survives them — animated.',
-          de: 'Wenn Daten lügen: Wie Ausreißer kleinste Quadrate zerstören und wie RANSACs zufällige Konsensabstimmung sie überlebt — animiert.',
+          en: 'When data lies: how outliers destroy least squares, and how RANSAC’s random consensus voting survives them - animated.',
+          de: 'Wenn Daten lügen: Wie Ausreißer kleinste Quadrate zerstören und wie RANSACs zufällige Konsensabstimmung sie überlebt - animiert.',
         },
         topics: {
           en: ['Outliers', 'RANSAC', 'Inlier consensus', 'Robust losses'],
@@ -179,8 +179,8 @@ export const TRACKS: TrackDef[] = [
     title: { en: 'Machine Learning', de: 'Maschinelles Lernen' },
     short: { en: 'ML', de: 'ML' },
     blurb: {
-      en: 'From fitting a line to training a neural network in your browser — and the optimizers that make it possible.',
-      de: 'Vom Anpassen einer Geraden bis zum Training eines neuronalen Netzes im Browser — und die Optimierer, die das möglich machen.',
+      en: 'From fitting a line to training a neural network in your browser - and the optimizers that make it possible.',
+      de: 'Vom Anpassen einer Geraden bis zum Training eines neuronalen Netzes im Browser - und die Optimierer, die das möglich machen.',
     },
     modules: [
       {
@@ -189,8 +189,8 @@ export const TRACKS: TrackDef[] = [
         title: { en: 'Machine Learning Fundamentals', de: 'Grundlagen des Maschinellen Lernens' },
         short: { en: 'ML Basics', de: 'ML-Grundlagen' },
         desc: {
-          en: 'Learning is fitting: linear and logistic regression, overfitting and the bias-variance trade-off — with the famous U-curve, live.',
-          de: 'Lernen ist Anpassen: lineare und logistische Regression, Überanpassung und der Bias-Varianz-Kompromiss — mit der berühmten U-Kurve, live.',
+          en: 'Learning is fitting: linear and logistic regression, overfitting and the bias-variance trade-off - with the famous U-curve, live.',
+          de: 'Lernen ist Anpassen: lineare und logistische Regression, Überanpassung und der Bias-Varianz-Kompromiss - mit der berühmten U-Kurve, live.',
         },
         topics: {
           en: ['Linear regression', 'Overfitting', 'Regularization', 'Logistic regression'],
@@ -231,8 +231,8 @@ export const TRACKS: TrackDef[] = [
         title: { en: 'Modern Deep Learning: CNNs & Transformers', de: 'Modernes Deep Learning: CNNs & Transformer' },
         short: { en: 'CNNs & Transformers', de: 'CNNs & Transformer' },
         desc: {
-          en: 'Inductive bias in the wiring: convolution and feature hierarchies for images, self-attention for sequences — with a live attention heatmap.',
-          de: 'Induktiver Bias in der Verdrahtung: Faltung und Merkmalshierarchien für Bilder, Self-Attention für Sequenzen — mit Live-Attention-Heatmap.',
+          en: 'Inductive bias in the wiring: convolution and feature hierarchies for images, self-attention for sequences - with a live attention heatmap.',
+          de: 'Induktiver Bias in der Verdrahtung: Faltung und Merkmalshierarchien für Bilder, Self-Attention für Sequenzen - mit Live-Attention-Heatmap.',
         },
         topics: {
           en: ['Convolutions', 'Feature hierarchies', 'Self-attention', 'Transformers'],
@@ -245,7 +245,7 @@ export const TRACKS: TrackDef[] = [
         title: { en: 'Vision Transformers & VLMs', de: 'Vision Transformer & VLMs' },
         short: { en: 'ViT & VLMs', de: 'ViT & VLMs' },
         desc: {
-          en: 'Attention meets pixels: images as patch tokens, per-patch attention maps, CLIP’s shared image–text space, and the anatomy of a vision-language model.',
+          en: 'Attention meets pixels: images as patch tokens, per-patch attention maps, CLIP’s shared image-text space, and the anatomy of a vision-language model.',
           de: 'Attention trifft Pixel: Bilder als Patch-Tokens, Attention-Karten pro Patch, CLIPs gemeinsamer Bild-Text-Raum und die Anatomie eines Vision-Language-Modells.',
         },
         topics: {
@@ -271,8 +271,8 @@ export const TRACKS: TrackDef[] = [
         title: { en: 'Probability & Bayes', de: 'Wahrscheinlichkeit & Bayes' },
         short: { en: 'Probability', de: 'Wahrscheinlichkeit' },
         desc: {
-          en: 'Distributions, the central limit theorem, and Bayes’ rule — including the base-rate fallacy, made visible with 1000 dots.',
-          de: 'Verteilungen, der zentrale Grenzwertsatz und der Satz von Bayes — inklusive Basisraten-Trugschluss, sichtbar gemacht mit 1000 Punkten.',
+          en: 'Distributions, the central limit theorem, and Bayes’ rule - including the base-rate fallacy, made visible with 1000 dots.',
+          de: 'Verteilungen, der zentrale Grenzwertsatz und der Satz von Bayes - inklusive Basisraten-Trugschluss, sichtbar gemacht mit 1000 Punkten.',
         },
         topics: {
           en: ['Gaussians', 'Central limit theorem', 'Bayes’ rule', 'Bayesian updating'],
@@ -285,8 +285,8 @@ export const TRACKS: TrackDef[] = [
         title: { en: 'SVD & Linear Algebra', de: 'SVD & Lineare Algebra' },
         short: { en: 'SVD', de: 'SVD' },
         desc: {
-          en: 'Every matrix is rotate–stretch–rotate: singular values, low-rank approximation and image compression, animated.',
-          de: 'Jede Matrix ist Drehen–Strecken–Drehen: Singulärwerte, Niedrigrang-Approximation und Bildkompression, animiert.',
+          en: 'Every matrix is rotate-stretch-rotate: singular values, low-rank approximation and image compression, animated.',
+          de: 'Jede Matrix ist Drehen-Strecken-Drehen: Singulärwerte, Niedrigrang-Approximation und Bildkompression, animiert.',
         },
         topics: {
           en: ['Matrix as transform', 'Singular values', 'Low-rank approximation', 'Compression'],
@@ -353,8 +353,8 @@ export const TRACKS: TrackDef[] = [
         title: { en: 'The Kalman Filter', de: 'Das Kalman-Filter' },
         short: { en: 'Kalman', de: 'Kalman' },
         desc: {
-          en: 'Fusing a motion model with noisy sensors: predict–update, the Kalman gain, and a filter that chases your mouse.',
-          de: 'Bewegungsmodell und verrauschte Sensoren verschmelzen: Prädiktion–Korrektur, das Kalman-Gain und ein Filter, das deiner Maus hinterherjagt.',
+          en: 'Fusing a motion model with noisy sensors: predict-update, the Kalman gain, and a filter that chases your mouse.',
+          de: 'Bewegungsmodell und verrauschte Sensoren verschmelzen: Prädiktion-Korrektur, das Kalman-Gain und ein Filter, das deiner Maus hinterherjagt.',
         },
         topics: {
           en: ['Sensor fusion', 'Predict & update', 'Kalman gain', 'Tracking'],
@@ -379,8 +379,8 @@ export const TRACKS: TrackDef[] = [
         title: { en: 'Robot Kinematics', de: 'Roboterkinematik' },
         short: { en: 'Kinematics', de: 'Kinematik' },
         desc: {
-          en: 'Forward and inverse kinematics on a draggable arm, workspace analysis, and the Jacobian — watch the manipulability ellipse collapse at a singularity.',
-          de: 'Vorwärts- und Rückwärtskinematik an einem ziehbaren Arm, Arbeitsraumanalyse und die Jacobimatrix — sieh die Manipulierbarkeitsellipse an der Singularität kollabieren.',
+          en: 'Forward and inverse kinematics on a draggable arm, workspace analysis, and the Jacobian - watch the manipulability ellipse collapse at a singularity.',
+          de: 'Vorwärts- und Rückwärtskinematik an einem ziehbaren Arm, Arbeitsraumanalyse und die Jacobimatrix - sieh die Manipulierbarkeitsellipse an der Singularität kollabieren.',
         },
         topics: {
           en: ['Forward kinematics', 'Inverse kinematics', 'Jacobian', 'Singularities'],
@@ -394,7 +394,7 @@ export const TRACKS: TrackDef[] = [
         short: { en: 'SLAM', de: 'SLAM' },
         desc: {
           en: 'Mapping while localizing: watch dead reckoning drift into spaghetti, then see EKF-SLAM snap the whole map tight at loop closure.',
-          de: 'Kartieren beim Lokalisieren: Sieh Koppelnavigation zu Spaghetti driften — und EKF-SLAM die ganze Karte beim Schleifenschluss straffen.',
+          de: 'Kartieren beim Lokalisieren: Sieh Koppelnavigation zu Spaghetti driften - und EKF-SLAM die ganze Karte beim Schleifenschluss straffen.',
         },
         topics: {
           en: ['Dead reckoning', 'EKF', 'Landmarks', 'Loop closure'],
@@ -410,7 +410,7 @@ export const TRACKS: TrackDef[] = [
     short: { en: 'Metrology', de: 'Messtechnik' },
     blurb: {
       en: 'What it means to measure: uncertainty as a first-class citizen, and optical 3D measurement built on the calibrated camera.',
-      de: 'Was Messen bedeutet: Unsicherheit als Bürger erster Klasse — und optische 3D-Messtechnik auf Basis der kalibrierten Kamera.',
+      de: 'Was Messen bedeutet: Unsicherheit als Bürger erster Klasse - und optische 3D-Messtechnik auf Basis der kalibrierten Kamera.',
     },
     modules: [
       {
@@ -433,8 +433,8 @@ export const TRACKS: TrackDef[] = [
         title: { en: '3D Optical Metrology', de: 'Optische 3D-Messtechnik' },
         short: { en: '3D Metrology', de: '3D-Messtechnik' },
         desc: {
-          en: 'Laser-line triangulation, fringe projection and interferometry — three optical routes to 3D, all standing on camera calibration.',
-          de: 'Laserlinien-Triangulation, Streifenprojektion und Interferometrie — drei optische Wege zu 3D, alle auf Kamerakalibrierung gebaut.',
+          en: 'Laser-line triangulation, fringe projection and interferometry - three optical routes to 3D, all standing on camera calibration.',
+          de: 'Laserlinien-Triangulation, Streifenprojektion und Interferometrie - drei optische Wege zu 3D, alle auf Kamerakalibrierung gebaut.',
         },
         topics: {
           en: ['Laser triangulation', 'Fringe projection', 'Interferometry', 'Range vs. resolution'],
@@ -451,7 +451,7 @@ const UI = {
     prev: 'Previous',
     next: 'Next',
     footer:
-      'The Engineer’s Pocket Knife — interactive essentials: computer vision, data analysis, optimization and machine learning.',
+      'The Engineer’s Pocket Knife - interactive essentials: computer vision, data analysis, optimization and machine learning.',
     labs: 'Labs',
     glossary: 'Glossary',
     formulas: 'Formulas',
@@ -465,7 +465,7 @@ const UI = {
     prev: 'Zurück',
     next: 'Weiter',
     footer:
-      'The Engineer’s Pocket Knife — interaktive Grundlagen: Computer Vision, Datenanalyse, Optimierung und maschinelles Lernen.',
+      'The Engineer’s Pocket Knife - interaktive Grundlagen: Computer Vision, Datenanalyse, Optimierung und maschinelles Lernen.',
     labs: 'Labore',
     glossary: 'Glossar',
     formulas: 'Formeln',
@@ -556,7 +556,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const prev = track && idx > 0 ? track.modules[idx - 1] : null
   const next = track && idx >= 0 && idx < track.modules.length - 1 ? track.modules[idx + 1] : null
 
-  // scroll to top on navigation — or to a requested section (search/labs deep links)
+  // scroll to top on navigation - or to a requested section (search/labs deep links)
   useEffect(() => {
     setDrawerOpen(false)
     const target = (location.state as { scrollTo?: string } | null)?.scrollTo

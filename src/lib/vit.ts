@@ -139,7 +139,7 @@ export function patchAttention(
   return A
 }
 
-/** Shannon entropy of an attention row (nats) — "how focused is this query?". */
+/** Shannon entropy of an attention row (nats) - "how focused is this query?". */
 export function attnEntropy(row: number[]): number {
   return -row.reduce((s, p) => s + (p > 1e-9 ? p * Math.log(p) : 0), 0)
 }
@@ -213,7 +213,7 @@ export function infoNCE(S: number[][], temp: number): number {
 
 /**
  * Gradient of the (image→text) InfoNCE term w.r.t. image embedding i, on the
- * unit circle — drives the drag-to-train button.
+ * unit circle - drives the drag-to-train button.
  */
 export function infoNCEGradImage(
   imgEmb: [number, number][],

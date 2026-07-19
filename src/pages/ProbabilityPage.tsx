@@ -11,9 +11,9 @@ const T = {
     kicker: 'Math · Module 1',
     title: 'Probability & Bayes',
     intro:
-      'Every sensor lies a little, every dataset is a sample, every decision is made under incomplete knowledge. Probability is the calculus for exactly this situation — and Bayes’ rule is its engine for learning from evidence. Half of this site secretly runs on the ideas of this page.',
+      'Every sensor lies a little, every dataset is a sample, every decision is made under incomplete knowledge. Probability is the calculus for exactly this situation - and Bayes’ rule is its engine for learning from evidence. Half of this site secretly runs on the ideas of this page.',
     distTitle: 'Interactive: distributions and the central limit theorem',
-    dist1: 'The Gaussian is the celebrity among distributions — but why does it appear everywhere, from sensor noise to reprojection errors? Draw samples and watch the histogram fill the curve. Then switch to the second tab: add up k independent uniform variables (as un-Gaussian as it gets) and watch their sum become a bell. That is the central limit theorem: sums of many small independent effects end up Gaussian — which is precisely what measurement noise is.',
+    dist1: 'The Gaussian is the celebrity among distributions - but why does it appear everywhere, from sensor noise to reprojection errors? Draw samples and watch the histogram fill the curve. Then switch to the second tab: add up k independent uniform variables (as un-Gaussian as it gets) and watch their sum become a bell. That is the central limit theorem: sums of many small independent effects end up Gaussian - which is precisely what measurement noise is.',
     modeGauss: 'Gaussian sampling',
     modeClt: 'sum of k uniforms',
     mu: 'mean μ',
@@ -21,16 +21,16 @@ const T = {
     nSamples: 'samples n',
     kSum: 'summands k',
     bayesTitle: 'Interactive: Bayes’ rule and the base-rate trap',
-    bayes1: 'A test for a rare defect is "99 % accurate". A part tests positive — how likely is it actually defective? Nearly everyone answers wrong, including professionals. The grid below is a population of 1000 parts: amber = defective, cyan = fine; bright dots test positive. Look at where the positives come from when the defect is rare: the few true positives drown in false alarms from the huge healthy majority.',
+    bayes1: 'A test for a rare defect is "99 % accurate". A part tests positive - how likely is it actually defective? Nearly everyone answers wrong, including professionals. The grid below is a population of 1000 parts: amber = defective, cyan = fine; bright dots test positive. Look at where the positives come from when the defect is rare: the few true positives drown in false alarms from the huge healthy majority.',
     prevalence: 'defect rate (prior)',
-    sensitivity: 'sensitivity — P(+ | defect)',
-    specificity: 'specificity — P(− | ok)',
+    sensitivity: 'sensitivity - P(+ | defect)',
+    specificity: 'specificity - P(− | ok)',
     posterior: 'P(defect | positive)',
     tpLabel: 'true positives',
     fpLabel: 'false alarms',
-    bayes2: 'The lesson generalizes far beyond testing: a detector, an anomaly alarm, a matching threshold — their usefulness depends on the base rate, not only on their accuracy. Bayes’ rule is the bookkeeping that gets it right:',
-    updateTitle: 'Interactive: learning from data — Bayesian updating',
-    update1: 'A coin with unknown bias. Your knowledge about it is not a number but a distribution over possible biases — and every flip reshapes it. Flip and watch the posterior sharpen around the truth; more data, less uncertainty. The prior choice matters early on and washes out with evidence — exactly the behavior you want from a learner.',
+    bayes2: 'The lesson generalizes far beyond testing: a detector, an anomaly alarm, a matching threshold - their usefulness depends on the base rate, not only on their accuracy. Bayes’ rule is the bookkeeping that gets it right:',
+    updateTitle: 'Interactive: learning from data - Bayesian updating',
+    update1: 'A coin with unknown bias. Your knowledge about it is not a number but a distribution over possible biases - and every flip reshapes it. Flip and watch the posterior sharpen around the truth; more data, less uncertainty. The prior choice matters early on and washes out with evidence - exactly the behavior you want from a learner.',
     flip1: 'flip ×1',
     flip10: 'flip ×10',
     flip100: 'flip ×100',
@@ -38,12 +38,12 @@ const T = {
     reveal: 'Reveal true bias',
     hideTruth: 'Hide truth',
     priorLabel: 'prior',
-    priorNames: ['uniform — anything goes', 'skeptical — probably fair'],
+    priorNames: ['uniform - anything goes', 'skeptical - probably fair'],
     headsTails: 'observed',
     estimate: 'posterior mean',
     engTitle: 'Why engineers should care',
     engList: [
-      'Noise models: "measurement = truth + Gaussian noise" is the assumption behind least squares — minimizing squared error IS maximum-likelihood estimation under Gaussian noise.',
+      'Noise models: "measurement = truth + Gaussian noise" is the assumption behind least squares - minimizing squared error IS maximum-likelihood estimation under Gaussian noise.',
       'Regularization is a prior: ridge regression (ML track) is exactly Bayesian inference with a Gaussian prior on the parameters. λ encodes how strongly you believe "weights should be small".',
       'The Kalman filter (Signals track) is Bayes’ rule applied sequentially: prior = prediction, evidence = measurement, posterior = your best estimate. Same formula, sixty times per second.',
       'Every uncertainty budget in metrology (Measurement track) is probability bookkeeping in disguise.',
@@ -51,7 +51,7 @@ const T = {
     codeTitle: 'In practice',
     appTitle: '🏭 In the real world: the SPC control chart',
     appIntro:
-      'On every serious production line hangs a control chart: sample the process, plot the values, draw limits at ±kσ around the target. The chart is applied probability — and the choice of k is a probability trade-off you can now compute. Tight limits (k = 2) catch drifts fast but cry wolf: with pure noise, 1 in 22 points falls outside by chance alone. Wide limits (k = 4) almost never false-alarm but let real drifts run for hours. Inject a drift and play with k — you will rediscover why Walter Shewhart’s 1924 choice of ±3σ (false alarm ≈ 1 in 370) is still stamped on every quality handbook.',
+      'On every serious production line hangs a control chart: sample the process, plot the values, draw limits at ±kσ around the target. The chart is applied probability - and the choice of k is a probability trade-off you can now compute. Tight limits (k = 2) catch drifts fast but cry wolf: with pure noise, 1 in 22 points falls outside by chance alone. Wide limits (k = 4) almost never false-alarm but let real drifts run for hours. Inject a drift and play with k - you will rediscover why Walter Shewhart’s 1924 choice of ±3σ (false alarm ≈ 1 in 370) is still stamped on every quality handbook.',
     appDrift: 'process drift (from sample 25)',
     appK: 'control limits ±kσ',
     appFa: 'false-alarm rate (in control)',
@@ -60,15 +60,15 @@ const T = {
     appSamples: 'samples',
     appLegend: 'cyan = in-control samples · amber = after drift starts · red = outside the limits',
     appWhere:
-      'The same ±kσ logic gates server-latency alerts, patient-monitor alarms, seismometer triggers and fraud-detection scores — every alarm threshold anywhere is a false-alarm-vs-delay trade-off.',
+      'The same ±kσ logic gates server-latency alerts, patient-monitor alarms, seismometer triggers and fraud-detection scores - every alarm threshold anywhere is a false-alarm-vs-delay trade-off.',
   },
   de: {
     kicker: 'Mathe · Modul 1',
     title: 'Wahrscheinlichkeit & Bayes',
     intro:
-      'Jeder Sensor lügt ein bisschen, jeder Datensatz ist eine Stichprobe, jede Entscheidung fällt unter unvollständigem Wissen. Wahrscheinlichkeitsrechnung ist der Kalkül für genau diese Situation — und der Satz von Bayes ist ihr Motor zum Lernen aus Evidenz. Die halbe Seite läuft insgeheim auf den Ideen dieser Seite.',
+      'Jeder Sensor lügt ein bisschen, jeder Datensatz ist eine Stichprobe, jede Entscheidung fällt unter unvollständigem Wissen. Wahrscheinlichkeitsrechnung ist der Kalkül für genau diese Situation - und der Satz von Bayes ist ihr Motor zum Lernen aus Evidenz. Die halbe Seite läuft insgeheim auf den Ideen dieser Seite.',
     distTitle: 'Interaktiv: Verteilungen und der zentrale Grenzwertsatz',
-    dist1: 'Die Gauß-Verteilung ist die Berühmtheit unter den Verteilungen — aber warum taucht sie überall auf, vom Sensorrauschen bis zum Reprojektionsfehler? Ziehe Stichproben und sieh zu, wie das Histogramm die Kurve füllt. Wechsle dann zum zweiten Reiter: Addiere k unabhängige Gleichverteilungen (un-gaußscher geht es kaum) und beobachte, wie ihre Summe zur Glocke wird. Das ist der zentrale Grenzwertsatz: Summen vieler kleiner unabhängiger Effekte werden gaußsch — und genau das ist Messrauschen.',
+    dist1: 'Die Gauß-Verteilung ist die Berühmtheit unter den Verteilungen - aber warum taucht sie überall auf, vom Sensorrauschen bis zum Reprojektionsfehler? Ziehe Stichproben und sieh zu, wie das Histogramm die Kurve füllt. Wechsle dann zum zweiten Reiter: Addiere k unabhängige Gleichverteilungen (un-gaußscher geht es kaum) und beobachte, wie ihre Summe zur Glocke wird. Das ist der zentrale Grenzwertsatz: Summen vieler kleiner unabhängiger Effekte werden gaußsch - und genau das ist Messrauschen.',
     modeGauss: 'Gauß-Stichproben',
     modeClt: 'Summe von k Gleichverteilungen',
     mu: 'Mittelwert μ',
@@ -76,16 +76,16 @@ const T = {
     nSamples: 'Stichproben n',
     kSum: 'Summanden k',
     bayesTitle: 'Interaktiv: Satz von Bayes und die Basisraten-Falle',
-    bayes1: 'Ein Test für einen seltenen Defekt ist „99 % genau“. Ein Teil testet positiv — wie wahrscheinlich ist es wirklich defekt? Fast alle antworten falsch, auch Profis. Das Raster unten ist eine Population von 1000 Teilen: bernstein = defekt, cyan = in Ordnung; helle Punkte testen positiv. Sieh, woher die Positiven kommen, wenn der Defekt selten ist: Die wenigen echten Treffer ertrinken in Fehlalarmen der riesigen gesunden Mehrheit.',
+    bayes1: 'Ein Test für einen seltenen Defekt ist „99 % genau“. Ein Teil testet positiv - wie wahrscheinlich ist es wirklich defekt? Fast alle antworten falsch, auch Profis. Das Raster unten ist eine Population von 1000 Teilen: bernstein = defekt, cyan = in Ordnung; helle Punkte testen positiv. Sieh, woher die Positiven kommen, wenn der Defekt selten ist: Die wenigen echten Treffer ertrinken in Fehlalarmen der riesigen gesunden Mehrheit.',
     prevalence: 'Defektrate (Prior)',
-    sensitivity: 'Sensitivität — P(+ | defekt)',
-    specificity: 'Spezifität — P(− | ok)',
+    sensitivity: 'Sensitivität - P(+ | defekt)',
+    specificity: 'Spezifität - P(− | ok)',
     posterior: 'P(defekt | positiv)',
     tpLabel: 'echte Treffer',
     fpLabel: 'Fehlalarme',
-    bayes2: 'Die Lektion reicht weit über Tests hinaus: Ein Detektor, ein Anomalie-Alarm, eine Matching-Schwelle — ihr Nutzen hängt von der Basisrate ab, nicht nur von ihrer Genauigkeit. Der Satz von Bayes ist die Buchführung, die es richtig macht:',
-    updateTitle: 'Interaktiv: aus Daten lernen — Bayessches Updaten',
-    update1: 'Eine Münze mit unbekannter Tendenz. Dein Wissen darüber ist keine Zahl, sondern eine Verteilung über mögliche Tendenzen — und jeder Wurf formt sie um. Wirf und sieh zu, wie sich die Posterior-Verteilung um die Wahrheit schärft; mehr Daten, weniger Unsicherheit. Die Wahl des Priors zählt am Anfang und wäscht sich mit Evidenz heraus — genau das Verhalten, das man von einem Lerner will.',
+    bayes2: 'Die Lektion reicht weit über Tests hinaus: Ein Detektor, ein Anomalie-Alarm, eine Matching-Schwelle - ihr Nutzen hängt von der Basisrate ab, nicht nur von ihrer Genauigkeit. Der Satz von Bayes ist die Buchführung, die es richtig macht:',
+    updateTitle: 'Interaktiv: aus Daten lernen - Bayessches Updaten',
+    update1: 'Eine Münze mit unbekannter Tendenz. Dein Wissen darüber ist keine Zahl, sondern eine Verteilung über mögliche Tendenzen - und jeder Wurf formt sie um. Wirf und sieh zu, wie sich die Posterior-Verteilung um die Wahrheit schärft; mehr Daten, weniger Unsicherheit. Die Wahl des Priors zählt am Anfang und wäscht sich mit Evidenz heraus - genau das Verhalten, das man von einem Lerner will.',
     flip1: 'werfen ×1',
     flip10: 'werfen ×10',
     flip100: 'werfen ×100',
@@ -93,12 +93,12 @@ const T = {
     reveal: 'Wahre Tendenz zeigen',
     hideTruth: 'Wahrheit verbergen',
     priorLabel: 'Prior',
-    priorNames: ['uniform — alles möglich', 'skeptisch — vermutlich fair'],
+    priorNames: ['uniform - alles möglich', 'skeptisch - vermutlich fair'],
     headsTails: 'beobachtet',
     estimate: 'Posterior-Mittelwert',
     engTitle: 'Warum das Ingenieure angeht',
     engList: [
-      'Rauschmodelle: „Messung = Wahrheit + Gauß-Rauschen“ ist die Annahme hinter kleinsten Quadraten — quadratische Fehler zu minimieren IST Maximum-Likelihood-Schätzung unter Gauß-Rauschen.',
+      'Rauschmodelle: „Messung = Wahrheit + Gauß-Rauschen“ ist die Annahme hinter kleinsten Quadraten - quadratische Fehler zu minimieren IST Maximum-Likelihood-Schätzung unter Gauß-Rauschen.',
       'Regularisierung ist ein Prior: Ridge-Regression (ML-Track) ist exakt Bayessche Inferenz mit Gauß-Prior auf den Parametern. λ kodiert, wie stark man an „Gewichte sollen klein sein“ glaubt.',
       'Das Kalman-Filter (Signale-Track) ist der Satz von Bayes in Serie: Prior = Prädiktion, Evidenz = Messung, Posterior = beste Schätzung. Dieselbe Formel, sechzigmal pro Sekunde.',
       'Jedes Messunsicherheitsbudget der Metrologie (Messtechnik-Track) ist verkleidete Wahrscheinlichkeitsbuchführung.',
@@ -106,7 +106,7 @@ const T = {
     codeTitle: 'In der Praxis',
     appTitle: '🏭 In der echten Welt: die SPC-Regelkarte',
     appIntro:
-      'An jeder ernsthaften Produktionslinie hängt eine Regelkarte: Prozess abtasten, Werte plotten, Grenzen bei ±kσ um den Sollwert ziehen. Die Karte ist angewandte Wahrscheinlichkeitsrechnung — und die Wahl von k ist ein Wahrscheinlichkeits-Kompromiss, den du jetzt berechnen kannst. Enge Grenzen (k = 2) fangen Driften schnell, schreien aber ständig Wolf: Bei reinem Rauschen fällt 1 von 22 Punkten allein durch Zufall heraus. Weite Grenzen (k = 4) geben fast nie Fehlalarm, lassen echte Driften aber stundenlang laufen. Injiziere eine Drift und spiele mit k — du wirst wiederentdecken, warum Walter Shewharts Wahl von ±3σ aus dem Jahr 1924 (Fehlalarm ≈ 1 zu 370) noch heute in jedem Qualitätshandbuch steht.',
+      'An jeder ernsthaften Produktionslinie hängt eine Regelkarte: Prozess abtasten, Werte plotten, Grenzen bei ±kσ um den Sollwert ziehen. Die Karte ist angewandte Wahrscheinlichkeitsrechnung - und die Wahl von k ist ein Wahrscheinlichkeits-Kompromiss, den du jetzt berechnen kannst. Enge Grenzen (k = 2) fangen Driften schnell, schreien aber ständig Wolf: Bei reinem Rauschen fällt 1 von 22 Punkten allein durch Zufall heraus. Weite Grenzen (k = 4) geben fast nie Fehlalarm, lassen echte Driften aber stundenlang laufen. Injiziere eine Drift und spiele mit k - du wirst wiederentdecken, warum Walter Shewharts Wahl von ±3σ aus dem Jahr 1924 (Fehlalarm ≈ 1 zu 370) noch heute in jedem Qualitätshandbuch steht.',
     appDrift: 'Prozessdrift (ab Stichprobe 25)',
     appK: 'Eingriffsgrenzen ±kσ',
     appFa: 'Fehlalarmrate (beherrscht)',
@@ -115,7 +115,7 @@ const T = {
     appSamples: 'Stichproben',
     appLegend: 'cyan = beherrschter Prozess · bernstein = nach Driftbeginn · rot = außerhalb der Grenzen',
     appWhere:
-      'Dieselbe ±kσ-Logik steuert Server-Latenz-Alarme, Patientenmonitore, Seismometer-Trigger und Betrugs-Scores — jede Alarmschwelle überall ist ein Kompromiss aus Fehlalarm und Verzögerung.',
+      'Dieselbe ±kσ-Logik steuert Server-Latenz-Alarme, Patientenmonitore, Seismometer-Trigger und Betrugs-Scores - jede Alarmschwelle überall ist ein Kompromiss aus Fehlalarm und Verzögerung.',
   },
 }
 
@@ -124,7 +124,7 @@ const SNIPPET = `from scipy import stats
 # posterior for a rare defect, 99 % sensitive / 96 % specific test
 prior, sens, spec = 0.01, 0.99, 0.96
 posterior = prior*sens / (prior*sens + (1-prior)*(1-spec))
-print(posterior)                     # ≈ 0.20 — not 0.99!
+print(posterior)                     # ≈ 0.20 - not 0.99!
 
 # Bayesian coin: posterior after 7 heads in 10 flips (uniform prior)
 posterior = stats.beta(1 + 7, 1 + 3)

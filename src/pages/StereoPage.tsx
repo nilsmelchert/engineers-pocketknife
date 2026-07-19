@@ -37,27 +37,27 @@ const T = {
     kicker: 'Vision · Module 4',
     title: 'Stereo Calibration & Stereo Vision',
     intro:
-      'A single camera destroys depth: every point on a viewing ray lands on the same pixel. A second camera breaks that ambiguity. This module covers the geometry of two views — from stereo extrinsics through epipolar lines to metric depth from disparity.',
+      'A single camera destroys depth: every point on a viewing ray lands on the same pixel. A second camera breaks that ambiguity. This module covers the geometry of two views - from stereo extrinsics through epipolar lines to metric depth from disparity.',
     bridgeTitle: 'The second camera sees the difference',
     bridge1:
-      'Module 1 ended with an unsolvable puzzle: sliding a point along its viewing ray leaves the left image completely unchanged. Here is the same experiment with one camera added. The left dot still refuses to move — but the right camera watches the point from the side, and its dot slides as the depth changes. The information that camera one destroys is exactly what camera two records.',
+      'Module 1 ended with an unsolvable puzzle: sliding a point along its viewing ray leaves the left image completely unchanged. Here is the same experiment with one camera added. The left dot still refuses to move - but the right camera watches the point from the side, and its dot slides as the depth changes. The information that camera one destroys is exactly what camera two records.',
     bridge2:
-      'Note where the right dot slides: always along the same faint line. That is no accident — it is the epipolar line, and it gets its own section below.',
+      'Note where the right dot slides: always along the same faint line. That is no accident - it is the epipolar line, and it gets its own section below.',
     bridgeDepth: 'depth along the left ray',
     bridgeLeftU: 'left pixel',
     bridgeRightU: 'right pixel uR',
     tipParallax:
-      'You own a stereo rig: hold a finger in front of your face and wink your left and right eye alternately. The finger jumps against the background, and the closer it is, the bigger the jump. That jump is disparity — your visual system triangulates with a ~6.5 cm baseline all day long.',
+      'You own a stereo rig: hold a finger in front of your face and wink your left and right eye alternately. The finger jumps against the background, and the closer it is, the bigger the jump. That jump is disparity - your visual system triangulates with a ~6.5 cm baseline all day long.',
     triTitle: 'Interactive: triangulation with two cameras',
-    tri1: 'Two identical, perfectly parallel cameras (the rectified case) observe one point. Each camera alone only knows a ray — but the two rays intersect in exactly one place. That intersection is triangulation, and the whole depth signal is the horizontal shift between the two image positions: the disparity d = uL − uR.',
+    tri1: 'Two identical, perfectly parallel cameras (the rectified case) observe one point. Each camera alone only knows a ray - but the two rays intersect in exactly one place. That intersection is triangulation, and the whole depth signal is the horizontal shift between the two image positions: the disparity d = uL − uR.',
     triTry: [
-      'Push the point away (Z ↑) — both image dots crawl toward each other: disparity shrinks hyperbolically.',
-      'Widen the baseline b — disparity grows: a wider rig can see depth farther away.',
-      'Increase f — same effect: telephoto stereo has more depth signal but a narrower view.',
+      'Push the point away (Z ↑) - both image dots crawl toward each other: disparity shrinks hyperbolically.',
+      'Widen the baseline b - disparity grows: a wider rig can see depth farther away.',
+      'Increase f - same effect: telephoto stereo has more depth signal but a narrower view.',
     ],
     leftImg: 'Left image',
     rightImg: 'Right image',
-    scene: '3D scene — drag to orbit',
+    scene: '3D scene - drag to orbit',
     baseline: 'baseline b',
     focal: 'focal length f',
     px: 'point X',
@@ -72,38 +72,38 @@ const T = {
     depthFormula: 'The rectified geometry gives the fundamental relation of stereo vision:',
     calibTitle: 'Stereo calibration: the extrinsics between two cameras',
     calib1:
-      'Stereo calibration (e.g. cv2.stereoCalibrate) estimates the fixed rigid transform between the two cameras — the rotation R and translation t that map points from the left camera frame into the right one — alongside both K matrices. It uses the same checkerboard captures as single-camera calibration, seen by both cameras simultaneously.',
+      'Stereo calibration (e.g. cv2.stereoCalibrate) estimates the fixed rigid transform between the two cameras - the rotation R and translation t that map points from the left camera frame into the right one - alongside both K matrices. It uses the same checkerboard captures as single-camera calibration, seen by both cameras simultaneously.',
     calib2:
-      'From R and t follow the two workhorse matrices of two-view geometry: the essential matrix E (normalized coordinates) and the fundamental matrix F (pixels). Both encode the same constraint — a point in one image confines its partner to a line in the other:',
+      'From R and t follow the two workhorse matrices of two-view geometry: the essential matrix E (normalized coordinates) and the fundamental matrix F (pixels). Both encode the same constraint - a point in one image confines its partner to a line in the other:',
     epiTitle: 'Interactive: epipolar geometry',
-    epi1: 'Here the two cameras are verged (rotated toward each other), like your eyes. Drag the point in the left image: its epipolar line appears in the right image. The matching point can only lie on this line — this is why stereo matching is a 1D search, not a 2D one.',
+    epi1: 'Here the two cameras are verged (rotated toward each other), like your eyes. Drag the point in the left image: its epipolar line appears in the right image. The matching point can only lie on this line - this is why stereo matching is a 1D search, not a 2D one.',
     epi2: 'The depth slider moves a candidate 3D point along the left viewing ray. Watch its projection in the right image: it slides along the epipolar line but never leaves it, no matter the depth.',
     epiDrag: 'drag the point!',
     epiDepth: 'depth along left ray',
     epiF: 'Current fundamental matrix (computed from K, R, t of this rig):',
-    epi3d: 'And here is the 3D reason for the line. The left pixel fixes a viewing ray (dashed). This ray together with the two camera centers spans a plane — the epipolar plane (translucent). Whatever the depth, the candidate point stays inside this plane; the right camera sees the plane edge-on, and a plane seen edge-on is… a line on the sensor. Drag the point in the left image above and watch the plane tilt with it.',
-    epi3dScene: '3D scene — the epipolar plane, synced with the images above',
-    efTitle: 'Essential vs. fundamental — a quick comparison',
+    epi3d: 'And here is the 3D reason for the line. The left pixel fixes a viewing ray (dashed). This ray together with the two camera centers spans a plane - the epipolar plane (translucent). Whatever the depth, the candidate point stays inside this plane; the right camera sees the plane edge-on, and a plane seen edge-on is… a line on the sensor. Drag the point in the left image above and watch the plane tilt with it.',
+    epi3dScene: '3D scene - the epipolar plane, synced with the images above',
+    efTitle: 'Essential vs. fundamental - a quick comparison',
     efHead: ['', 'Essential E', 'Fundamental F'],
     efRows: [
       ['acts on', 'normalized coordinates (K removed)', 'raw pixel coordinates'],
-      ['requires K', 'yes — calibrated cameras', 'no — works uncalibrated'],
+      ['requires K', 'yes - calibrated cameras', 'no - works uncalibrated'],
       ['degrees of freedom', '5', '7'],
       ['can be decomposed into', 'R and t (t up to scale)', 'epipolar lines only'],
     ],
     rectTitle: 'Rectification: making epipolar lines horizontal',
     rect1:
-      'General epipolar lines are slanted — searching along them is awkward. Rectification warps both images with homographies so that both virtual cameras are parallel again: all epipolar lines become horizontal, and corresponding points share the same image row. Every practical stereo matcher runs on rectified images.',
-    rectBefore: 'Before: verged rig — lines converge toward the epipole',
-    rectAfter: 'After: rectified — lines are horizontal rows',
+      'General epipolar lines are slanted - searching along them is awkward. Rectification warps both images with homographies so that both virtual cameras are parallel again: all epipolar lines become horizontal, and corresponding points share the same image row. Every practical stereo matcher runs on rectified images.',
+    rectBefore: 'Before: verged rig - lines converge toward the epipole',
+    rectAfter: 'After: rectified - lines are horizontal rows',
     depthTitle: 'Interactive: from disparity to depth',
-    depth1: 'Depth is inversely proportional to disparity — with dramatic consequences. One pixel of disparity is worth centimeters up close, but meters far away. The depth resolution of a stereo rig degrades quadratically with distance:',
+    depth1: 'Depth is inversely proportional to disparity - with dramatic consequences. One pixel of disparity is worth centimeters up close, but meters far away. The depth resolution of a stereo rig degrades quadratically with distance:',
     depthCurve: 'depth Z over disparity d',
     depthAt: 'depth at current d',
     depthRes: 'ΔZ per 1 px at current d',
     dSlider: 'disparity d',
     matchTitle: 'Finding correspondences in practice',
-    match1: 'Geometry tells us where to search — a matcher must still decide which pixel corresponds. Block-matching algorithms (e.g. OpenCV’s StereoSGBM) compare local patches along each rectified row, pick the disparity with the best matching cost, and produce a disparity map, which the Q matrix from stereoRectify turns into a 3D point cloud.',
+    match1: 'Geometry tells us where to search - a matcher must still decide which pixel corresponds. Block-matching algorithms (e.g. OpenCV’s StereoSGBM) compare local patches along each rectified row, pick the disparity with the best matching cost, and produce a disparity map, which the Q matrix from stereoRectify turns into a 3D point cloud.',
     matchList: [
       'Textureless surfaces (white walls) give no matching signal → holes in the map.',
       'Repetitive patterns cause ambiguous matches.',
@@ -111,9 +111,9 @@ const T = {
       'Active stereo (projected IR texture, e.g. RealSense) fights the first two problems.',
     ],
     matchLab1:
-      'Enough theory — here is an actual stereo matcher running in your browser. The left/right pair below is synthetic (a slanted wall, two boxes and a disk, so the true disparity of every pixel is known), and the algorithm is the honest classic: for every left pixel, slide a window along the same row of the right image, score each candidate shift with SAD or SSD, keep the best. The result map is color-coded near-to-far; switch to ground truth or |error| to grade it. Then click any pixel in the disparity map: the cost curve below shows exactly what the matcher saw at that pixel — and why it chose what it chose.',
+      'Enough theory - here is an actual stereo matcher running in your browser. The left/right pair below is synthetic (a slanted wall, two boxes and a disk, so the true disparity of every pixel is known), and the algorithm is the honest classic: for every left pixel, slide a window along the same row of the right image, score each candidate shift with SAD or SSD, keep the best. The result map is color-coded near-to-far; switch to ground truth or |error| to grade it. Then click any pixel in the disparity map: the cost curve below shows exactly what the matcher saw at that pixel - and why it chose what it chose.',
     matchLab2:
-      'The three failure modes from the list above are all in this scene. Turn texture down and watch the wall dissolve into noise while its cost curves go flat — no texture, no signal. Look right of each box edge: a band of wrong disparity that no window size fixes — those background pixels are occluded in the right view, there IS no correct match. And sweep the window size: small windows are noisy but sharp, large windows are clean but fatten every object boundary. Forty years of stereo research lives inside these three trade-offs.',
+      'The three failure modes from the list above are all in this scene. Turn texture down and watch the wall dissolve into noise while its cost curves go flat - no texture, no signal. Look right of each box edge: a band of wrong disparity that no window size fixes - those background pixels are occluded in the right view, there IS no correct match. And sweep the window size: small windows are noisy but sharp, large windows are clean but fatten every object boundary. Forty years of stereo research lives inside these three trade-offs.',
     matchWin: 'window size',
     matchTex: 'surface texture',
     matchNoise: 'sensor noise σ',
@@ -126,32 +126,32 @@ const T = {
     ],
     matchLeftT: 'left image',
     matchRightT: 'right image',
-    matchDispT: 'disparity map — click a pixel to probe its cost curve',
+    matchDispT: 'disparity map - click a pixel to probe its cost curve',
     matchMed: 'median error',
     matchBad: 'bad pixels (>1 px)',
     matchMs: 'compute time',
-    matchProbe: 'cost curve at the clicked pixel — amber = chosen minimum, green dashed = true disparity',
+    matchProbe: 'cost curve at the clicked pixel - amber = chosen minimum, green dashed = true disparity',
     matchProbeHint: 'click the disparity map to probe a pixel',
     matchOccNote: 'hatched = occluded in the right view (excluded from the statistics)',
     depthDerivTitle: 'The depth formula, derived',
     depthDeriv: [
       { tex: String.raw`\frac{u_L - c_x}{f} = \frac{X}{Z}, \qquad \frac{u_R - c_x}{f} = \frac{X - b}{Z}`, note: 'Two similar-triangle relations: each camera sees the same point, the right one from a viewpoint shifted by the baseline b.' },
-      { tex: String.raw`d \;=\; u_L - u_R \;=\; \frac{f\,b}{Z}`, note: 'Subtract — X cancels. The disparity depends only on depth, baseline and focal length.' },
+      { tex: String.raw`d \;=\; u_L - u_R \;=\; \frac{f\,b}{Z}`, note: 'Subtract - X cancels. The disparity depends only on depth, baseline and focal length.' },
       { tex: String.raw`Z = \frac{f\,b}{d}`, note: 'Invert: metric depth from a pixel offset. This one line is the entire business model of every stereo camera.' },
-      { tex: String.raw`\left|\frac{\partial Z}{\partial d}\right| = \frac{f\,b}{d^2} = \frac{Z^2}{f\,b} \;\;\Rightarrow\;\; \Delta Z \approx \frac{Z^2}{f\,b}\,\Delta d`, note: 'Differentiate: a fixed matching error Δd costs depth accuracy growing with Z² — the quadratic degradation the wedge demo above makes visible.' },
+      { tex: String.raw`\left|\frac{\partial Z}{\partial d}\right| = \frac{f\,b}{d^2} = \frac{Z^2}{f\,b} \;\;\Rightarrow\;\; \Delta Z \approx \frac{Z^2}{f\,b}\,\Delta d`, note: 'Differentiate: a fixed matching error Δd costs depth accuracy growing with Z² - the quadratic degradation the wedge demo above makes visible.' },
     ],
     essDerivTitle: 'E = [t]×R from coplanarity',
     essDeriv: [
-      { tex: String.raw`\hat{\mathbf{x}}_2 \;\sim\; R\,\hat{\mathbf{x}}_1\text{-ray}, \quad \mathbf{t}: \text{ baseline between the centers}`, note: 'Work in normalized coordinates (K removed). The two viewing rays of one 3D point and the baseline vector all lie in one plane — the epipolar plane.' },
+      { tex: String.raw`\hat{\mathbf{x}}_2 \;\sim\; R\,\hat{\mathbf{x}}_1\text{-ray}, \quad \mathbf{t}: \text{ baseline between the centers}`, note: 'Work in normalized coordinates (K removed). The two viewing rays of one 3D point and the baseline vector all lie in one plane - the epipolar plane.' },
       { tex: String.raw`\hat{\mathbf{x}}_2 \cdot \big(\mathbf{t} \times R\,\hat{\mathbf{x}}_1\big) = 0`, note: 'Coplanarity of three vectors = vanishing triple product. This single scalar equation is the entire epipolar constraint.' },
-      { tex: String.raw`\mathbf{t} \times \mathbf{v} = [\mathbf{t}]_\times \mathbf{v}, \qquad [\mathbf{t}]_\times = \begin{bmatrix} 0 & -t_3 & t_2 \\ t_3 & 0 & -t_1 \\ -t_2 & t_1 & 0 \end{bmatrix}`, note: 'The cross product is a linear map — write it as the skew-symmetric matrix [t]ₓ.' },
+      { tex: String.raw`\mathbf{t} \times \mathbf{v} = [\mathbf{t}]_\times \mathbf{v}, \qquad [\mathbf{t}]_\times = \begin{bmatrix} 0 & -t_3 & t_2 \\ t_3 & 0 & -t_1 \\ -t_2 & t_1 & 0 \end{bmatrix}`, note: 'The cross product is a linear map - write it as the skew-symmetric matrix [t]ₓ.' },
       { tex: String.raw`\hat{\mathbf{x}}_2^{\mathsf T}\, \underbrace{[\mathbf{t}]_\times R}_{E} \,\hat{\mathbf{x}}_1 = 0`, note: 'And the essential matrix falls out. Watch the live readout in the lab above: it stays at machine zero no matter where you drag the point.' },
-      { tex: String.raw`E = U\,\mathrm{diag}(1,1,0)\,V^{\mathsf T} \;\Rightarrow\; 4 \text{ candidate } (R, \mathbf{t}) \text{ pairs}`, note: 'Going backwards (E → R, t) needs an SVD and yields four candidates; the real one is picked by cheirality — reconstructed points must lie in front of both cameras. cv2.recoverPose does exactly this.' },
+      { tex: String.raw`E = U\,\mathrm{diag}(1,1,0)\,V^{\mathsf T} \;\Rightarrow\; 4 \text{ candidate } (R, \mathbf{t}) \text{ pairs}`, note: 'Going backwards (E → R, t) needs an SVD and yields four candidates; the real one is picked by cheirality - reconstructed points must lie in front of both cameras. cv2.recoverPose does exactly this.' },
     ],
     epiConstraint: 'x̂₂ᵀ E x̂₁ (live)',
     appTitle: '🏭 In the real world: designing a forklift safety camera',
     appIntro:
-      'An autonomous forklift must stop for a 5 cm obstacle — a dropped bolt bin, a pallet corner — before it gets dangerously close. You are the system designer: pick the baseline and the lens, then check the rig against the spec at the required detection range. Two things must hold at that range: the depth error from ±0.5 px of disparity noise must stay below ±5 cm, and the disparity itself must be at least 5 px so the obstacle stands out from matching noise at all. Widen the baseline or lengthen the lens and watch the badge flip — this exact trade-off (baseline vs. housing size vs. range) is fought over in every stereo product meeting.',
+      'An autonomous forklift must stop for a 5 cm obstacle - a dropped bolt bin, a pallet corner - before it gets dangerously close. You are the system designer: pick the baseline and the lens, then check the rig against the spec at the required detection range. Two things must hold at that range: the depth error from ±0.5 px of disparity noise must stay below ±5 cm, and the disparity itself must be at least 5 px so the obstacle stands out from matching noise at all. Widen the baseline or lengthen the lens and watch the badge flip - this exact trade-off (baseline vs. housing size vs. range) is fought over in every stereo product meeting.',
     appBase: 'baseline b',
     appFocal: 'focal length f',
     appRange: 'detection range Z',
@@ -160,36 +160,36 @@ const T = {
     appPass: 'DESIGN PASSES',
     appFail: 'DESIGN FAILS',
     appPassWhy: 'disparity ≥ 5 px and depth error ≤ 5 cm at the detection range',
-    appFailDisp: 'disparity below 5 px — the obstacle drowns in matching noise',
-    appFailRes: 'depth error above 5 cm — obstacle and floor become indistinguishable',
+    appFailDisp: 'disparity below 5 px - the obstacle drowns in matching noise',
+    appFailRes: 'depth error above 5 cm - obstacle and floor become indistinguishable',
     appWhere:
-      'The same sizing calculation shapes the stereo rigs in cars (Subaru EyeSight), autonomous drones (Skydio), warehouse AMRs and planetary rovers — and it explains why phones, with millimeter baselines, only measure depth at arm’s length.',
+      'The same sizing calculation shapes the stereo rigs in cars (Subaru EyeSight), autonomous drones (Skydio), warehouse AMRs and planetary rovers - and it explains why phones, with millimeter baselines, only measure depth at arm’s length.',
   },
   de: {
     kicker: 'Vision · Modul 4',
     title: 'Stereokalibrierung & Stereosehen',
     intro:
-      'Eine einzelne Kamera zerstört Tiefe: Jeder Punkt auf einem Sehstrahl landet auf demselben Pixel. Eine zweite Kamera bricht diese Mehrdeutigkeit. Dieses Modul behandelt die Geometrie zweier Ansichten — von der Stereo-Extrinsik über Epipolarlinien bis zur metrischen Tiefe aus Disparität.',
+      'Eine einzelne Kamera zerstört Tiefe: Jeder Punkt auf einem Sehstrahl landet auf demselben Pixel. Eine zweite Kamera bricht diese Mehrdeutigkeit. Dieses Modul behandelt die Geometrie zweier Ansichten - von der Stereo-Extrinsik über Epipolarlinien bis zur metrischen Tiefe aus Disparität.',
     bridgeTitle: 'Die zweite Kamera sieht den Unterschied',
     bridge1:
-      'Modul 1 endete mit einem unlösbaren Rätsel: Verschiebt man einen Punkt entlang seines Sehstrahls, bleibt das linke Bild völlig unverändert. Hier ist dasselbe Experiment mit einer zusätzlichen Kamera. Der linke Punkt weigert sich weiterhin, sich zu bewegen — aber die rechte Kamera beobachtet den Punkt von der Seite, und ihr Punkt wandert mit der Tiefe. Genau die Information, die Kamera eins zerstört, zeichnet Kamera zwei auf.',
+      'Modul 1 endete mit einem unlösbaren Rätsel: Verschiebt man einen Punkt entlang seines Sehstrahls, bleibt das linke Bild völlig unverändert. Hier ist dasselbe Experiment mit einer zusätzlichen Kamera. Der linke Punkt weigert sich weiterhin, sich zu bewegen - aber die rechte Kamera beobachtet den Punkt von der Seite, und ihr Punkt wandert mit der Tiefe. Genau die Information, die Kamera eins zerstört, zeichnet Kamera zwei auf.',
     bridge2:
-      'Beachte, wo der rechte Punkt entlangwandert: immer auf derselben blassen Linie. Das ist kein Zufall — es ist die Epipolarlinie, und sie bekommt unten ihren eigenen Abschnitt.',
+      'Beachte, wo der rechte Punkt entlangwandert: immer auf derselben blassen Linie. Das ist kein Zufall - es ist die Epipolarlinie, und sie bekommt unten ihren eigenen Abschnitt.',
     bridgeDepth: 'Tiefe entlang des linken Strahls',
     bridgeLeftU: 'linkes Pixel',
     bridgeRightU: 'rechtes Pixel uR',
     tipParallax:
-      'Du besitzt ein Stereo-Rig: Halte einen Finger vors Gesicht und blinzle abwechselnd mit dem linken und rechten Auge. Der Finger springt vor dem Hintergrund — je näher, desto größer der Sprung. Dieser Sprung ist Disparität; dein Sehsystem trianguliert den ganzen Tag mit ~6,5 cm Basislinie.',
+      'Du besitzt ein Stereo-Rig: Halte einen Finger vors Gesicht und blinzle abwechselnd mit dem linken und rechten Auge. Der Finger springt vor dem Hintergrund - je näher, desto größer der Sprung. Dieser Sprung ist Disparität; dein Sehsystem trianguliert den ganzen Tag mit ~6,5 cm Basislinie.',
     triTitle: 'Interaktiv: Triangulation mit zwei Kameras',
-    tri1: 'Zwei identische, perfekt parallele Kameras (der rektifizierte Fall) beobachten einen Punkt. Jede Kamera allein kennt nur einen Strahl — aber die beiden Strahlen schneiden sich an genau einer Stelle. Dieser Schnitt ist die Triangulation, und das gesamte Tiefensignal steckt im horizontalen Versatz der beiden Bildpositionen: der Disparität d = uL − uR.',
+    tri1: 'Zwei identische, perfekt parallele Kameras (der rektifizierte Fall) beobachten einen Punkt. Jede Kamera allein kennt nur einen Strahl - aber die beiden Strahlen schneiden sich an genau einer Stelle. Dieser Schnitt ist die Triangulation, und das gesamte Tiefensignal steckt im horizontalen Versatz der beiden Bildpositionen: der Disparität d = uL − uR.',
     triTry: [
-      'Schiebe den Punkt weiter weg (Z ↑) — beide Bildpunkte kriechen aufeinander zu: Die Disparität schrumpft hyperbolisch.',
-      'Vergrößere die Basislinie b — die Disparität wächst: Ein breiteres Rig sieht Tiefe auf größere Entfernung.',
-      'Erhöhe f — gleicher Effekt: Tele-Stereo hat mehr Tiefensignal, aber ein engeres Sichtfeld.',
+      'Schiebe den Punkt weiter weg (Z ↑) - beide Bildpunkte kriechen aufeinander zu: Die Disparität schrumpft hyperbolisch.',
+      'Vergrößere die Basislinie b - die Disparität wächst: Ein breiteres Rig sieht Tiefe auf größere Entfernung.',
+      'Erhöhe f - gleicher Effekt: Tele-Stereo hat mehr Tiefensignal, aber ein engeres Sichtfeld.',
     ],
     leftImg: 'Linkes Bild',
     rightImg: 'Rechtes Bild',
-    scene: '3D-Szene — ziehen zum Orbiten',
+    scene: '3D-Szene - ziehen zum Orbiten',
     baseline: 'Basislinie b',
     focal: 'Brennweite f',
     px: 'Punkt X',
@@ -204,48 +204,48 @@ const T = {
     depthFormula: 'Aus der rektifizierten Geometrie folgt die Grundgleichung des Stereosehens:',
     calibTitle: 'Stereokalibrierung: die Extrinsik zwischen zwei Kameras',
     calib1:
-      'Die Stereokalibrierung (z. B. cv2.stereoCalibrate) schätzt die feste Starrkörpertransformation zwischen den beiden Kameras — Rotation R und Translation t, die Punkte vom linken ins rechte Kamerasystem abbilden — zusammen mit beiden K-Matrizen. Sie nutzt dieselben Schachbrettaufnahmen wie die Einzelkamera-Kalibrierung, von beiden Kameras gleichzeitig gesehen.',
+      'Die Stereokalibrierung (z. B. cv2.stereoCalibrate) schätzt die feste Starrkörpertransformation zwischen den beiden Kameras - Rotation R und Translation t, die Punkte vom linken ins rechte Kamerasystem abbilden - zusammen mit beiden K-Matrizen. Sie nutzt dieselben Schachbrettaufnahmen wie die Einzelkamera-Kalibrierung, von beiden Kameras gleichzeitig gesehen.',
     calib2:
-      'Aus R und t folgen die beiden Arbeitspferde der Zwei-Ansichten-Geometrie: die essentielle Matrix E (normierte Koordinaten) und die Fundamentalmatrix F (Pixel). Beide kodieren dieselbe Bedingung — ein Punkt in einem Bild zwingt seinen Partner im anderen auf eine Linie:',
+      'Aus R und t folgen die beiden Arbeitspferde der Zwei-Ansichten-Geometrie: die essentielle Matrix E (normierte Koordinaten) und die Fundamentalmatrix F (Pixel). Beide kodieren dieselbe Bedingung - ein Punkt in einem Bild zwingt seinen Partner im anderen auf eine Linie:',
     epiTitle: 'Interaktiv: Epipolargeometrie',
-    epi1: 'Hier sind die beiden Kameras konvergent (zueinander gedreht), wie deine Augen. Ziehe den Punkt im linken Bild: Seine Epipolarlinie erscheint im rechten Bild. Der korrespondierende Punkt kann nur auf dieser Linie liegen — deshalb ist Stereo-Matching eine 1D-Suche, keine 2D-Suche.',
-    epi2: 'Der Tiefen-Slider verschiebt einen 3D-Kandidatenpunkt entlang des linken Sehstrahls. Beobachte seine Projektion im rechten Bild: Sie gleitet die Epipolarlinie entlang, verlässt sie aber nie — egal bei welcher Tiefe.',
+    epi1: 'Hier sind die beiden Kameras konvergent (zueinander gedreht), wie deine Augen. Ziehe den Punkt im linken Bild: Seine Epipolarlinie erscheint im rechten Bild. Der korrespondierende Punkt kann nur auf dieser Linie liegen - deshalb ist Stereo-Matching eine 1D-Suche, keine 2D-Suche.',
+    epi2: 'Der Tiefen-Slider verschiebt einen 3D-Kandidatenpunkt entlang des linken Sehstrahls. Beobachte seine Projektion im rechten Bild: Sie gleitet die Epipolarlinie entlang, verlässt sie aber nie - egal bei welcher Tiefe.',
     epiDrag: 'Punkt ziehen!',
     epiDepth: 'Tiefe entlang des linken Strahls',
     epiF: 'Aktuelle Fundamentalmatrix (berechnet aus K, R, t dieses Rigs):',
-    epi3d: 'Und hier der 3D-Grund für die Linie. Das linke Pixel legt einen Sehstrahl fest (gestrichelt). Dieser Strahl spannt zusammen mit den beiden Kamerazentren eine Ebene auf — die Epipolarebene (transparent). Egal bei welcher Tiefe: Der Kandidatenpunkt bleibt in dieser Ebene; die rechte Kamera sieht die Ebene von der Kante, und eine Ebene von der Kante gesehen ist… eine Linie auf dem Sensor. Ziehe den Punkt im linken Bild oben und beobachte, wie die Ebene mitkippt.',
-    epi3dScene: '3D-Szene — die Epipolarebene, synchron zu den Bildern oben',
-    efTitle: 'Essentiell vs. fundamental — der schnelle Vergleich',
+    epi3d: 'Und hier der 3D-Grund für die Linie. Das linke Pixel legt einen Sehstrahl fest (gestrichelt). Dieser Strahl spannt zusammen mit den beiden Kamerazentren eine Ebene auf - die Epipolarebene (transparent). Egal bei welcher Tiefe: Der Kandidatenpunkt bleibt in dieser Ebene; die rechte Kamera sieht die Ebene von der Kante, und eine Ebene von der Kante gesehen ist… eine Linie auf dem Sensor. Ziehe den Punkt im linken Bild oben und beobachte, wie die Ebene mitkippt.',
+    epi3dScene: '3D-Szene - die Epipolarebene, synchron zu den Bildern oben',
+    efTitle: 'Essentiell vs. fundamental - der schnelle Vergleich',
     efHead: ['', 'Essentielle E', 'Fundamentale F'],
     efRows: [
       ['wirkt auf', 'normierte Koordinaten (K entfernt)', 'rohe Pixelkoordinaten'],
-      ['braucht K', 'ja — kalibrierte Kameras', 'nein — funktioniert unkalibriert'],
+      ['braucht K', 'ja - kalibrierte Kameras', 'nein - funktioniert unkalibriert'],
       ['Freiheitsgrade', '5', '7'],
       ['zerlegbar in', 'R und t (t bis auf Skalierung)', 'nur Epipolarlinien'],
     ],
     rectTitle: 'Rektifizierung: Epipolarlinien horizontal machen',
     rect1:
-      'Allgemeine Epipolarlinien verlaufen schräg — entlang ihnen zu suchen ist unpraktisch. Die Rektifizierung entzerrt beide Bilder mit Homographien, sodass beide virtuellen Kameras wieder parallel stehen: Alle Epipolarlinien werden horizontal, und korrespondierende Punkte teilen dieselbe Bildzeile. Jeder praktische Stereo-Matcher arbeitet auf rektifizierten Bildern.',
-    rectBefore: 'Vorher: konvergentes Rig — Linien laufen zum Epipol',
-    rectAfter: 'Nachher: rektifiziert — Linien sind horizontale Zeilen',
+      'Allgemeine Epipolarlinien verlaufen schräg - entlang ihnen zu suchen ist unpraktisch. Die Rektifizierung entzerrt beide Bilder mit Homographien, sodass beide virtuellen Kameras wieder parallel stehen: Alle Epipolarlinien werden horizontal, und korrespondierende Punkte teilen dieselbe Bildzeile. Jeder praktische Stereo-Matcher arbeitet auf rektifizierten Bildern.',
+    rectBefore: 'Vorher: konvergentes Rig - Linien laufen zum Epipol',
+    rectAfter: 'Nachher: rektifiziert - Linien sind horizontale Zeilen',
     depthTitle: 'Interaktiv: von der Disparität zur Tiefe',
-    depth1: 'Tiefe ist umgekehrt proportional zur Disparität — mit dramatischen Folgen. Ein Pixel Disparität entspricht in der Nähe Zentimetern, in der Ferne Metern. Die Tiefenauflösung eines Stereo-Rigs verschlechtert sich quadratisch mit der Entfernung:',
+    depth1: 'Tiefe ist umgekehrt proportional zur Disparität - mit dramatischen Folgen. Ein Pixel Disparität entspricht in der Nähe Zentimetern, in der Ferne Metern. Die Tiefenauflösung eines Stereo-Rigs verschlechtert sich quadratisch mit der Entfernung:',
     depthCurve: 'Tiefe Z über Disparität d',
     depthAt: 'Tiefe bei aktuellem d',
     depthRes: 'ΔZ pro 1 px bei aktuellem d',
     dSlider: 'Disparität d',
     matchTitle: 'Korrespondenzsuche in der Praxis',
-    match1: 'Die Geometrie sagt, wo zu suchen ist — ein Matcher muss trotzdem entscheiden, welches Pixel korrespondiert. Blockmatching-Verfahren (z. B. OpenCVs StereoSGBM) vergleichen lokale Bildausschnitte entlang jeder rektifizierten Zeile, wählen die Disparität mit den besten Matchingkosten und erzeugen eine Disparitätskarte, die die Q-Matrix aus stereoRectify in eine 3D-Punktwolke verwandelt.',
+    match1: 'Die Geometrie sagt, wo zu suchen ist - ein Matcher muss trotzdem entscheiden, welches Pixel korrespondiert. Blockmatching-Verfahren (z. B. OpenCVs StereoSGBM) vergleichen lokale Bildausschnitte entlang jeder rektifizierten Zeile, wählen die Disparität mit den besten Matchingkosten und erzeugen eine Disparitätskarte, die die Q-Matrix aus stereoRectify in eine 3D-Punktwolke verwandelt.',
     matchList: [
       'Texturlose Flächen (weiße Wände) liefern kein Matchingsignal → Löcher in der Karte.',
       'Sich wiederholende Muster erzeugen mehrdeutige Matches.',
-      'Verdeckungen: Manche Pixel sieht nur eine Kamera — sie haben keine gültige Disparität.',
+      'Verdeckungen: Manche Pixel sieht nur eine Kamera - sie haben keine gültige Disparität.',
       'Aktives Stereo (projizierte IR-Textur, z. B. RealSense) bekämpft die ersten beiden Probleme.',
     ],
     matchLab1:
-      'Genug Theorie — hier läuft ein echter Stereo-Matcher in deinem Browser. Das Links/Rechts-Paar unten ist synthetisch (eine schräge Wand, zwei Kisten und eine Scheibe, sodass die wahre Disparität jedes Pixels bekannt ist), und der Algorithmus ist der ehrliche Klassiker: Schiebe für jedes linke Pixel ein Fenster entlang derselben Zeile des rechten Bildes, bewerte jeden Kandidaten-Versatz mit SAD oder SSD, behalte den besten. Die Ergebniskarte ist nah-bis-fern farbcodiert; schalte auf Ground Truth oder |Fehler| um, um sie zu benoten. Klicke dann irgendein Pixel in der Disparitätskarte: Die Kostenkurve darunter zeigt exakt, was der Matcher an diesem Pixel gesehen hat — und warum er wählte, was er wählte.',
+      'Genug Theorie - hier läuft ein echter Stereo-Matcher in deinem Browser. Das Links/Rechts-Paar unten ist synthetisch (eine schräge Wand, zwei Kisten und eine Scheibe, sodass die wahre Disparität jedes Pixels bekannt ist), und der Algorithmus ist der ehrliche Klassiker: Schiebe für jedes linke Pixel ein Fenster entlang derselben Zeile des rechten Bildes, bewerte jeden Kandidaten-Versatz mit SAD oder SSD, behalte den besten. Die Ergebniskarte ist nah-bis-fern farbcodiert; schalte auf Ground Truth oder |Fehler| um, um sie zu benoten. Klicke dann irgendein Pixel in der Disparitätskarte: Die Kostenkurve darunter zeigt exakt, was der Matcher an diesem Pixel gesehen hat - und warum er wählte, was er wählte.',
     matchLab2:
-      'Die drei Fehlermodi aus der Liste oben stecken alle in dieser Szene. Dreh die Textur herunter und sieh zu, wie die Wand in Rauschen zerfällt, während ihre Kostenkurven flach werden — keine Textur, kein Signal. Schau rechts neben jede Kistenkante: ein Band falscher Disparität, das keine Fenstergröße repariert — diese Hintergrundpixel sind im rechten Bild verdeckt, es GIBT keinen richtigen Match. Und fahre die Fenstergröße durch: Kleine Fenster sind verrauscht, aber scharf; große Fenster sind sauber, aber mästen jede Objektkante. Vierzig Jahre Stereo-Forschung wohnen in diesen drei Zielkonflikten.',
+      'Die drei Fehlermodi aus der Liste oben stecken alle in dieser Szene. Dreh die Textur herunter und sieh zu, wie die Wand in Rauschen zerfällt, während ihre Kostenkurven flach werden - keine Textur, kein Signal. Schau rechts neben jede Kistenkante: ein Band falscher Disparität, das keine Fenstergröße repariert - diese Hintergrundpixel sind im rechten Bild verdeckt, es GIBT keinen richtigen Match. Und fahre die Fenstergröße durch: Kleine Fenster sind verrauscht, aber scharf; große Fenster sind sauber, aber mästen jede Objektkante. Vierzig Jahre Stereo-Forschung wohnen in diesen drei Zielkonflikten.',
     matchWin: 'Fenstergröße',
     matchTex: 'Oberflächentextur',
     matchNoise: 'Sensorrauschen σ',
@@ -258,32 +258,32 @@ const T = {
     ],
     matchLeftT: 'linkes Bild',
     matchRightT: 'rechtes Bild',
-    matchDispT: 'Disparitätskarte — Pixel anklicken, um seine Kostenkurve zu sondieren',
+    matchDispT: 'Disparitätskarte - Pixel anklicken, um seine Kostenkurve zu sondieren',
     matchMed: 'Medianfehler',
     matchBad: 'schlechte Pixel (>1 px)',
     matchMs: 'Rechenzeit',
-    matchProbe: 'Kostenkurve am angeklickten Pixel — bernstein = gewähltes Minimum, grün gestrichelt = wahre Disparität',
+    matchProbe: 'Kostenkurve am angeklickten Pixel - bernstein = gewähltes Minimum, grün gestrichelt = wahre Disparität',
     matchProbeHint: 'in die Disparitätskarte klicken, um ein Pixel zu sondieren',
     matchOccNote: 'schraffiert = im rechten Bild verdeckt (aus der Statistik ausgeschlossen)',
     depthDerivTitle: 'Die Tiefenformel, hergeleitet',
     depthDeriv: [
       { tex: String.raw`\frac{u_L - c_x}{f} = \frac{X}{Z}, \qquad \frac{u_R - c_x}{f} = \frac{X - b}{Z}`, note: 'Zwei Ähnliche-Dreiecke-Beziehungen: Beide Kameras sehen denselben Punkt, die rechte von einem um die Basislinie b verschobenen Standpunkt.' },
-      { tex: String.raw`d \;=\; u_L - u_R \;=\; \frac{f\,b}{Z}`, note: 'Subtrahieren — X kürzt sich. Die Disparität hängt nur von Tiefe, Basislinie und Brennweite ab.' },
+      { tex: String.raw`d \;=\; u_L - u_R \;=\; \frac{f\,b}{Z}`, note: 'Subtrahieren - X kürzt sich. Die Disparität hängt nur von Tiefe, Basislinie und Brennweite ab.' },
       { tex: String.raw`Z = \frac{f\,b}{d}`, note: 'Invertieren: metrische Tiefe aus einem Pixelversatz. Diese eine Zeile ist das gesamte Geschäftsmodell jeder Stereokamera.' },
-      { tex: String.raw`\left|\frac{\partial Z}{\partial d}\right| = \frac{f\,b}{d^2} = \frac{Z^2}{f\,b} \;\;\Rightarrow\;\; \Delta Z \approx \frac{Z^2}{f\,b}\,\Delta d`, note: 'Differenzieren: Ein fester Matchingfehler Δd kostet Tiefengenauigkeit, die mit Z² wächst — die quadratische Verschlechterung, die der Fehlerkeil oben sichtbar macht.' },
+      { tex: String.raw`\left|\frac{\partial Z}{\partial d}\right| = \frac{f\,b}{d^2} = \frac{Z^2}{f\,b} \;\;\Rightarrow\;\; \Delta Z \approx \frac{Z^2}{f\,b}\,\Delta d`, note: 'Differenzieren: Ein fester Matchingfehler Δd kostet Tiefengenauigkeit, die mit Z² wächst - die quadratische Verschlechterung, die der Fehlerkeil oben sichtbar macht.' },
     ],
     essDerivTitle: 'E = [t]×R aus Koplanarität',
     essDeriv: [
-      { tex: String.raw`\hat{\mathbf{x}}_2 \;\sim\; R\,\hat{\mathbf{x}}_1\text{-Strahl}, \quad \mathbf{t}: \text{ Basislinie zwischen den Zentren}`, note: 'Arbeite in normierten Koordinaten (K entfernt). Die beiden Sehstrahlen eines 3D-Punkts und der Basislinienvektor liegen in einer Ebene — der Epipolarebene.' },
+      { tex: String.raw`\hat{\mathbf{x}}_2 \;\sim\; R\,\hat{\mathbf{x}}_1\text{-Strahl}, \quad \mathbf{t}: \text{ Basislinie zwischen den Zentren}`, note: 'Arbeite in normierten Koordinaten (K entfernt). Die beiden Sehstrahlen eines 3D-Punkts und der Basislinienvektor liegen in einer Ebene - der Epipolarebene.' },
       { tex: String.raw`\hat{\mathbf{x}}_2 \cdot \big(\mathbf{t} \times R\,\hat{\mathbf{x}}_1\big) = 0`, note: 'Koplanarität dreier Vektoren = verschwindendes Spatprodukt. Diese eine skalare Gleichung ist die gesamte Epipolarbedingung.' },
-      { tex: String.raw`\mathbf{t} \times \mathbf{v} = [\mathbf{t}]_\times \mathbf{v}, \qquad [\mathbf{t}]_\times = \begin{bmatrix} 0 & -t_3 & t_2 \\ t_3 & 0 & -t_1 \\ -t_2 & t_1 & 0 \end{bmatrix}`, note: 'Das Kreuzprodukt ist eine lineare Abbildung — schreibe es als schiefsymmetrische Matrix [t]ₓ.' },
+      { tex: String.raw`\mathbf{t} \times \mathbf{v} = [\mathbf{t}]_\times \mathbf{v}, \qquad [\mathbf{t}]_\times = \begin{bmatrix} 0 & -t_3 & t_2 \\ t_3 & 0 & -t_1 \\ -t_2 & t_1 & 0 \end{bmatrix}`, note: 'Das Kreuzprodukt ist eine lineare Abbildung - schreibe es als schiefsymmetrische Matrix [t]ₓ.' },
       { tex: String.raw`\hat{\mathbf{x}}_2^{\mathsf T}\, \underbrace{[\mathbf{t}]_\times R}_{E} \,\hat{\mathbf{x}}_1 = 0`, note: 'Und die essentielle Matrix fällt heraus. Beobachte den Live-Messwert im Labor oben: Er bleibt auf Maschinen-Null, egal wohin du den Punkt ziehst.' },
-      { tex: String.raw`E = U\,\mathrm{diag}(1,1,0)\,V^{\mathsf T} \;\Rightarrow\; 4 \text{ Kandidaten } (R, \mathbf{t})`, note: 'Der Rückweg (E → R, t) braucht eine SVD und liefert vier Kandidaten; den echten wählt die Cheiralität — rekonstruierte Punkte müssen vor beiden Kameras liegen. cv2.recoverPose tut genau das.' },
+      { tex: String.raw`E = U\,\mathrm{diag}(1,1,0)\,V^{\mathsf T} \;\Rightarrow\; 4 \text{ Kandidaten } (R, \mathbf{t})`, note: 'Der Rückweg (E → R, t) braucht eine SVD und liefert vier Kandidaten; den echten wählt die Cheiralität - rekonstruierte Punkte müssen vor beiden Kameras liegen. cv2.recoverPose tut genau das.' },
     ],
     epiConstraint: 'x̂₂ᵀ E x̂₁ (live)',
     appTitle: '🏭 In der echten Welt: eine Stapler-Sicherheitskamera auslegen',
     appIntro:
-      'Ein autonomer Stapler muss vor einem 5-cm-Hindernis stoppen — eine heruntergefallene Schraubenkiste, eine Palettenecke — bevor er gefährlich nah ist. Du bist der Systemdesigner: Wähle Basislinie und Objektiv und prüfe das Rig gegen die Spezifikation bei der geforderten Detektionsreichweite. Zwei Dinge müssen dort gelten: Der Tiefenfehler aus ±0,5 px Disparitätsrauschen muss unter ±5 cm bleiben, und die Disparität selbst muss mindestens 5 px betragen, damit sich das Hindernis überhaupt vom Matchingrauschen abhebt. Verbreitere die Basislinie oder verlängere das Objektiv und sieh das Badge umschlagen — genau dieser Zielkonflikt (Basislinie vs. Gehäusegröße vs. Reichweite) wird in jedem Stereo-Produktmeeting ausgefochten.',
+      'Ein autonomer Stapler muss vor einem 5-cm-Hindernis stoppen - eine heruntergefallene Schraubenkiste, eine Palettenecke - bevor er gefährlich nah ist. Du bist der Systemdesigner: Wähle Basislinie und Objektiv und prüfe das Rig gegen die Spezifikation bei der geforderten Detektionsreichweite. Zwei Dinge müssen dort gelten: Der Tiefenfehler aus ±0,5 px Disparitätsrauschen muss unter ±5 cm bleiben, und die Disparität selbst muss mindestens 5 px betragen, damit sich das Hindernis überhaupt vom Matchingrauschen abhebt. Verbreitere die Basislinie oder verlängere das Objektiv und sieh das Badge umschlagen - genau dieser Zielkonflikt (Basislinie vs. Gehäusegröße vs. Reichweite) wird in jedem Stereo-Produktmeeting ausgefochten.',
     appBase: 'Basislinie b',
     appFocal: 'Brennweite f',
     appRange: 'Detektionsreichweite Z',
@@ -292,10 +292,10 @@ const T = {
     appPass: 'DESIGN BESTEHT',
     appFail: 'DESIGN FÄLLT DURCH',
     appPassWhy: 'Disparität ≥ 5 px und Tiefenfehler ≤ 5 cm bei der Detektionsreichweite',
-    appFailDisp: 'Disparität unter 5 px — das Hindernis geht im Matchingrauschen unter',
-    appFailRes: 'Tiefenfehler über 5 cm — Hindernis und Boden sind nicht mehr unterscheidbar',
+    appFailDisp: 'Disparität unter 5 px - das Hindernis geht im Matchingrauschen unter',
+    appFailRes: 'Tiefenfehler über 5 cm - Hindernis und Boden sind nicht mehr unterscheidbar',
     appWhere:
-      'Dieselbe Auslegungsrechnung formt die Stereo-Rigs in Autos (Subaru EyeSight), autonomen Drohnen (Skydio), Lager-AMRs und Planetenrovern — und sie erklärt, warum Handys mit Millimeter-Basislinien Tiefe nur auf Armlänge messen.',
+      'Dieselbe Auslegungsrechnung formt die Stereo-Rigs in Autos (Subaru EyeSight), autonomen Drohnen (Skydio), Lager-AMRs und Planetenrovern - und sie erklärt, warum Handys mit Millimeter-Basislinien Tiefe nur auf Armlänge messen.',
   },
 }
 
@@ -390,13 +390,13 @@ function TriangulationLab() {
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <ImageView
-          title={`${t.leftImg} — uL = ${fmt(pL.u, 0)}`}
+          title={`${t.leftImg} - uL = ${fmt(pL.u, 0)}`}
           points={pL.z > 0 ? [{ u: pL.u, v: pL.v, color: '#fbbf24' }] : []}
           polylines={[{ pts: [[0, pL.v], [W, pL.v]], color: 'rgba(34,211,238,0.35)', width: 1, dash: '6 4' }]}
           principal={{ cx: W / 2, cy: H / 2 }}
         />
         <ImageView
-          title={`${t.rightImg} — uR = ${fmt(pR.u, 0)}`}
+          title={`${t.rightImg} - uR = ${fmt(pR.u, 0)}`}
           points={pR.z > 0 ? [{ u: pR.u, v: pR.v, color: '#fbbf24' }] : []}
           polylines={[{ pts: [[0, pR.v], [W, pR.v]], color: 'rgba(167,139,250,0.35)', width: 1, dash: '6 4' }]}
           principal={{ cx: W / 2, cy: H / 2 }}
@@ -461,7 +461,7 @@ function BridgeDemo() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Readout label={t.bridgeLeftU} value={`(${fmt(pl.u, 0)}, ${fmt(pl.v, 0)})`} />
-          <Readout label={t.bridgeRightU} value={prVisible ? fmt(pr.u, 1) : '—'} unit="px" accent="#fbbf24" />
+          <Readout label={t.bridgeRightU} value={prVisible ? fmt(pr.u, 1) : '-'} unit="px" accent="#fbbf24" />
         </div>
       </div>
     </div>
@@ -494,7 +494,7 @@ function EpipolarLab() {
     <div>
       <div className="grid gap-4 md:grid-cols-2">
         <ImageView
-          title={`${t.leftImg} — ${t.epiDrag}`}
+          title={`${t.leftImg} - ${t.epiDrag}`}
           points={[{ u: pt.u, v: pt.v, color: '#22d3ee', r: 7 }]}
           onDragImage={(u, v) => setPt({ u, v })}
         />
@@ -640,7 +640,7 @@ function DepthPlot() {
     <div className="grid gap-4 lg:grid-cols-5">
       <div className="card overflow-hidden lg:col-span-3">
         <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">
-          {t.depthCurve} — Z = f·b / d
+          {t.depthCurve} - Z = f·b / d
         </div>
         <svg viewBox={`0 0 ${PW} ${PH}`} className="block w-full">
           {/* axes */}

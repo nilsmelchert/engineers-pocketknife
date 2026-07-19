@@ -16,7 +16,7 @@ const UI = {
 
 /**
  * Collapsible step-by-step derivation: numbered KaTeX steps, each with a short
- * explanation. Depth on demand — beginners can skip it, curious students expand it.
+ * explanation. Depth on demand - beginners can skip it, curious students expand it.
  */
 export function Derivation({ title, steps }: { title: ReactNode; steps: DerivationStep[] }) {
   const t = useT(UI)

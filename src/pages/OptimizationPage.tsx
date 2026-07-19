@@ -31,35 +31,35 @@ const T = {
     kicker: 'Vision · Module 3',
     title: 'Numerical Optimization',
     intro:
-      'Module 2 ended with a sentence that deserves a whole module: “refine everything by minimizing the reprojection error”. This is how nearly every geometric parameter in computer vision — camera intrinsics, distortion, stereo extrinsics, hand-eye transforms — is actually found: as the minimum of a cost function, located numerically.',
+      'Module 2 ended with a sentence that deserves a whole module: “refine everything by minimizing the reprojection error”. This is how nearly every geometric parameter in computer vision - camera intrinsics, distortion, stereo extrinsics, hand-eye transforms - is actually found: as the minimum of a cost function, located numerically.',
     costTitle: 'Calibration is optimization in disguise',
     cost1:
       'Collect every unknown into one parameter vector θ. For camera calibration θ contains the intrinsics, the distortion coefficients and the pose of the board in every view. The model π(θ, X) predicts where board corner X should appear in the image; the detection x̂ says where it actually is. Their disagreement, summed over all corners of all views, is the cost:',
     cost2:
-      'Calibration means: find the θ that makes this number as small as possible. C is a function of a dozen or more variables — you cannot solve ∇C = 0 by hand. But you can evaluate C and its slope at any point, and walk downhill. Picture C as a landscape over the parameter space: valleys are good explanations of the data, and the deepest valley is the calibration you want.',
+      'Calibration means: find the θ that makes this number as small as possible. C is a function of a dozen or more variables - you cannot solve ∇C = 0 by hand. But you can evaluate C and its slope at any point, and walk downhill. Picture C as a landscape over the parameter space: valleys are good explanations of the data, and the deepest valley is the calibration you want.',
     gdTitle: 'Walking downhill: gradient descent',
-    gd1: 'The gradient ∇C points in the direction of steepest ascent — so its negative is the locally best downhill direction. Gradient descent repeats one tiny idea: take a small step downhill, re-measure the slope, repeat.',
-    gd2: 'The step size α (the learning rate) is the method’s Achilles heel: too small and you crawl for thousands of iterations; too large and you overshoot the valley floor and oscillate — or explode.',
+    gd1: 'The gradient ∇C points in the direction of steepest ascent - so its negative is the locally best downhill direction. Gradient descent repeats one tiny idea: take a small step downhill, re-measure the slope, repeat.',
+    gd2: 'The step size α (the learning rate) is the method’s Achilles heel: too small and you crawl for thousands of iterations; too large and you overshoot the valley floor and oscillate - or explode.',
     gd1dTitle: 'Interactive: gradient descent on a single parameter',
     gd1dIntro:
-      'Before landscapes, one dimension — where you can see everything. The red dashed line is the tangent at the ball; its slope C′(θ) is the entire information gradient descent uses. Each step moves θ by −α·C′(θ) (the amber arrow at the bottom). Click anywhere to set a new start point.',
+      'Before landscapes, one dimension - where you can see everything. The red dashed line is the tangent at the ball; its slope C′(θ) is the entire information gradient descent uses. Each step moves θ by −α·C′(θ) (the amber arrow at the bottom). Click anywhere to set a new start point.',
     gd1dHint: 'click to place the start',
     gd1dReset: 'Reset',
     gd1dSlope: 'slope C′(θ)',
     gd1dStep: 'next step −α·C′(θ)',
     gd1dTry: [
-      'Small α: safe but slow — and notice the steps shrink by themselves near the minimum, because the slope does.',
+      'Small α: safe but slow - and notice the steps shrink by themselves near the minimum, because the slope does.',
       'Large α (≈ 0.3 and up): the ball overshoots the valley floor and bounces between the walls; past the stability limit it flies out of the picture.',
-      'Start left vs. right of the hump: two different minima. Gradient descent has no idea that the left one is deeper — it only ever sees the local slope.',
+      'Start left vs. right of the hump: two different minima. Gradient descent has no idea that the left one is deeper - it only ever sees the local slope.',
     ],
     playTitle: 'Interactive: descent playground',
-    play1: 'The same game in two dimensions — now the gradient is a direction. Move the mouse over the landscape to feel the downhill field (amber arrow = −∇C), then click to drop a start point, choose a method, and run. Paths stay on screen so you can compare methods and settings. The dark basins are minima; ✕ marks the true minimizers.',
+    play1: 'The same game in two dimensions - now the gradient is a direction. Move the mouse over the landscape to feel the downhill field (amber arrow = −∇C), then click to drop a start point, choose a method, and run. Paths stay on screen so you can compare methods and settings. The dark basins are minima; ✕ marks the true minimizers.',
     playTry: [
-      'Bowl, GD, α ≈ 0.1 — smooth convergence. Now set α ≈ 1.1: each step overshoots the center and the path explodes. The stability limit is α < 2/λmax, set by the curvature.',
-      'Narrow valley, GD — the classic failure: it zigzags across the steep direction while barely moving along the flat one. This is exactly what ill-conditioned (differently scaled) parameters do to calibration.',
-      'Narrow valley, momentum β ≈ 0.9 — the zigzag averages out and progress along the valley accumulates.',
-      'Rosenbrock, GD vs. damped Newton — GD needs thousands of steps in the curved valley; Newton with small λ jumps to the minimum in a handful, because it uses curvature, not just slope.',
-      'Two pits — start left vs. right of the ridge: descent methods only find the nearest minimum. This is why calibration needs a good initial guess (Zhang’s closed form!).',
+      'Bowl, GD, α ≈ 0.1 - smooth convergence. Now set α ≈ 1.1: each step overshoots the center and the path explodes. The stability limit is α < 2/λmax, set by the curvature.',
+      'Narrow valley, GD - the classic failure: it zigzags across the steep direction while barely moving along the flat one. This is exactly what ill-conditioned (differently scaled) parameters do to calibration.',
+      'Narrow valley, momentum β ≈ 0.9 - the zigzag averages out and progress along the valley accumulates.',
+      'Rosenbrock, GD vs. damped Newton - GD needs thousands of steps in the curved valley; Newton with small λ jumps to the minimum in a handful, because it uses curvature, not just slope.',
+      'Two pits - start left vs. right of the ridge: descent methods only find the nearest minimum. This is why calibration needs a good initial guess (Zhang’s closed form!).',
     ],
     fnNames: { bowl: 'bowl', valley: 'narrow valley', rosenbrock: 'Rosenbrock', twopits: 'two pits' },
     mNames: { gd: 'Gradient descent', mom: '+ momentum', lm: 'Damped Newton (LM)' },
@@ -80,27 +80,27 @@ const T = {
     cond1: 'Two lessons from the playground carry directly over to camera calibration:',
     condList: [
       'Conditioning. If the cost is much steeper in one parameter than another, the gradient points mostly across the valley, not along it. In calibration this is guaranteed: changing f by 1 changes pixels by ~0.3, changing k1 by 1 changes them by hundreds. Descent methods need per-parameter scaling (preconditioning) to survive.',
-      'Local minima and initialization. Descent finds the nearest valley. A cost as nonlinear as reprojection error has spurious valleys — which is why real calibration first computes a closed-form starting point (Zhang) and only then optimizes.',
+      'Local minima and initialization. Descent finds the nearest valley. A cost as nonlinear as reprojection error has spurious valleys - which is why real calibration first computes a closed-form starting point (Zhang) and only then optimizes.',
     ],
     cond2: 'Momentum is the cheapest fix for zigzagging: accumulate a velocity so that components that keep flipping sign cancel, and components that persist add up:',
-    newtonTitle: 'Using curvature: Newton, Gauss-Newton, Levenberg–Marquardt',
-    newton1: 'The gradient knows only the slope. The Hessian H (second derivatives) also knows the curvature — how quickly the slope changes. Newton’s method fits a quadratic bowl to the local landscape and jumps straight to that bowl’s minimum:',
-    newton2: 'For least-squares costs — ours! — there is a beautiful shortcut. With residuals r(θ) and their Jacobian J = ∂r/∂θ, the Hessian is approximately JᵀJ: curvature for free, using only first derivatives. That is the Gauss-Newton method.',
-    newton3: 'Far from the minimum the quadratic model can be nonsense (or JᵀJ nearly singular). Levenberg–Marquardt fixes this with a damping term λ that blends between the two worlds — and adapts λ automatically: after a good step trust the model more (λ↓), after a rejected step trust it less (λ↑):',
+    newtonTitle: 'Using curvature: Newton, Gauss-Newton, Levenberg-Marquardt',
+    newton1: 'The gradient knows only the slope. The Hessian H (second derivatives) also knows the curvature - how quickly the slope changes. Newton’s method fits a quadratic bowl to the local landscape and jumps straight to that bowl’s minimum:',
+    newton2: 'For least-squares costs - ours! - there is a beautiful shortcut. With residuals r(θ) and their Jacobian J = ∂r/∂θ, the Hessian is approximately JᵀJ: curvature for free, using only first derivatives. That is the Gauss-Newton method.',
+    newton3: 'Far from the minimum the quadratic model can be nonsense (or JᵀJ nearly singular). Levenberg-Marquardt fixes this with a damping term λ that blends between the two worlds - and adapts λ automatically: after a good step trust the model more (λ↓), after a rejected step trust it less (λ↑):',
     newton4: 'Play with λ in the playground: large λ makes LM behave like small-step gradient descent, small λ like pure Newton. This one dial is why LM is the workhorse of geometric vision: OpenCV’s calibrateCamera, stereoCalibrate and friends all run LM at their core.',
     solverTitle: 'Interactive: watch a calibration converge',
-    solver1: 'This is a real solver running in your browser. Ground truth: a camera with f = 560, c = (331, 246), k1 = −0.18 observed a checkerboard in 6 known poses; the “detected” corners carry Gaussian pixel noise. Starting from a deliberately bad guess, gradient descent or Levenberg–Marquardt must recover the four parameters θ = (f, cx, cy, k1) by minimizing reprojection error.',
+    solver1: 'This is a real solver running in your browser. Ground truth: a camera with f = 560, c = (331, 246), k1 = −0.18 observed a checkerboard in 6 known poses; the “detected” corners carry Gaussian pixel noise. Starting from a deliberately bad guess, gradient descent or Levenberg-Marquardt must recover the four parameters θ = (f, cx, cy, k1) by minimizing reprojection error.',
     solver2: 'The amber points are where the current estimate reprojects the board corners; the red whiskers connect them to the detections. Watch them snap onto the cyan detections as the cost drops.',
     solverTry: [
-      'Run LM: convergence in ~5–10 iterations, RMS drops to the noise floor.',
-      'Reset and run GD (even generously preconditioned): hundreds of iterations, and the coupled parameters f ↔ k1 make it crawl along a curved valley — visible in the landscape slice.',
+      'Run LM: convergence in ~5-10 iterations, RMS drops to the noise floor.',
+      'Reset and run GD (even generously preconditioned): hundreds of iterations, and the coupled parameters f ↔ k1 make it crawl along a curved valley - visible in the landscape slice.',
       'Raise the noise σ and re-run: the estimate still converges, but the final RMS settles at the noise level (≈ √2·σ, since it is a 2-D distance) and the recovered parameters wobble around the truth. You cannot fit better than your measurements.',
-      'Perturb the start until GD diverges or stalls — then note that LM still recovers. Robustness to a mediocre start is part of its power.',
+      'Perturb the start until GD diverges or stalls - then note that LM still recovers. Robustness to a mediocre start is part of its power.',
     ],
-    obsImage: 'Sensor image — view',
+    obsImage: 'Sensor image - view',
     detected: 'detected (with noise)',
     reprojected: 'reprojected (current θ)',
-    landscape: 'Cost landscape — slice through (f, k1), with cx, cy at their optimal values',
+    landscape: 'Cost landscape - slice through (f, k1), with cx, cy at their optimal values',
     conv: 'RMS error over iterations (log scale)',
     params: 'Parameters',
     pEst: 'estimate',
@@ -111,28 +111,28 @@ const T = {
     perturb: 'Perturb start',
     reset: 'Reset',
     lmLambda: 'current λ',
-    lmLambdaHist: 'λ per iteration (log scale) — it drops after every accepted step',
+    lmLambdaHist: 'λ per iteration (log scale) - it drops after every accepted step',
     bigTitle: 'The real thing: full bundle adjustment',
-    big1: 'The solver above fixed the board poses to keep θ four-dimensional. Real calibration estimates everything jointly: intrinsics (4), distortion (5) and one 6-DoF pose per view — for 20 views, 129 unknowns against ~14,000 residuals. The same LM machinery handles it, thanks to structure:',
+    big1: 'The solver above fixed the board poses to keep θ four-dimensional. Real calibration estimates everything jointly: intrinsics (4), distortion (5) and one 6-DoF pose per view - for 20 views, 129 unknowns against ~14,000 residuals. The same LM machinery handles it, thanks to structure:',
     bigList: [
-      'Sparsity: each residual depends on the shared intrinsics and only its own view’s pose. JᵀJ becomes arrow-shaped and can be factorized view-by-view (the Schur complement) — this is what makes bundle adjustment with thousands of images feasible.',
+      'Sparsity: each residual depends on the shared intrinsics and only its own view’s pose. JᵀJ becomes arrow-shaped and can be factorized view-by-view (the Schur complement) - this is what makes bundle adjustment with thousands of images feasible.',
       'Initialization: Zhang’s closed form supplies the starting point; LM then typically converges in under 20 iterations.',
       'Robustness: real corner detections contain outliers. Replacing the square by a Huber or Cauchy kernel keeps a single bad corner from dragging the whole solution.',
-      'Stopping: iterate until the cost decrease, the gradient norm or the step size falls below tolerance — machine precision is pointless when the data has σ ≈ 0.1 px.',
+      'Stopping: iterate until the cost decrease, the gradient norm or the step size falls below tolerance - machine precision is pointless when the data has σ ≈ 0.1 px.',
     ],
     big2: 'And it is everywhere: stereoCalibrate refines R, t between cameras the same way; hand-eye calibration polishes its closed-form X with the same LM; structure-from-motion and SLAM are bundle adjustment at scale; photogrammetry has run it since before computers were digital.',
     whenTitle: 'Choosing the right tool',
     when1: 'The full potential of numerical optimization comes from matching the method to the problem structure:',
     whenList: [
-      'Small-to-medium smooth least squares (calibration, PnP, bundle adjustment, hand-eye): Gauss-Newton / Levenberg–Marquardt. Curvature is cheap (JᵀJ), convergence is quadratic near the optimum.',
-      'Millions of parameters, cost as a sum over huge datasets (training neural networks): JᵀJ is unthinkable. First-order methods rule — stochastic gradient descent on mini-batches, stabilized by momentum and per-parameter step scaling (Adam is exactly “momentum + automatic preconditioning”).',
-      'Non-smooth or gradient-free problems: subgradient, proximal or direct-search methods — outside our scope, but the landscape picture still applies.',
+      'Small-to-medium smooth least squares (calibration, PnP, bundle adjustment, hand-eye): Gauss-Newton / Levenberg-Marquardt. Curvature is cheap (JᵀJ), convergence is quadratic near the optimum.',
+      'Millions of parameters, cost as a sum over huge datasets (training neural networks): JᵀJ is unthinkable. First-order methods rule - stochastic gradient descent on mini-batches, stabilized by momentum and per-parameter step scaling (Adam is exactly “momentum + automatic preconditioning”).',
+      'Non-smooth or gradient-free problems: subgradient, proximal or direct-search methods - outside our scope, but the landscape picture still applies.',
     ],
     when2: 'One mental model unifies all of it: define a cost, get a slope, exploit whatever structure the problem offers to descend fast. Whether the parameters are four camera numbers or a billion network weights, it is the same walk downhill.',
     codeTitle: 'Try it on real data',
     appTitle: '🏭 In the real world: fitting a sensor characteristic',
     appIntro:
-      'Every thermistor datasheet gives the exponential law R(T) = R₀·exp(B(1/T − 1/T₀)) — but for YOUR sensor batch, R₀ and B must be identified from a handful of measured (T, R) points. That identification is a two-parameter nonlinear least-squares problem, solved with exactly this module’s Levenberg–Marquardt. Set a starting guess with the sliders, then let LM iterate: the curve locks onto the points in a handful of steps. Sensor vendors run this fit millions of times a year.',
+      'Every thermistor datasheet gives the exponential law R(T) = R₀·exp(B(1/T − 1/T₀)) - but for YOUR sensor batch, R₀ and B must be identified from a handful of measured (T, R) points. That identification is a two-parameter nonlinear least-squares problem, solved with exactly this module’s Levenberg-Marquardt. Set a starting guess with the sliders, then let LM iterate: the curve locks onto the points in a handful of steps. Sensor vendors run this fit millions of times a year.',
     appR0: 'start guess R₀',
     appB: 'start guess B',
     appFit: 'LM step',
@@ -141,41 +141,41 @@ const T = {
     appRms: 'fit RMS',
     appParams: 'identified R₀ / B',
     appWhere:
-      'The same nonlinear fit identifies load-cell polynomials, pump curves, battery-discharge models, camera response curves and PID plant models — parameter identification is the daily bread of every test engineer.',
+      'The same nonlinear fit identifies load-cell polynomials, pump curves, battery-discharge models, camera response curves and PID plant models - parameter identification is the daily bread of every test engineer.',
   },
   de: {
     kicker: 'Vision · Modul 3',
     title: 'Numerische Optimierung',
     intro:
-      'Modul 2 endete mit einem Satz, der ein eigenes Modul verdient: „alles gemeinsam verfeinern durch Minimierung des Reprojektionsfehlers“. Genau so werden fast alle geometrischen Parameter der Computer Vision — Intrinsik, Verzeichnung, Stereo-Extrinsik, Hand-Auge-Transformationen — tatsächlich gefunden: als Minimum einer Kostenfunktion, numerisch aufgespürt.',
+      'Modul 2 endete mit einem Satz, der ein eigenes Modul verdient: „alles gemeinsam verfeinern durch Minimierung des Reprojektionsfehlers“. Genau so werden fast alle geometrischen Parameter der Computer Vision - Intrinsik, Verzeichnung, Stereo-Extrinsik, Hand-Auge-Transformationen - tatsächlich gefunden: als Minimum einer Kostenfunktion, numerisch aufgespürt.',
     costTitle: 'Kalibrierung ist verkleidete Optimierung',
     cost1:
       'Alle Unbekannten wandern in einen Parametervektor θ. Bei der Kamerakalibrierung enthält θ die Intrinsik, die Verzeichnungskoeffizienten und die Pose des Bretts in jeder Ansicht. Das Modell π(θ, X) sagt vorher, wo Brettecke X im Bild erscheinen sollte; die Detektion x̂ sagt, wo sie wirklich ist. Die Abweichung, summiert über alle Ecken aller Ansichten, ist die Kostenfunktion:',
     cost2:
-      'Kalibrieren heißt: das θ finden, das diese Zahl so klein wie möglich macht. C hängt von einem Dutzend oder mehr Variablen ab — ∇C = 0 lässt sich nicht von Hand lösen. Aber man kann C und seine Steigung an jedem Punkt auswerten und bergab laufen. Man stelle sich C als Landschaft über dem Parameterraum vor: Täler sind gute Erklärungen der Daten, und das tiefste Tal ist die gesuchte Kalibrierung.',
+      'Kalibrieren heißt: das θ finden, das diese Zahl so klein wie möglich macht. C hängt von einem Dutzend oder mehr Variablen ab - ∇C = 0 lässt sich nicht von Hand lösen. Aber man kann C und seine Steigung an jedem Punkt auswerten und bergab laufen. Man stelle sich C als Landschaft über dem Parameterraum vor: Täler sind gute Erklärungen der Daten, und das tiefste Tal ist die gesuchte Kalibrierung.',
     gdTitle: 'Bergab laufen: Gradientenabstieg',
-    gd1: 'Der Gradient ∇C zeigt in Richtung des steilsten Anstiegs — sein Negatives ist also lokal die beste Abstiegsrichtung. Gradientenabstieg wiederholt eine einzige kleine Idee: einen kleinen Schritt bergab gehen, die Steigung neu messen, wiederholen.',
-    gd2: 'Die Schrittweite α (Lernrate) ist die Achillesferse des Verfahrens: zu klein, und man kriecht tausende Iterationen; zu groß, und man schießt über den Talboden hinaus und oszilliert — oder explodiert.',
+    gd1: 'Der Gradient ∇C zeigt in Richtung des steilsten Anstiegs - sein Negatives ist also lokal die beste Abstiegsrichtung. Gradientenabstieg wiederholt eine einzige kleine Idee: einen kleinen Schritt bergab gehen, die Steigung neu messen, wiederholen.',
+    gd2: 'Die Schrittweite α (Lernrate) ist die Achillesferse des Verfahrens: zu klein, und man kriecht tausende Iterationen; zu groß, und man schießt über den Talboden hinaus und oszilliert - oder explodiert.',
     gd1dTitle: 'Interaktiv: Gradientenabstieg mit einem einzigen Parameter',
     gd1dIntro:
-      'Vor den Landschaften eine Dimension — hier sieht man alles. Die rot gestrichelte Linie ist die Tangente am Ball; ihre Steigung C′(θ) ist die gesamte Information, die der Gradientenabstieg nutzt. Jeder Schritt bewegt θ um −α·C′(θ) (der bernsteinfarbene Pfeil unten). Klicke irgendwo hin, um einen neuen Start zu setzen.',
+      'Vor den Landschaften eine Dimension - hier sieht man alles. Die rot gestrichelte Linie ist die Tangente am Ball; ihre Steigung C′(θ) ist die gesamte Information, die der Gradientenabstieg nutzt. Jeder Schritt bewegt θ um −α·C′(θ) (der bernsteinfarbene Pfeil unten). Klicke irgendwo hin, um einen neuen Start zu setzen.',
     gd1dHint: 'klicken, um den Start zu setzen',
     gd1dReset: 'Zurücksetzen',
     gd1dSlope: 'Steigung C′(θ)',
     gd1dStep: 'nächster Schritt −α·C′(θ)',
     gd1dTry: [
-      'Kleines α: sicher, aber langsam — und beachte, dass die Schritte nahe dem Minimum von selbst kleiner werden, weil die Steigung es tut.',
+      'Kleines α: sicher, aber langsam - und beachte, dass die Schritte nahe dem Minimum von selbst kleiner werden, weil die Steigung es tut.',
       'Großes α (ab ≈ 0,3): Der Ball schießt über den Talboden hinaus und springt zwischen den Wänden hin und her; jenseits der Stabilitätsgrenze fliegt er aus dem Bild.',
-      'Start links vs. rechts des Buckels: zwei verschiedene Minima. Der Gradientenabstieg ahnt nicht, dass das linke tiefer ist — er sieht immer nur die lokale Steigung.',
+      'Start links vs. rechts des Buckels: zwei verschiedene Minima. Der Gradientenabstieg ahnt nicht, dass das linke tiefer ist - er sieht immer nur die lokale Steigung.',
     ],
     playTitle: 'Interaktiv: Abstiegs-Spielplatz',
-    play1: 'Dasselbe Spiel in zwei Dimensionen — jetzt ist der Gradient eine Richtung. Bewege die Maus über die Landschaft, um das Bergab-Feld zu spüren (bernsteinfarbener Pfeil = −∇C), klicke dann, um einen Startpunkt zu setzen, wähle ein Verfahren und starte. Pfade bleiben stehen, damit sich Verfahren und Einstellungen vergleichen lassen. Dunkle Becken sind Minima; ✕ markiert die wahren Minimalstellen.',
+    play1: 'Dasselbe Spiel in zwei Dimensionen - jetzt ist der Gradient eine Richtung. Bewege die Maus über die Landschaft, um das Bergab-Feld zu spüren (bernsteinfarbener Pfeil = −∇C), klicke dann, um einen Startpunkt zu setzen, wähle ein Verfahren und starte. Pfade bleiben stehen, damit sich Verfahren und Einstellungen vergleichen lassen. Dunkle Becken sind Minima; ✕ markiert die wahren Minimalstellen.',
     playTry: [
-      'Schüssel, GD, α ≈ 0,1 — glatte Konvergenz. Nun α ≈ 1,1: Jeder Schritt schießt über das Zentrum hinaus, der Pfad explodiert. Die Stabilitätsgrenze α < 2/λmax setzt die Krümmung.',
-      'Enges Tal, GD — der klassische Fehlschlag: Zickzack quer zur steilen Richtung, kaum Fortschritt entlang der flachen. Genau das machen schlecht skalierte Parameter bei der Kalibrierung.',
-      'Enges Tal, Momentum β ≈ 0,9 — das Zickzack mittelt sich heraus, der Fortschritt entlang des Tals akkumuliert.',
-      'Rosenbrock, GD vs. gedämpftes Newton — GD braucht tausende Schritte im gekrümmten Tal; Newton mit kleinem λ springt in einer Handvoll zum Minimum, weil es die Krümmung nutzt, nicht nur die Steigung.',
-      'Zwei Gruben — Start links vs. rechts des Rückens: Abstiegsverfahren finden nur das nächstgelegene Minimum. Deshalb braucht Kalibrierung einen guten Startwert (Zhangs geschlossene Lösung!).',
+      'Schüssel, GD, α ≈ 0,1 - glatte Konvergenz. Nun α ≈ 1,1: Jeder Schritt schießt über das Zentrum hinaus, der Pfad explodiert. Die Stabilitätsgrenze α < 2/λmax setzt die Krümmung.',
+      'Enges Tal, GD - der klassische Fehlschlag: Zickzack quer zur steilen Richtung, kaum Fortschritt entlang der flachen. Genau das machen schlecht skalierte Parameter bei der Kalibrierung.',
+      'Enges Tal, Momentum β ≈ 0,9 - das Zickzack mittelt sich heraus, der Fortschritt entlang des Tals akkumuliert.',
+      'Rosenbrock, GD vs. gedämpftes Newton - GD braucht tausende Schritte im gekrümmten Tal; Newton mit kleinem λ springt in einer Handvoll zum Minimum, weil es die Krümmung nutzt, nicht nur die Steigung.',
+      'Zwei Gruben - Start links vs. rechts des Rückens: Abstiegsverfahren finden nur das nächstgelegene Minimum. Deshalb braucht Kalibrierung einen guten Startwert (Zhangs geschlossene Lösung!).',
     ],
     fnNames: { bowl: 'Schüssel', valley: 'enges Tal', rosenbrock: 'Rosenbrock', twopits: 'zwei Gruben' },
     mNames: { gd: 'Gradientenabstieg', mom: '+ Momentum', lm: 'Gedämpftes Newton (LM)' },
@@ -196,27 +196,27 @@ const T = {
     cond1: 'Zwei Lektionen aus dem Spielplatz übertragen sich direkt auf die Kamerakalibrierung:',
     condList: [
       'Konditionierung. Ist die Kostenfunktion in einem Parameter viel steiler als in einem anderen, zeigt der Gradient hauptsächlich quer zum Tal statt hindurch. Bei der Kalibrierung ist das garantiert: f um 1 zu ändern verschiebt Pixel um ~0,3, k1 um 1 zu ändern um Hunderte. Abstiegsverfahren brauchen parameterweise Skalierung (Präkonditionierung), um zu überleben.',
-      'Lokale Minima und Initialisierung. Der Abstieg findet das nächstgelegene Tal. Eine so nichtlineare Kostenfunktion wie der Reprojektionsfehler hat Scheintäler — deshalb berechnet echte Kalibrierung zuerst einen geschlossenen Startwert (Zhang) und optimiert erst dann.',
+      'Lokale Minima und Initialisierung. Der Abstieg findet das nächstgelegene Tal. Eine so nichtlineare Kostenfunktion wie der Reprojektionsfehler hat Scheintäler - deshalb berechnet echte Kalibrierung zuerst einen geschlossenen Startwert (Zhang) und optimiert erst dann.',
     ],
     cond2: 'Momentum ist die billigste Abhilfe gegen das Zickzack: Man akkumuliert eine Geschwindigkeit, sodass Komponenten mit wechselndem Vorzeichen sich aufheben und beständige Komponenten sich aufsummieren:',
-    newtonTitle: 'Krümmung nutzen: Newton, Gauß-Newton, Levenberg–Marquardt',
-    newton1: 'Der Gradient kennt nur die Steigung. Die Hesse-Matrix H (zweite Ableitungen) kennt auch die Krümmung — wie schnell sich die Steigung ändert. Das Newton-Verfahren passt lokal eine quadratische Schüssel an die Landschaft an und springt direkt zu deren Minimum:',
-    newton2: 'Für Kleinste-Quadrate-Kosten — unsere! — gibt es eine wunderbare Abkürzung. Mit Residuen r(θ) und ihrer Jacobimatrix J = ∂r/∂θ ist die Hesse-Matrix näherungsweise JᵀJ: Krümmung gratis, nur aus ersten Ableitungen. Das ist das Gauß-Newton-Verfahren.',
-    newton3: 'Weit weg vom Minimum kann das quadratische Modell Unsinn sein (oder JᵀJ fast singulär). Levenberg–Marquardt repariert das mit einem Dämpfungsterm λ, der zwischen beiden Welten überblendet — und λ automatisch anpasst: nach einem guten Schritt dem Modell mehr vertrauen (λ↓), nach einem verworfenen weniger (λ↑):',
+    newtonTitle: 'Krümmung nutzen: Newton, Gauß-Newton, Levenberg-Marquardt',
+    newton1: 'Der Gradient kennt nur die Steigung. Die Hesse-Matrix H (zweite Ableitungen) kennt auch die Krümmung - wie schnell sich die Steigung ändert. Das Newton-Verfahren passt lokal eine quadratische Schüssel an die Landschaft an und springt direkt zu deren Minimum:',
+    newton2: 'Für Kleinste-Quadrate-Kosten - unsere! - gibt es eine wunderbare Abkürzung. Mit Residuen r(θ) und ihrer Jacobimatrix J = ∂r/∂θ ist die Hesse-Matrix näherungsweise JᵀJ: Krümmung gratis, nur aus ersten Ableitungen. Das ist das Gauß-Newton-Verfahren.',
+    newton3: 'Weit weg vom Minimum kann das quadratische Modell Unsinn sein (oder JᵀJ fast singulär). Levenberg-Marquardt repariert das mit einem Dämpfungsterm λ, der zwischen beiden Welten überblendet - und λ automatisch anpasst: nach einem guten Schritt dem Modell mehr vertrauen (λ↓), nach einem verworfenen weniger (λ↑):',
     newton4: 'Spiele im Spielplatz mit λ: Großes λ lässt LM wie kleinschrittigen Gradientenabstieg laufen, kleines λ wie reines Newton. Dieser eine Drehknopf ist der Grund, warum LM das Arbeitspferd der geometrischen Vision ist: OpenCVs calibrateCamera, stereoCalibrate & Co. laufen im Kern alle auf LM.',
     solverTitle: 'Interaktiv: einer Kalibrierung beim Konvergieren zusehen',
-    solver1: 'Hier läuft ein echter Löser in deinem Browser. Grundwahrheit: Eine Kamera mit f = 560, c = (331, 246), k1 = −0,18 hat ein Schachbrett in 6 bekannten Posen beobachtet; die „detektierten“ Ecken tragen gaußsches Pixelrauschen. Von einem absichtlich schlechten Startwert aus müssen Gradientenabstieg oder Levenberg–Marquardt die vier Parameter θ = (f, cx, cy, k1) durch Minimierung des Reprojektionsfehlers rekonstruieren.',
+    solver1: 'Hier läuft ein echter Löser in deinem Browser. Grundwahrheit: Eine Kamera mit f = 560, c = (331, 246), k1 = −0,18 hat ein Schachbrett in 6 bekannten Posen beobachtet; die „detektierten“ Ecken tragen gaußsches Pixelrauschen. Von einem absichtlich schlechten Startwert aus müssen Gradientenabstieg oder Levenberg-Marquardt die vier Parameter θ = (f, cx, cy, k1) durch Minimierung des Reprojektionsfehlers rekonstruieren.',
     solver2: 'Die bernsteinfarbenen Punkte zeigen, wohin die aktuelle Schätzung die Brettecken reprojiziert; die roten Fäden verbinden sie mit den Detektionen. Beobachte, wie sie auf die cyanfarbenen Detektionen einrasten, während die Kosten fallen.',
     solverTry: [
-      'LM starten: Konvergenz in ~5–10 Iterationen, der RMS fällt bis auf das Rauschniveau.',
-      'Zurücksetzen und GD starten (sogar großzügig präkonditioniert): hunderte Iterationen, und die gekoppelten Parameter f ↔ k1 lassen es durch ein gekrümmtes Tal kriechen — sichtbar im Landschaftsschnitt.',
+      'LM starten: Konvergenz in ~5-10 Iterationen, der RMS fällt bis auf das Rauschniveau.',
+      'Zurücksetzen und GD starten (sogar großzügig präkonditioniert): hunderte Iterationen, und die gekoppelten Parameter f ↔ k1 lassen es durch ein gekrümmtes Tal kriechen - sichtbar im Landschaftsschnitt.',
       'Rauschen σ erhöhen und neu starten: Die Schätzung konvergiert weiterhin, aber der finale RMS bleibt auf dem Rauschniveau stehen (≈ √2·σ, weil er ein 2D-Abstand ist) und die Parameter wackeln um die Wahrheit. Besser als die Messungen kann man nicht fitten.',
-      'Den Start verschieben, bis GD divergiert oder stehen bleibt — LM erholt sich trotzdem. Robustheit gegen mittelmäßige Startwerte ist Teil seiner Stärke.',
+      'Den Start verschieben, bis GD divergiert oder stehen bleibt - LM erholt sich trotzdem. Robustheit gegen mittelmäßige Startwerte ist Teil seiner Stärke.',
     ],
-    obsImage: 'Sensorbild — Ansicht',
+    obsImage: 'Sensorbild - Ansicht',
     detected: 'detektiert (mit Rauschen)',
     reprojected: 'reprojiziert (aktuelles θ)',
-    landscape: 'Kostenlandschaft — Schnitt durch (f, k1), cx und cy auf ihren Optimalwerten',
+    landscape: 'Kostenlandschaft - Schnitt durch (f, k1), cx und cy auf ihren Optimalwerten',
     conv: 'RMS-Fehler über Iterationen (log-Skala)',
     params: 'Parameter',
     pEst: 'Schätzung',
@@ -227,28 +227,28 @@ const T = {
     perturb: 'Start verschieben',
     reset: 'Zurücksetzen',
     lmLambda: 'aktuelles λ',
-    lmLambdaHist: 'λ pro Iteration (log-Skala) — nach jedem akzeptierten Schritt fällt es',
+    lmLambdaHist: 'λ pro Iteration (log-Skala) - nach jedem akzeptierten Schritt fällt es',
     bigTitle: 'Das echte Ding: vollständiger Bündelausgleich',
-    big1: 'Der Löser oben hielt die Brettposen fest, damit θ vierdimensional bleibt. Echte Kalibrierung schätzt alles gemeinsam: Intrinsik (4), Verzeichnung (5) und eine 6-FG-Pose pro Ansicht — bei 20 Ansichten 129 Unbekannte gegen ~14.000 Residuen. Dieselbe LM-Maschinerie schafft das dank Struktur:',
+    big1: 'Der Löser oben hielt die Brettposen fest, damit θ vierdimensional bleibt. Echte Kalibrierung schätzt alles gemeinsam: Intrinsik (4), Verzeichnung (5) und eine 6-FG-Pose pro Ansicht - bei 20 Ansichten 129 Unbekannte gegen ~14.000 Residuen. Dieselbe LM-Maschinerie schafft das dank Struktur:',
     bigList: [
-      'Dünnbesetztheit: Jedes Residuum hängt von der gemeinsamen Intrinsik und nur der Pose seiner eigenen Ansicht ab. JᵀJ bekommt Pfeilform und lässt sich ansichtsweise faktorisieren (Schur-Komplement) — das macht Bündelausgleich mit tausenden Bildern überhaupt machbar.',
+      'Dünnbesetztheit: Jedes Residuum hängt von der gemeinsamen Intrinsik und nur der Pose seiner eigenen Ansicht ab. JᵀJ bekommt Pfeilform und lässt sich ansichtsweise faktorisieren (Schur-Komplement) - das macht Bündelausgleich mit tausenden Bildern überhaupt machbar.',
       'Initialisierung: Zhangs geschlossene Lösung liefert den Startpunkt; LM konvergiert dann typischerweise in unter 20 Iterationen.',
       'Robustheit: Echte Eckendetektionen enthalten Ausreißer. Ersetzt man das Quadrat durch einen Huber- oder Cauchy-Kernel, kann eine einzelne schlechte Ecke nicht mehr die ganze Lösung verziehen.',
-      'Abbruch: iterieren, bis Kostenabnahme, Gradientennorm oder Schrittweite unter die Toleranz fallen — Maschinengenauigkeit ist sinnlos, wenn die Daten σ ≈ 0,1 px haben.',
+      'Abbruch: iterieren, bis Kostenabnahme, Gradientennorm oder Schrittweite unter die Toleranz fallen - Maschinengenauigkeit ist sinnlos, wenn die Daten σ ≈ 0,1 px haben.',
     ],
     big2: 'Und es steckt überall: stereoCalibrate verfeinert R, t zwischen den Kameras genauso; die Hand-Auge-Kalibrierung poliert ihr geschlossenes X mit demselben LM; Structure-from-Motion und SLAM sind Bündelausgleich im Großformat; die Photogrammetrie rechnet ihn, seit es Computer gibt.',
     whenTitle: 'Das richtige Werkzeug wählen',
     when1: 'Das volle Potenzial numerischer Optimierung entfaltet sich, wenn das Verfahren zur Problemstruktur passt:',
     whenList: [
-      'Kleine bis mittlere glatte Kleinste-Quadrate-Probleme (Kalibrierung, PnP, Bündelausgleich, Hand-Auge): Gauß-Newton / Levenberg–Marquardt. Krümmung ist billig (JᵀJ), Konvergenz nahe dem Optimum quadratisch.',
-      'Millionen Parameter, Kosten als Summe über riesige Datensätze (Training neuronaler Netze): JᵀJ ist undenkbar. Verfahren erster Ordnung dominieren — stochastischer Gradientenabstieg auf Mini-Batches, stabilisiert durch Momentum und parameterweise Schrittskalierung (Adam ist genau „Momentum + automatische Präkonditionierung“).',
-      'Nicht-glatte oder ableitungsfreie Probleme: Subgradienten-, Proximal- oder Direktsuchverfahren — außerhalb unseres Rahmens, aber das Landschaftsbild gilt weiter.',
+      'Kleine bis mittlere glatte Kleinste-Quadrate-Probleme (Kalibrierung, PnP, Bündelausgleich, Hand-Auge): Gauß-Newton / Levenberg-Marquardt. Krümmung ist billig (JᵀJ), Konvergenz nahe dem Optimum quadratisch.',
+      'Millionen Parameter, Kosten als Summe über riesige Datensätze (Training neuronaler Netze): JᵀJ ist undenkbar. Verfahren erster Ordnung dominieren - stochastischer Gradientenabstieg auf Mini-Batches, stabilisiert durch Momentum und parameterweise Schrittskalierung (Adam ist genau „Momentum + automatische Präkonditionierung“).',
+      'Nicht-glatte oder ableitungsfreie Probleme: Subgradienten-, Proximal- oder Direktsuchverfahren - außerhalb unseres Rahmens, aber das Landschaftsbild gilt weiter.',
     ],
-    when2: 'Ein gedankliches Modell vereint alles: Kosten definieren, Steigung besorgen, jede Struktur des Problems ausnutzen, um schnell abzusteigen. Ob die Parameter vier Kamerazahlen sind oder eine Milliarde Netzgewichte — es ist derselbe Weg bergab.',
+    when2: 'Ein gedankliches Modell vereint alles: Kosten definieren, Steigung besorgen, jede Struktur des Problems ausnutzen, um schnell abzusteigen. Ob die Parameter vier Kamerazahlen sind oder eine Milliarde Netzgewichte - es ist derselbe Weg bergab.',
     codeTitle: 'Am echten Problem ausprobieren',
     appTitle: '🏭 In der echten Welt: eine Sensorkennlinie fitten',
     appIntro:
-      'Jedes Thermistor-Datenblatt nennt das Exponentialgesetz R(T) = R₀·exp(B(1/T − 1/T₀)) — aber für DEINE Sensorcharge müssen R₀ und B aus einer Handvoll gemessener (T, R)-Punkte identifiziert werden. Diese Identifikation ist ein nichtlineares Kleinste-Quadrate-Problem mit zwei Parametern, gelöst mit dem Levenberg–Marquardt dieses Moduls. Setze mit den Slidern einen Startwert und lass LM iterieren: Die Kurve rastet in wenigen Schritten auf den Punkten ein. Sensorhersteller rechnen diesen Fit millionenfach pro Jahr.',
+      'Jedes Thermistor-Datenblatt nennt das Exponentialgesetz R(T) = R₀·exp(B(1/T − 1/T₀)) - aber für DEINE Sensorcharge müssen R₀ und B aus einer Handvoll gemessener (T, R)-Punkte identifiziert werden. Diese Identifikation ist ein nichtlineares Kleinste-Quadrate-Problem mit zwei Parametern, gelöst mit dem Levenberg-Marquardt dieses Moduls. Setze mit den Slidern einen Startwert und lass LM iterieren: Die Kurve rastet in wenigen Schritten auf den Punkten ein. Sensorhersteller rechnen diesen Fit millionenfach pro Jahr.',
     appR0: 'Startwert R₀',
     appB: 'Startwert B',
     appFit: 'LM-Schritt',
@@ -257,7 +257,7 @@ const T = {
     appRms: 'Fit-RMS',
     appParams: 'identifiziert R₀ / B',
     appWhere:
-      'Derselbe nichtlineare Fit identifiziert Wägezellen-Polynome, Pumpenkennlinien, Batterie-Entlademodelle, Kamerakennlinien und PID-Streckenmodelle — Parameteridentifikation ist das tägliche Brot jedes Versuchsingenieurs.',
+      'Derselbe nichtlineare Fit identifiziert Wägezellen-Polynome, Pumpenkennlinien, Batterie-Entlademodelle, Kamerakennlinien und PID-Streckenmodelle - Parameteridentifikation ist das tägliche Brot jedes Versuchsingenieurs.',
   },
 }
 
@@ -357,7 +357,7 @@ function Gd1D() {
     <div className="grid gap-4 lg:grid-cols-5">
       <div className="card overflow-hidden lg:col-span-3">
         <div className="border-b border-white/10 px-3 py-1.5 text-[12px] font-medium text-muted">
-          C(θ) — {t.gd1dHint}
+          C(θ) - {t.gd1dHint}
         </div>
         <svg
           viewBox={`0 0 ${G1_W} ${G1_H}`}
@@ -571,7 +571,7 @@ function DescentPlayground() {
           onPick={startAt}
           onHover={handleHover}
           onLeave={() => setHoverArrow(null)}
-          title={`C(θ₁, θ₂) — ${t.fnNames[fnKey]}`}
+          title={`C(θ₁, θ₂) - ${t.fnNames[fnKey]}`}
         >
           <defs>
             <marker id="negGrad" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
@@ -666,7 +666,7 @@ function DescentPlayground() {
           <Readout label={t.iter} value={last ? `${last.pts.length - 1}` : '0'} />
           <Readout
             label={t.fval}
-            value={curP && isFinite(fn.f(curP[0], curP[1])) ? fn.f(curP[0], curP[1]).toPrecision(3) : '—'}
+            value={curP && isFinite(fn.f(curP[0], curP[1])) ? fn.f(curP[0], curP[1]).toPrecision(3) : '-'}
           />
         </div>
         <div className="card px-4 py-2.5 text-[13px] text-muted">
@@ -858,7 +858,7 @@ function CalibSolverLab() {
           <Segmented<'gd' | 'lm'>
             options={[
               { value: 'gd', label: t.mNames.gd },
-              { value: 'lm', label: 'Levenberg–Marquardt' },
+              { value: 'lm', label: 'Levenberg-Marquardt' },
             ]}
             value={method}
             onChange={(m) => {

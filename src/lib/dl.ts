@@ -107,7 +107,7 @@ export const KERNELS: Record<string, number[][]> = {
 }
 
 /**
- * General 2D convolution with stride and zero-padding — powers the stride/
+ * General 2D convolution with stride and zero-padding - powers the stride/
  * padding lab. Output size is ⌊(N + 2·pad − k)/stride⌋ + 1.
  */
 export function conv2dEx(
@@ -177,7 +177,7 @@ export function attentionMatrix(scale: number, causal: boolean): number[][] {
 
 /**
  * Full toy attention: returns the projections Q, K, V, the attention matrix A
- * and the mixed output Z = A·V. Powers the value-mixing panel — the picture the
+ * and the mixed output Z = A·V. Powers the value-mixing panel - the picture the
  * "output = weighted sum of values" step of the derivation was missing.
  */
 export function attentionFull(

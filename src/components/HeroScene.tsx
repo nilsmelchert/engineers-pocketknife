@@ -5,9 +5,9 @@ import type { Group } from 'three'
 import { mulberry32, type V3 } from '../lib/math'
 
 /**
- * Hero: a constellation of the site's seven tracks — camera frustum (vision),
+ * Hero: a constellation of the site's seven tracks - camera frustum (vision),
  * scatter+PCA (data), neural net (ML), gaussian (math), sine wave (signals),
- * robot arm (robotics), laser triangulation fan (metrology) — orbiting a core.
+ * robot arm (robotics), laser triangulation fan (metrology) - orbiting a core.
  */
 
 const CYAN = '#22d3ee'
@@ -70,7 +70,7 @@ function armLines(): { pts: V3[]; color: string }[] {
 
 function laserLines(): { pts: V3[]; color: string }[] {
   const apex: V3 = [0, 0.32, 0]
-  // surface profile with a bump — what the laser line measures
+  // surface profile with a bump - what the laser line measures
   const prof: V3[] = Array.from({ length: 24 }, (_, i) => {
     const x = -0.3 + (0.6 * i) / 23
     return [x, -0.18 + 0.1 * Math.exp(-(x * x) / 0.008), 0]

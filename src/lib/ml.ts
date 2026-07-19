@@ -133,7 +133,7 @@ export interface BackpropTrace {
 
 /**
  * Single-sample forward+backward pass that RETAINS the per-layer deltas that
- * `mlpGrad` computes and discards — the data behind the interactive backprop
+ * `mlpGrad` computes and discards - the data behind the interactive backprop
  * visualizer. Guarantee: its dW equals `mlpGrad(m, [{x, y}]).dW` exactly.
  */
 export function mlpBackpropTrace(m: Mlp, x: number[], y: number): BackpropTrace {
@@ -290,7 +290,7 @@ export function logregStep(
 
 // ---------------------------------------------------------------- 2D-landscape steppers
 
-/** Gradient step with gaussian gradient noise — a stand-in for mini-batch sampling. */
+/** Gradient step with gaussian gradient noise - a stand-in for mini-batch sampling. */
 export function sgdNoisyStep2D(
   fn: Fn2D,
   p: Vec2,

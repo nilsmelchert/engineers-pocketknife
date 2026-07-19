@@ -180,7 +180,7 @@ export function lookAtCV(eye: V3, target: V3): Pose {
 export interface ProjectedPoint {
   u: number
   v: number
-  /** depth in the camera frame — point is in front of the camera iff z > 0 */
+  /** depth in the camera frame - point is in front of the camera iff z > 0 */
   z: number
 }
 
@@ -221,7 +221,7 @@ export function pMat(k: Intrinsics, pose: Pose): number[] {
   return out
 }
 
-// ---------------------------------------------------------------- distortion (Brown–Conrady)
+// ---------------------------------------------------------------- distortion (Brown-Conrady)
 
 export interface Distortion {
   k1: number
@@ -243,9 +243,9 @@ export function distortNormalized(x: number, y: number, d: Distortion): [number,
 }
 
 /**
- * Invert the Brown–Conrady model by fixed-point iteration: find the undistorted
+ * Invert the Brown-Conrady model by fixed-point iteration: find the undistorted
  * normalized coordinates that distort to (xd, yd). Converges quickly for
- * moderate distortion — the same idea OpenCV's undistortPoints uses.
+ * moderate distortion - the same idea OpenCV's undistortPoints uses.
  */
 export function undistortNormalized(
   xd: number,
@@ -271,13 +271,13 @@ export function undistortNormalized(
 /** Pinhole radial image height for a ray at angle θ off the optical axis: r = f·tanθ. */
 export const pinholeRadius = (f: number, thetaRad: number): number => f * Math.tan(thetaRad)
 
-/** Equidistant-fisheye radial image height: r = f·θ — linear in the angle, never diverges. */
+/** Equidistant-fisheye radial image height: r = f·θ - linear in the angle, never diverges. */
 export const equidistantRadius = (f: number, thetaRad: number): number => f * thetaRad
 
 /**
  * Equidistant-fisheye projection of a camera-frame point: the image radius is
  * proportional to the ray angle θ instead of tan θ. Points behind the camera
- * (θ > 90°) still project — that is how >180° lenses work.
+ * (θ > 90°) still project - that is how >180° lenses work.
  */
 export function fisheyeProjectCamPoint(k: Intrinsics, c: V3): ProjectedPoint {
   const rxy = Math.hypot(c[0], c[1])

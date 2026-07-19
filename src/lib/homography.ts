@@ -1,6 +1,6 @@
 /**
  * Homography estimation (normalized DLT), Zhang closed-form intrinsics,
- * and pose-only PnP refinement — the linear-algebra backbone of the
+ * and pose-only PnP refinement - the linear-algebra backbone of the
  * "flat world" sections in the Vision track.
  *
  * All matrices follow the math.ts convention: flat row-major arrays (M3 = 9).
@@ -44,7 +44,7 @@ const applyT = (T: M3, p: P2): P2 => [T[0] * p[0] + T[1] * p[1] + T[2], T[3] * p
  * normalized DLT: accumulate the 9×9 AᵀA of the two standard DLT rows per pair
  * and take the eigenvector of the smallest eigenvalue (jacobiEigen).
  * Without the Hartley normalization this is hopelessly ill-conditioned at
- * pixel scale — the normalization is not optional.
+ * pixel scale - the normalization is not optional.
  */
 export function homographyDLT(src: P2[], dst: P2[]): M3 | null {
   if (src.length < 4 || src.length !== dst.length) return null
@@ -94,7 +94,7 @@ export function homographyRms(H: M3, src: P2[], dst: P2[]): number {
 
 /**
  * Decompose a plane-induced homography H = λ·K[r1 r2 t] into a pose.
- * Orthonormalizes with cross products (no SVD needed) — a good Gauss-Newton
+ * Orthonormalizes with cross products (no SVD needed) - a good Gauss-Newton
  * initializer, not a final answer.
  */
 export function poseFromHomography(k: Intrinsics, H: M3): Pose {
@@ -124,7 +124,7 @@ export function poseFromHomography(k: Intrinsics, H: M3): Pose {
 export interface ZhangResult {
   k: Intrinsics
   ok: boolean
-  /** eigenvalue-gap ratio — small means the constraint system is degenerate */
+  /** eigenvalue-gap ratio - small means the constraint system is degenerate */
   conditioning: number
 }
 
@@ -135,7 +135,7 @@ const ZHANG_FAIL: ZhangResult = { k: { fx: 0, fy: 0, s: 0, cx: 0, cy: 0 }, ok: f
  * Each view's H = K[r1 r2 t] gives two linear constraints on the image of the
  * absolute conic ω = K⁻ᵀK⁻¹ (r1 ⊥ r2 and ‖r1‖ = ‖r2‖). Stack, take the
  * smallest eigenvector of VᵀV, extract K in closed form.
- * Every square root is guarded — degenerate view sets (too few views, all
+ * Every square root is guarded - degenerate view sets (too few views, all
  * frontal) return ok:false instead of NaNs.
  */
 export function zhangIntrinsics(Hs: M3[]): ZhangResult {
@@ -185,7 +185,7 @@ export function zhangIntrinsics(Hs: M3[]): ZhangResult {
   return { k: { fx, fy, s, cx, cy }, ok, conditioning }
 }
 
-// ---------------------------------------------------------------- PnP (pose-only Gauss–Newton)
+// ---------------------------------------------------------------- PnP (pose-only Gauss-Newton)
 
 /** Rodrigues rotation from an axis-angle vector. */
 function rodrigues(w: V3): M3 {
@@ -220,7 +220,7 @@ function pnpResiduals(k: Intrinsics, X: V3[], x: P2[], pose: Pose): number[] {
 const rmsOf = (r: number[]) => Math.sqrt(r.reduce((s, v) => s + v * v, 0) / (r.length / 2))
 
 /**
- * Pose-only damped Gauss–Newton: re-linearize about the current pose with a
+ * Pose-only damped Gauss-Newton: re-linearize about the current pose with a
  * 6-vector update (ω rotation via Rodrigues on the right, δt translation),
  * numeric central-difference Jacobian, normal equations via solveN,
  * step-halving on rejection. Returns the per-iteration trace so the lab can

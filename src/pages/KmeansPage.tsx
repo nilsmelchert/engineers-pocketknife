@@ -26,16 +26,16 @@ const T = {
     kicker: 'Data · Module 2',
     title: 'K-Means Clustering',
     intro:
-      'PCA found directions; clustering finds groups. K-means is the workhorse of unsupervised grouping: given only points and a number k, it carves the data into k clusters — no labels, no teacher. It is beautifully simple, surprisingly subtle, and it fails in instructive ways.',
+      'PCA found directions; clustering finds groups. K-means is the workhorse of unsupervised grouping: given only points and a number k, it carves the data into k clusters - no labels, no teacher. It is beautifully simple, surprisingly subtle, and it fails in instructive ways.',
     ideaTitle: 'Grouping without labels',
     idea1: 'The algorithm needs just two alternating moves, each one embarrassingly intuitive:',
     ideaList: [
       'Assign: give every point to its nearest centroid (the colored ✕).',
       'Update: move every centroid to the mean of the points it owns.',
     ],
-    idea2: 'Repeat until nothing changes. That is Lloyd’s algorithm, published in 1957 and still everywhere — image compression, customer segmentation, vector quantization, initializing fancier models.',
+    idea2: 'Repeat until nothing changes. That is Lloyd’s algorithm, published in 1957 and still everywhere - image compression, customer segmentation, vector quantization, initializing fancier models.',
     labTitle: 'Interactive: Lloyd’s algorithm step by step',
-    lab1: 'Pick a dataset and press the phases yourself: Assign colors the points, Move shifts each ✕ to its cluster mean (trails show the paths). Watch the objective — the summed squared distance WCSS — drop with every phase and freeze when the algorithm converges.',
+    lab1: 'Pick a dataset and press the phases yourself: Assign colors the points, Move shifts each ✕ to its cluster mean (trails show the paths). Watch the objective - the summed squared distance WCSS - drop with every phase and freeze when the algorithm converges.',
     dsNames: { blobs: '3 blobs', blobs4: '4 blobs', moons: 'moons', rings: 'rings', uniform: 'uniform' },
     kLabel: 'clusters k',
     initLabel: 'initialization',
@@ -51,18 +51,18 @@ const T = {
     iter: 'iterations',
     wcssLabel: 'objective (WCSS)',
     labTry: [
-      'Step through 3 blobs manually: usually 3–5 iterations to convergence. The Voronoi shading shows each centroid’s territory.',
-      'Press "Unlucky init": all centroids start inside one blob — k-means converges, but to a visibly wrong local minimum. The WCSS is higher, and no further step can fix it.',
+      'Step through 3 blobs manually: usually 3-5 iterations to convergence. The Voronoi shading shows each centroid’s territory.',
+      'Press "Unlucky init": all centroids start inside one blob - k-means converges, but to a visibly wrong local minimum. The WCSS is higher, and no further step can fix it.',
       'Compare random vs. k-means++ over several re-initializations: k-means++ spreads the seeds and lands in the good solution far more often.',
     ],
     initTitle: 'Initialization decides the ending',
-    init1: 'Lloyd’s algorithm is a descent method: every phase provably lowers (or keeps) the WCSS — assign is optimal for fixed centroids, update is optimal for fixed assignments. This is exactly the alternating (coordinate) descent pattern from the optimization modules, applied to a nonconvex objective. And as always with descent on nonconvex landscapes: it stops at the nearest local minimum. Where you start decides where you end.',
+    init1: 'Lloyd’s algorithm is a descent method: every phase provably lowers (or keeps) the WCSS - assign is optimal for fixed centroids, update is optimal for fixed assignments. This is exactly the alternating (coordinate) descent pattern from the optimization modules, applied to a nonconvex objective. And as always with descent on nonconvex landscapes: it stops at the nearest local minimum. Where you start decides where you end.',
     init2: 'k-means++ (2007) fixes most of it with one clever idea: pick seeds one by one, each new one with probability proportional to its squared distance from the nearest existing seed. Spread-out seeds → good basins. It is the default in every serious library, and in practice you additionally restart a few times and keep the best result (n_init in scikit-learn).',
-    elbowTitle: 'Interactive: choosing k — the elbow',
-    elbow1: 'K-means never complains about a wrong k: it will happily split one blob or merge two. The classic diagnostic runs k-means for every k and plots the final WCSS. Adding a cluster always lowers the objective — but after the true number of groups, the improvement collapses: the curve bends like an elbow. On the 3-blob dataset the bend at k = 3 is unmistakable; on uniform noise there is no elbow, because there are no clusters.',
+    elbowTitle: 'Interactive: choosing k - the elbow',
+    elbow1: 'K-means never complains about a wrong k: it will happily split one blob or merge two. The classic diagnostic runs k-means for every k and plots the final WCSS. Adding a cluster always lowers the objective - but after the true number of groups, the improvement collapses: the curve bends like an elbow. On the 3-blob dataset the bend at k = 3 is unmistakable; on uniform noise there is no elbow, because there are no clusters.',
     elbowK: 'k in the lab above',
-    failTitle: 'Where k-means fails — and what to reach for',
-    fail1: 'The assign step draws straight Voronoi walls, so k-means can only ever produce convex, roughly ball-shaped clusters of similar size. Switch the lab to moons or rings and watch it slice straight through the obvious structure — the algorithm converges happily, the WCSS is fine, the answer is wrong.',
+    failTitle: 'Where k-means fails - and what to reach for',
+    fail1: 'The assign step draws straight Voronoi walls, so k-means can only ever produce convex, roughly ball-shaped clusters of similar size. Switch the lab to moons or rings and watch it slice straight through the obvious structure - the algorithm converges happily, the WCSS is fine, the answer is wrong.',
     failList: [
       'Elongated or curved clusters (moons, rings): the metric is wrong, not the optimizer. Use density-based clustering (DBSCAN) or spectral clustering.',
       'Clusters of very different sizes/densities: k-means steals points from big sparse clusters for small dense ones. Gaussian mixture models (GMM) with full covariances handle this.',
@@ -72,11 +72,11 @@ const T = {
     failLinkBtn: 'Clustering II: GMM & DBSCAN →',
     mathTitle: 'The math in one breath',
     math1: 'K-means minimizes the within-cluster sum of squares over both the assignments and the centroids:',
-    math2: 'Fix μ → the optimal assignment is the nearest centroid. Fix the assignments → the optimal μⱼ is the cluster mean (set the gradient to zero). Alternating the two exact minimizations makes the objective monotonically non-increasing — convergence is guaranteed, global optimality is not (the problem is NP-hard in general).',
+    math2: 'Fix μ → the optimal assignment is the nearest centroid. Fix the assignments → the optimal μⱼ is the cluster mean (set the gradient to zero). Alternating the two exact minimizations makes the objective monotonically non-increasing - convergence is guaranteed, global optimality is not (the problem is NP-hard in general).',
     codeTitle: 'In practice',
     appTitle: '🏭 In the real world: color quantization',
     appIntro:
-      'Every GIF you have ever seen, every embedded display with a 256-color palette, every print job that reduces a photo to a handful of inks solves the same problem: replace millions of RGB values by k representative colors with minimal visible damage. That is k-means, verbatim — the pixels are points in 3D RGB space, the palette entries are the centroids, and “assign each pixel to its nearest palette color” is Lloyd’s assignment step. Slide k and watch the sunset image degrade gracefully — and check what happens to the storage cost.',
+      'Every GIF you have ever seen, every embedded display with a 256-color palette, every print job that reduces a photo to a handful of inks solves the same problem: replace millions of RGB values by k representative colors with minimal visible damage. That is k-means, verbatim - the pixels are points in 3D RGB space, the palette entries are the centroids, and “assign each pixel to its nearest palette color” is Lloyd’s assignment step. Slide k and watch the sunset image degrade gracefully - and check what happens to the storage cost.',
     appK: 'palette size k',
     appOrig: 'original (24-bit)',
     appQuant: 'quantized',
@@ -90,16 +90,16 @@ const T = {
     kicker: 'Daten · Modul 2',
     title: 'K-Means-Clustering',
     intro:
-      'PCA fand Richtungen; Clustering findet Gruppen. K-Means ist das Arbeitspferd des unüberwachten Gruppierens: Gegeben nur Punkte und eine Zahl k zerlegt es die Daten in k Cluster — ohne Labels, ohne Lehrer. Es ist wunderbar einfach, überraschend subtil, und es scheitert auf lehrreiche Weise.',
+      'PCA fand Richtungen; Clustering findet Gruppen. K-Means ist das Arbeitspferd des unüberwachten Gruppierens: Gegeben nur Punkte und eine Zahl k zerlegt es die Daten in k Cluster - ohne Labels, ohne Lehrer. Es ist wunderbar einfach, überraschend subtil, und es scheitert auf lehrreiche Weise.',
     ideaTitle: 'Gruppieren ohne Labels',
     idea1: 'Der Algorithmus braucht nur zwei alternierende Züge, jeder für sich verblüffend intuitiv:',
     ideaList: [
       'Zuweisen: Gib jeden Punkt seinem nächstgelegenen Zentroid (dem farbigen ✕).',
       'Aktualisieren: Verschiebe jeden Zentroid in den Mittelwert seiner Punkte.',
     ],
-    idea2: 'Wiederholen, bis sich nichts mehr ändert. Das ist Lloyds Algorithmus, publiziert 1957 und noch immer überall — Bildkompression, Kundensegmentierung, Vektorquantisierung, Initialisierung feinerer Modelle.',
+    idea2: 'Wiederholen, bis sich nichts mehr ändert. Das ist Lloyds Algorithmus, publiziert 1957 und noch immer überall - Bildkompression, Kundensegmentierung, Vektorquantisierung, Initialisierung feinerer Modelle.',
     labTitle: 'Interaktiv: Lloyds Algorithmus Schritt für Schritt',
-    lab1: 'Wähle einen Datensatz und drücke die Phasen selbst: Zuweisen färbt die Punkte, Verschieben zieht jedes ✕ in seinen Clustermittelwert (Spuren zeigen die Wege). Beobachte die Zielfunktion — die summierte quadrierte Distanz WCSS — mit jeder Phase fallen und beim Konvergieren einfrieren.',
+    lab1: 'Wähle einen Datensatz und drücke die Phasen selbst: Zuweisen färbt die Punkte, Verschieben zieht jedes ✕ in seinen Clustermittelwert (Spuren zeigen die Wege). Beobachte die Zielfunktion - die summierte quadrierte Distanz WCSS - mit jeder Phase fallen und beim Konvergieren einfrieren.',
     dsNames: { blobs: '3 Blobs', blobs4: '4 Blobs', moons: 'Monde', rings: 'Ringe', uniform: 'uniform' },
     kLabel: 'Cluster k',
     initLabel: 'Initialisierung',
@@ -115,18 +115,18 @@ const T = {
     iter: 'Iterationen',
     wcssLabel: 'Zielfunktion (WCSS)',
     labTry: [
-      'Gehe die 3 Blobs manuell durch: meist 3–5 Iterationen bis zur Konvergenz. Die Voronoi-Schattierung zeigt das Revier jedes Zentroids.',
-      'Drücke „Pech-Initialisierung“: Alle Zentroide starten in einem Blob — K-Means konvergiert, aber in ein sichtbar falsches lokales Minimum. Die WCSS ist höher, und kein weiterer Schritt kann das reparieren.',
+      'Gehe die 3 Blobs manuell durch: meist 3-5 Iterationen bis zur Konvergenz. Die Voronoi-Schattierung zeigt das Revier jedes Zentroids.',
+      'Drücke „Pech-Initialisierung“: Alle Zentroide starten in einem Blob - K-Means konvergiert, aber in ein sichtbar falsches lokales Minimum. Die WCSS ist höher, und kein weiterer Schritt kann das reparieren.',
       'Vergleiche zufällig vs. k-means++ über mehrere Neuinitialisierungen: k-means++ verteilt die Saatpunkte und landet weit öfter in der guten Lösung.',
     ],
     initTitle: 'Die Initialisierung entscheidet das Ende',
-    init1: 'Lloyds Algorithmus ist ein Abstiegsverfahren: Jede Phase senkt (oder hält) die WCSS beweisbar — Zuweisen ist optimal bei festen Zentroiden, Aktualisieren optimal bei fester Zuweisung. Das ist genau das alternierende (Koordinaten-)Abstiegsmuster aus den Optimierungsmodulen, angewandt auf eine nichtkonvexe Zielfunktion. Und wie immer beim Abstieg auf nichtkonvexen Landschaften gilt: Er hält im nächstgelegenen lokalen Minimum. Wo man startet, entscheidet, wo man endet.',
+    init1: 'Lloyds Algorithmus ist ein Abstiegsverfahren: Jede Phase senkt (oder hält) die WCSS beweisbar - Zuweisen ist optimal bei festen Zentroiden, Aktualisieren optimal bei fester Zuweisung. Das ist genau das alternierende (Koordinaten-)Abstiegsmuster aus den Optimierungsmodulen, angewandt auf eine nichtkonvexe Zielfunktion. Und wie immer beim Abstieg auf nichtkonvexen Landschaften gilt: Er hält im nächstgelegenen lokalen Minimum. Wo man startet, entscheidet, wo man endet.',
     init2: 'k-means++ (2007) behebt das meiste mit einer cleveren Idee: Wähle die Saatpunkte nacheinander, jeden neuen mit Wahrscheinlichkeit proportional zur quadrierten Distanz zum nächsten vorhandenen. Verteilte Saat → gute Becken. Es ist der Standard in jeder ernsthaften Bibliothek, und in der Praxis startet man zusätzlich mehrfach neu und behält das beste Ergebnis (n_init in scikit-learn).',
-    elbowTitle: 'Interaktiv: k wählen — der Ellbogen',
-    elbow1: 'K-Means beschwert sich nie über ein falsches k: Es teilt klaglos einen Blob oder verschmilzt zwei. Die klassische Diagnose lässt K-Means für jedes k laufen und plottet die finale WCSS. Ein zusätzlicher Cluster senkt die Zielfunktion immer — aber nach der wahren Gruppenzahl bricht die Verbesserung ein: Die Kurve knickt wie ein Ellbogen. Beim 3-Blob-Datensatz ist der Knick bei k = 3 unverkennbar; bei uniformem Rauschen gibt es keinen Ellbogen, weil es keine Cluster gibt.',
+    elbowTitle: 'Interaktiv: k wählen - der Ellbogen',
+    elbow1: 'K-Means beschwert sich nie über ein falsches k: Es teilt klaglos einen Blob oder verschmilzt zwei. Die klassische Diagnose lässt K-Means für jedes k laufen und plottet die finale WCSS. Ein zusätzlicher Cluster senkt die Zielfunktion immer - aber nach der wahren Gruppenzahl bricht die Verbesserung ein: Die Kurve knickt wie ein Ellbogen. Beim 3-Blob-Datensatz ist der Knick bei k = 3 unverkennbar; bei uniformem Rauschen gibt es keinen Ellbogen, weil es keine Cluster gibt.',
     elbowK: 'k im Labor oben',
-    failTitle: 'Wo K-Means scheitert — und was dann hilft',
-    fail1: 'Der Zuweisungsschritt zieht gerade Voronoi-Wände, also kann K-Means immer nur konvexe, grob kugelförmige Cluster ähnlicher Größe erzeugen. Stelle das Labor auf Monde oder Ringe und sieh zu, wie es mitten durch die offensichtliche Struktur schneidet — der Algorithmus konvergiert zufrieden, die WCSS ist gut, die Antwort ist falsch.',
+    failTitle: 'Wo K-Means scheitert - und was dann hilft',
+    fail1: 'Der Zuweisungsschritt zieht gerade Voronoi-Wände, also kann K-Means immer nur konvexe, grob kugelförmige Cluster ähnlicher Größe erzeugen. Stelle das Labor auf Monde oder Ringe und sieh zu, wie es mitten durch die offensichtliche Struktur schneidet - der Algorithmus konvergiert zufrieden, die WCSS ist gut, die Antwort ist falsch.',
     failList: [
       'Langgestreckte oder gekrümmte Cluster (Monde, Ringe): Die Metrik ist falsch, nicht der Optimierer. Nutze dichtebasiertes Clustering (DBSCAN) oder spektrales Clustering.',
       'Cluster sehr unterschiedlicher Größe/Dichte: K-Means stiehlt großen dünnen Clustern Punkte für kleine dichte. Gaußsche Mischmodelle (GMM) mit vollen Kovarianzen können das.',
@@ -136,11 +136,11 @@ const T = {
     failLinkBtn: 'Clustering II: GMM & DBSCAN →',
     mathTitle: 'Die Mathematik in einem Atemzug',
     math1: 'K-Means minimiert die Summe der quadrierten Abstände innerhalb der Cluster über Zuweisungen und Zentroide gemeinsam:',
-    math2: 'Fixiere μ → die optimale Zuweisung ist der nächste Zentroid. Fixiere die Zuweisungen → das optimale μⱼ ist der Clustermittelwert (Gradient null setzen). Das Abwechseln der beiden exakten Minimierungen macht die Zielfunktion monoton nicht-steigend — Konvergenz ist garantiert, globale Optimalität nicht (das Problem ist im Allgemeinen NP-schwer).',
+    math2: 'Fixiere μ → die optimale Zuweisung ist der nächste Zentroid. Fixiere die Zuweisungen → das optimale μⱼ ist der Clustermittelwert (Gradient null setzen). Das Abwechseln der beiden exakten Minimierungen macht die Zielfunktion monoton nicht-steigend - Konvergenz ist garantiert, globale Optimalität nicht (das Problem ist im Allgemeinen NP-schwer).',
     codeTitle: 'In der Praxis',
     appTitle: '🏭 In der echten Welt: Farbquantisierung',
     appIntro:
-      'Jedes GIF, das du je gesehen hast, jedes Embedded-Display mit 256-Farben-Palette, jeder Druckauftrag, der ein Foto auf eine Handvoll Druckfarben reduziert, löst dasselbe Problem: Millionen RGB-Werte durch k repräsentative Farben ersetzen — mit minimalem sichtbarem Schaden. Das ist wortwörtlich K-Means: Die Pixel sind Punkte im 3D-RGB-Raum, die Paletteneinträge sind die Zentroide, und „weise jedem Pixel die nächste Palettenfarbe zu“ ist Lloyds Zuweisungsschritt. Schiebe k und beobachte, wie das Sonnenuntergangsbild würdevoll degradiert — und was mit den Speicherkosten passiert.',
+      'Jedes GIF, das du je gesehen hast, jedes Embedded-Display mit 256-Farben-Palette, jeder Druckauftrag, der ein Foto auf eine Handvoll Druckfarben reduziert, löst dasselbe Problem: Millionen RGB-Werte durch k repräsentative Farben ersetzen - mit minimalem sichtbarem Schaden. Das ist wortwörtlich K-Means: Die Pixel sind Punkte im 3D-RGB-Raum, die Paletteneinträge sind die Zentroide, und „weise jedem Pixel die nächste Palettenfarbe zu“ ist Lloyds Zuweisungsschritt. Schiebe k und beobachte, wie das Sonnenuntergangsbild würdevoll degradiert - und was mit den Speicherkosten passiert.',
     appK: 'Palettengröße k',
     appOrig: 'Original (24 Bit)',
     appQuant: 'quantisiert',
@@ -566,7 +566,7 @@ function KmeansLab() {
         <div className="grid grid-cols-2 gap-3">
           <Readout
             label={t.wcssLabel}
-            value={curWcss === null ? '—' : fmt(curWcss, 2)}
+            value={curWcss === null ? '-' : fmt(curWcss, 2)}
             accent={st.converged ? '#4ade80' : undefined}
             unit={st.converged ? `✓ ${t.converged}` : ''}
           />

@@ -7,13 +7,13 @@ const T = {
   en: {
     title: 'All labs',
     intro:
-      'Every interactive on the site, in one place — jump straight to the widget, skip the prose. Perfect for revisiting before an exam or showing a colleague that one demo.',
+      'Every interactive on the site, in one place - jump straight to the widget, skip the prose. Perfect for revisiting before an exam or showing a colleague that one demo.',
     count: 'interactive labs',
   },
   de: {
     title: 'Alle Labore',
     intro:
-      'Jedes interaktive Element der Seite an einem Ort — spring direkt zum Widget, überspringe die Prosa. Perfekt zum Wiederholen vor einer Prüfung oder um Kolleg:innen diese eine Demo zu zeigen.',
+      'Jedes interaktive Element der Seite an einem Ort - spring direkt zum Widget, überspringe die Prosa. Perfekt zum Wiederholen vor einer Prüfung oder um Kolleg:innen diese eine Demo zu zeigen.',
     count: 'interaktive Labore',
   },
 }

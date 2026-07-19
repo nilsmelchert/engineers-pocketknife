@@ -11,20 +11,20 @@ const T = {
     kicker: 'Signals · Module 2',
     title: 'Control Theory',
     intro:
-      'A motor with friction, a heater with lag, a drone in wind — physical systems never simply do what you tell them. Control theory’s answer is feedback: measure the output, compare with the goal, correct. The PID controller — three terms, three knobs — runs the overwhelming majority of the world’s control loops, from CNC axes to chemical plants.',
+      'A motor with friction, a heater with lag, a drone in wind - physical systems never simply do what you tell them. Control theory’s answer is feedback: measure the output, compare with the goal, correct. The PID controller - three terms, three knobs - runs the overwhelming majority of the world’s control loops, from CNC axes to chemical plants.',
     loopTitle: 'Open loop vs. closed loop',
     loop1: 'Open loop is a shower with a memorized faucet position: any disturbance (someone flushes) and the temperature drifts, and you never notice. Closed loop feels the water and adjusts continuously. Feedback trades a modest requirement (a sensor) for a superpower: precision from imprecise parts, and disturbance rejection for free.',
     diagram: { r: 'setpoint r', e: 'error e', pid: 'PID', u: 'input u', plant: 'plant', y: 'output y', minus: '−' },
     pidTitle: 'Interactive: the PID playground',
-    pid1: 'The plant is a simulated mass on a spring with damping — sluggish and oscillation-prone, like most real hardware. Command a step from 0 to 1 and tune the three gains. The animated cart replays the response; the metrics quantify it. Work through the presets and you will have re-derived a century of control practice:',
+    pid1: 'The plant is a simulated mass on a spring with damping - sluggish and oscillation-prone, like most real hardware. Command a step from 0 to 1 and tune the three gains. The animated cart replays the response; the metrics quantify it. Work through the presets and you will have re-derived a century of control practice:',
     pidList: [
-      'P — proportional: push harder the farther you are. Fast, but it must leave a permanent error: with zero error it pushes with zero force, and the spring wins. Watch the cart settle short of the target.',
-      'PI — the integral accumulates the leftover error until it is gone. Steady-state error: eliminated. Price: the accumulated push overshoots, and with actuator limits it can wind up.',
-      'PID — the derivative brakes proportionally to the approach speed, damping the overshoot. The full controller: fast, accurate, calm.',
+      'P - proportional: push harder the farther you are. Fast, but it must leave a permanent error: with zero error it pushes with zero force, and the spring wins. Watch the cart settle short of the target.',
+      'PI - the integral accumulates the leftover error until it is gone. Steady-state error: eliminated. Price: the accumulated push overshoots, and with actuator limits it can wind up.',
+      'PID - the derivative brakes proportionally to the approach speed, damping the overshoot. The full controller: fast, accurate, calm.',
     ],
-    kp: 'Kp — proportional',
-    ki: 'Ki — integral',
-    kd: 'Kd — derivative',
+    kp: 'Kp - proportional',
+    ki: 'Ki - integral',
+    kd: 'Kd - derivative',
     presets: 'Presets',
     presetNames: ['P only', 'PI', 'PID'],
     kick: 'Disturbance kick at t = 5 s',
@@ -35,7 +35,7 @@ const T = {
     unstableFlag: 'UNSTABLE',
     replay: 'cart replay',
     stabTitle: 'Interactive: the road to instability',
-    stab1: 'Real actuators and sensors are not instant — here the plant reacts with a 0.25 s transport delay. Now cranking Kp is dangerous: your correction arrives late, pushes when it should already brake, feeds the oscillation instead of fighting it. Slide Kp up and watch the response go sluggish → crisp → ringing → divergent. The margin between "crisp" and "divergent" is what gain and phase margins measure — every delay in a loop eats stability.',
+    stab1: 'Real actuators and sensors are not instant - here the plant reacts with a 0.25 s transport delay. Now cranking Kp is dangerous: your correction arrives late, pushes when it should already brake, feeds the oscillation instead of fighting it. Slide Kp up and watch the response go sluggish → crisp → ringing → divergent. The margin between "crisp" and "divergent" is what gain and phase margins measure - every delay in a loop eats stability.',
     stabKp: 'Kp (with 0.25 s delay)',
     rolesTitle: 'What each knob does',
     rolesHead: ['increase…', 'speed', 'steady-state error', 'overshoot', 'watch out for'],
@@ -44,38 +44,38 @@ const T = {
       ['Ki ↑', '→', 'eliminated', '↑', 'integrator windup at actuator limits'],
       ['Kd ↑', '→', '→', '↓', 'amplifies sensor noise'],
     ],
-    roles2: 'Classical recipes like Ziegler–Nichols start from exactly the experiment you just did: raise Kp to the edge of oscillation, then back off with tabulated factors. Modern loops add feedforward (use the model, let feedback handle only the residual) — the same philosophy as the Kalman filter of the next module.',
+    roles2: 'Classical recipes like Ziegler-Nichols start from exactly the experiment you just did: raise Kp to the edge of oscillation, then back off with tabulated factors. Modern loops add feedforward (use the model, let feedback handle only the residual) - the same philosophy as the Kalman filter of the next module.',
     mathTitle: 'The controller in one line',
     codeTitle: 'In practice',
     appTitle: '🏭 In the real world: cruise control on a hill',
     appIntro:
-      'Set your cruise control to 100 km/h and hit a 5 % grade: the hill is a sustained disturbance force, and what happens next is the P-vs-PI story made physical. A pure P controller needs a nonzero error to produce throttle — so on the hill it settles a few km/h BELOW the setpoint, forever. That permanent sag is the steady-state error from the theory above; you have felt it in old cars. The integral term accumulates the error second by second and quietly adds throttle until the error is exactly zero — the car sags briefly, then climbs back to 100 while still on the hill. Steepen the grade and watch the amber P-only car lose more speed while the cyan PI car always comes home.',
+      'Set your cruise control to 100 km/h and hit a 5 % grade: the hill is a sustained disturbance force, and what happens next is the P-vs-PI story made physical. A pure P controller needs a nonzero error to produce throttle - so on the hill it settles a few km/h BELOW the setpoint, forever. That permanent sag is the steady-state error from the theory above; you have felt it in old cars. The integral term accumulates the error second by second and quietly adds throttle until the error is exactly zero - the car sags briefly, then climbs back to 100 while still on the hill. Steepen the grade and watch the amber P-only car lose more speed while the cyan PI car always comes home.',
     appGrade: 'hill grade (from t = 20 s)',
     appKp: 'proportional gain Kp',
     appSagP: 'speed loss on hill (P only)',
     appSagPi: 'speed loss on hill (PI)',
     appLegend: 'amber dashed = P only · cyan = PI · gray = hill profile',
     appWhere:
-      'The same integral action holds oven temperatures against door openings, quadcopter altitude against battery droop, generator frequency against load steps and dialysis flow against filter clogging — every “holds the value under load” claim hides an integrator.',
+      'The same integral action holds oven temperatures against door openings, quadcopter altitude against battery droop, generator frequency against load steps and dialysis flow against filter clogging - every “holds the value under load” claim hides an integrator.',
   },
   de: {
     kicker: 'Signale · Modul 2',
     title: 'Regelungstechnik',
     intro:
-      'Ein Motor mit Reibung, eine Heizung mit Trägheit, eine Drohne im Wind — physikalische Systeme tun nie einfach, was man ihnen sagt. Die Antwort der Regelungstechnik ist Rückkopplung: Ausgang messen, mit dem Ziel vergleichen, korrigieren. Der PID-Regler — drei Terme, drei Knöpfe — betreibt die überwältigende Mehrheit aller Regelkreise der Welt, von CNC-Achsen bis zu Chemieanlagen.',
+      'Ein Motor mit Reibung, eine Heizung mit Trägheit, eine Drohne im Wind - physikalische Systeme tun nie einfach, was man ihnen sagt. Die Antwort der Regelungstechnik ist Rückkopplung: Ausgang messen, mit dem Ziel vergleichen, korrigieren. Der PID-Regler - drei Terme, drei Knöpfe - betreibt die überwältigende Mehrheit aller Regelkreise der Welt, von CNC-Achsen bis zu Chemieanlagen.',
     loopTitle: 'Steuern vs. Regeln (offener vs. geschlossener Kreis)',
     loop1: 'Steuern ist eine Dusche mit auswendig gelernter Hahnstellung: Jede Störung (jemand spült) lässt die Temperatur driften, und man merkt es nie. Regeln fühlt das Wasser und justiert kontinuierlich nach. Rückkopplung tauscht eine bescheidene Voraussetzung (einen Sensor) gegen eine Superkraft: Präzision aus unpräzisen Teilen und Störunterdrückung gratis.',
     diagram: { r: 'Sollwert r', e: 'Fehler e', pid: 'PID', u: 'Stellgröße u', plant: 'Strecke', y: 'Istwert y', minus: '−' },
     pidTitle: 'Interaktiv: der PID-Spielplatz',
-    pid1: 'Die Strecke ist eine simulierte Masse an einer Feder mit Dämpfung — träge und schwingfreudig, wie die meiste echte Hardware. Kommandiere einen Sprung von 0 auf 1 und stimme die drei Verstärkungen ab. Der animierte Wagen spielt die Antwort ab; die Kennwerte quantifizieren sie. Arbeite die Voreinstellungen durch, und du hast ein Jahrhundert Regelungspraxis nachvollzogen:',
+    pid1: 'Die Strecke ist eine simulierte Masse an einer Feder mit Dämpfung - träge und schwingfreudig, wie die meiste echte Hardware. Kommandiere einen Sprung von 0 auf 1 und stimme die drei Verstärkungen ab. Der animierte Wagen spielt die Antwort ab; die Kennwerte quantifizieren sie. Arbeite die Voreinstellungen durch, und du hast ein Jahrhundert Regelungspraxis nachvollzogen:',
     pidList: [
-      'P — proportional: drücke stärker, je weiter du weg bist. Schnell, aber es muss ein bleibender Fehler übrig bleiben: Bei Fehler null drückt es mit Kraft null, und die Feder gewinnt. Sieh zu, wie der Wagen vor dem Ziel liegen bleibt.',
-      'PI — der Integralanteil sammelt den Restfehler auf, bis er verschwunden ist. Bleibende Regelabweichung: eliminiert. Preis: Der aufgestaute Schub überschwingt, und bei Stellgrößenbegrenzung kann er sich aufziehen (Windup).',
-      'PID — der Differenzialanteil bremst proportional zur Annäherungsgeschwindigkeit und dämpft das Überschwingen. Der volle Regler: schnell, genau, ruhig.',
+      'P - proportional: drücke stärker, je weiter du weg bist. Schnell, aber es muss ein bleibender Fehler übrig bleiben: Bei Fehler null drückt es mit Kraft null, und die Feder gewinnt. Sieh zu, wie der Wagen vor dem Ziel liegen bleibt.',
+      'PI - der Integralanteil sammelt den Restfehler auf, bis er verschwunden ist. Bleibende Regelabweichung: eliminiert. Preis: Der aufgestaute Schub überschwingt, und bei Stellgrößenbegrenzung kann er sich aufziehen (Windup).',
+      'PID - der Differenzialanteil bremst proportional zur Annäherungsgeschwindigkeit und dämpft das Überschwingen. Der volle Regler: schnell, genau, ruhig.',
     ],
-    kp: 'Kp — Proportional',
-    ki: 'Ki — Integral',
-    kd: 'Kd — Differenzial',
+    kp: 'Kp - Proportional',
+    ki: 'Ki - Integral',
+    kd: 'Kd - Differenzial',
     presets: 'Voreinstellungen',
     presetNames: ['nur P', 'PI', 'PID'],
     kick: 'Störstoß bei t = 5 s',
@@ -86,7 +86,7 @@ const T = {
     unstableFlag: 'INSTABIL',
     replay: 'Wagen-Replay',
     stabTitle: 'Interaktiv: der Weg in die Instabilität',
-    stab1: 'Echte Aktoren und Sensoren sind nicht augenblicklich — hier reagiert die Strecke mit 0,25 s Totzeit. Jetzt ist hohes Kp gefährlich: Die Korrektur kommt zu spät, drückt, wenn sie längst bremsen müsste, und füttert die Schwingung, statt sie zu bekämpfen. Schiebe Kp hoch und sieh die Antwort träge → knackig → klingelnd → divergent werden. Der Abstand zwischen „knackig“ und „divergent“ ist genau das, was Amplituden- und Phasenreserve messen — jede Totzeit im Kreis frisst Stabilität.',
+    stab1: 'Echte Aktoren und Sensoren sind nicht augenblicklich - hier reagiert die Strecke mit 0,25 s Totzeit. Jetzt ist hohes Kp gefährlich: Die Korrektur kommt zu spät, drückt, wenn sie längst bremsen müsste, und füttert die Schwingung, statt sie zu bekämpfen. Schiebe Kp hoch und sieh die Antwort träge → knackig → klingelnd → divergent werden. Der Abstand zwischen „knackig“ und „divergent“ ist genau das, was Amplituden- und Phasenreserve messen - jede Totzeit im Kreis frisst Stabilität.',
     stabKp: 'Kp (mit 0,25 s Totzeit)',
     rolesTitle: 'Was jeder Knopf bewirkt',
     rolesHead: ['erhöhe…', 'Tempo', 'bleibende Abweichung', 'Überschwingen', 'Vorsicht bei'],
@@ -95,19 +95,19 @@ const T = {
       ['Ki ↑', '→', 'eliminiert', '↑', 'Integrator-Windup an Stellgrenzen'],
       ['Kd ↑', '→', '→', '↓', 'verstärkt Sensorrauschen'],
     ],
-    roles2: 'Klassische Rezepte wie Ziegler–Nichols starten mit genau dem Experiment von eben: Kp bis an die Schwinggrenze erhöhen, dann mit tabellierten Faktoren zurücknehmen. Moderne Kreise ergänzen Vorsteuerung (nutze das Modell, lass die Rückkopplung nur den Rest erledigen) — dieselbe Philosophie wie beim Kalman-Filter im nächsten Modul.',
+    roles2: 'Klassische Rezepte wie Ziegler-Nichols starten mit genau dem Experiment von eben: Kp bis an die Schwinggrenze erhöhen, dann mit tabellierten Faktoren zurücknehmen. Moderne Kreise ergänzen Vorsteuerung (nutze das Modell, lass die Rückkopplung nur den Rest erledigen) - dieselbe Philosophie wie beim Kalman-Filter im nächsten Modul.',
     mathTitle: 'Der Regler in einer Zeile',
     codeTitle: 'In der Praxis',
     appTitle: '🏭 In der echten Welt: Tempomat am Berg',
     appIntro:
-      'Stell den Tempomat auf 100 km/h und triff auf eine 5-%-Steigung: Der Berg ist eine anhaltende Störkraft, und was dann passiert, ist die P-gegen-PI-Geschichte in physischer Form. Ein reiner P-Regler braucht einen Fehler ungleich null, um Gas zu geben — am Berg pendelt er sich also ein paar km/h UNTER dem Sollwert ein, für immer. Dieses dauerhafte Absacken ist die bleibende Regelabweichung aus der Theorie oben; in alten Autos hast du sie gespürt. Der Integralanteil summiert den Fehler Sekunde für Sekunde und gibt leise mehr Gas, bis der Fehler exakt null ist — das Auto sackt kurz ab und klettert dann noch am Berg zurück auf 100. Mach die Steigung steiler und sieh zu, wie das bernsteinfarbene P-Auto mehr Tempo verliert, während das cyanfarbene PI-Auto immer heimkommt.',
+      'Stell den Tempomat auf 100 km/h und triff auf eine 5-%-Steigung: Der Berg ist eine anhaltende Störkraft, und was dann passiert, ist die P-gegen-PI-Geschichte in physischer Form. Ein reiner P-Regler braucht einen Fehler ungleich null, um Gas zu geben - am Berg pendelt er sich also ein paar km/h UNTER dem Sollwert ein, für immer. Dieses dauerhafte Absacken ist die bleibende Regelabweichung aus der Theorie oben; in alten Autos hast du sie gespürt. Der Integralanteil summiert den Fehler Sekunde für Sekunde und gibt leise mehr Gas, bis der Fehler exakt null ist - das Auto sackt kurz ab und klettert dann noch am Berg zurück auf 100. Mach die Steigung steiler und sieh zu, wie das bernsteinfarbene P-Auto mehr Tempo verliert, während das cyanfarbene PI-Auto immer heimkommt.',
     appGrade: 'Steigung (ab t = 20 s)',
     appKp: 'Proportionalverstärkung Kp',
     appSagP: 'Tempoverlust am Berg (nur P)',
     appSagPi: 'Tempoverlust am Berg (PI)',
     appLegend: 'bernstein gestrichelt = nur P · cyan = PI · grau = Bergprofil',
     appWhere:
-      'Dieselbe Integralwirkung hält Ofentemperaturen gegen Türöffnungen, Quadrocopter-Höhe gegen Batterieschwund, Generatorfrequenz gegen Lastsprünge und Dialyse-Durchfluss gegen zusetzende Filter — hinter jedem „hält den Wert unter Last“ steckt ein Integrierer.',
+      'Dieselbe Integralwirkung hält Ofentemperaturen gegen Türöffnungen, Quadrocopter-Höhe gegen Batterieschwund, Generatorfrequenz gegen Lastsprünge und Dialyse-Durchfluss gegen zusetzende Filter - hinter jedem „hält den Wert unter Last“ steckt ein Integrierer.',
   },
 }
 
@@ -273,9 +273,9 @@ function PidLab() {
           </label>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Readout label={t.rise} value={m.rise !== null ? fmt(m.rise, 2) : '—'} unit="s" />
+          <Readout label={t.rise} value={m.rise !== null ? fmt(m.rise, 2) : '-'} unit="s" />
           <Readout label={t.overshoot} value={fmt(m.overshoot, 1)} unit="%" accent={m.overshoot > 25 ? '#f87171' : undefined} />
-          <Readout label={t.settle} value={m.settle !== null && !m.unstable ? fmt(m.settle, 2) : '—'} unit="s" />
+          <Readout label={t.settle} value={m.settle !== null && !m.unstable ? fmt(m.settle, 2) : '-'} unit="s" />
           <Readout label={t.sse} value={fmt(m.sse, 3)} accent={m.sse < 0.01 ? '#4ade80' : '#fbbf24'} />
         </div>
       </div>

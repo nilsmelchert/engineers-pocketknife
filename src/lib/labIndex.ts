@@ -1,5 +1,5 @@
 /**
- * Registry of every interactive lab on the site — powers the /labs index page
+ * Registry of every interactive lab on the site - powers the /labs index page
  * and section-level search results. sectionId matches the Section id on the page.
  */
 
@@ -58,7 +58,7 @@ export const LAB_INDEX: LabEntry[] = [
   { path: '/vision-transformers', sectionId: 'patchify', emoji: '🧩', title: { en: 'ViT tokenizer: an image as patch tokens', de: 'ViT-Tokenizer: ein Bild als Patch-Tokens' } },
   { path: '/vision-transformers', sectionId: 'vitattn', emoji: '🔦', title: { en: 'Attention on an image (click a patch)', de: 'Attention auf einem Bild (Patch anklicken)' } },
   { path: '/vision-transformers', sectionId: 'heads', emoji: '🧠', title: { en: 'Multi-head attention roles', de: 'Rollen der Multi-Head-Attention' } },
-  { path: '/vision-transformers', sectionId: 'clip', emoji: '🧲', title: { en: 'CLIP: drag the shared image–text space', de: 'CLIP: den gemeinsamen Bild-Text-Raum ziehen' } },
+  { path: '/vision-transformers', sectionId: 'clip', emoji: '🧲', title: { en: 'CLIP: drag the shared image-text space', de: 'CLIP: den gemeinsamen Bild-Text-Raum ziehen' } },
   { path: '/vision-transformers', sectionId: 'vlm', emoji: '🗣️', title: { en: 'Vision-language model pipeline', de: 'Vision-Language-Modell-Pipeline' } },
   // 🧮 Math
   { path: '/probability', sectionId: 'distributions', emoji: '🔔', title: { en: 'Distributions & central limit theorem', de: 'Verteilungen & zentraler Grenzwertsatz' } },

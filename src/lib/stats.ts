@@ -14,7 +14,7 @@ export interface LabeledPoint {
 
 // ---------------------------------------------------------------- random sampling
 
-/** Standard-normal sampler (Box–Muller) on top of a seeded uniform generator. */
+/** Standard-normal sampler (Box-Muller) on top of a seeded uniform generator. */
 export function makeGauss(seed: number): () => number {
   const rand = mulberry32(seed)
   let spare: number | null = null

@@ -2,7 +2,7 @@
  * Numerical optimization toolkit for the interactive demos:
  *  - 2D test functions with gradients (descent playground)
  *  - a real (small) camera-calibration least-squares problem solved by
- *    gradient descent or Levenberg–Marquardt, entirely in the browser.
+ *    gradient descent or Levenberg-Marquardt, entirely in the browser.
  */
 
 import {
@@ -245,7 +245,7 @@ export function gdCalibStep(th: CalibTheta, obs: Observations, lr: number): Cali
   const v = thVec(th)
   const r = residuals(v, obs)
   const J = jacobian(v, obs)
-  // rough 1/diag(JᵀJ) magnitudes — without this per-parameter scaling GD is unusable,
+  // rough 1/diag(JᵀJ) magnitudes - without this per-parameter scaling GD is unusable,
   // because ∂r/∂f ≈ 0.3 while ∂r/∂k1 ≈ 20: the raw gradient points almost entirely along k1
   const S2 = [0.02, 0.0024, 0.0024, 4.5e-6]
   const out = v.map((x, k) => {
@@ -282,7 +282,7 @@ export interface LmState {
 }
 
 /**
- * One Levenberg–Marquardt iteration with Marquardt scaling:
+ * One Levenberg-Marquardt iteration with Marquardt scaling:
  * (JᵀJ + λ·diag(JᵀJ))·δ = −Jᵀr, adaptive λ (accept → λ/3, reject → λ×4).
  */
 export function lmCalibStep(th: CalibTheta, obs: Observations, lambda: number): LmState {
@@ -316,7 +316,7 @@ export function lmCalibStep(th: CalibTheta, obs: Observations, lambda: number): 
   return { th, lambda: lam, accepted: false }
 }
 
-/** Run LM to convergence — the workhorse of the calibration-uncertainty lab. */
+/** Run LM to convergence - the workhorse of the calibration-uncertainty lab. */
 export function lmSolve(obs: Observations, maxIter = 15, start: CalibTheta = CALIB_START): CalibTheta {
   let th = start
   let lambda = 1e-3

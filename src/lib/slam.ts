@@ -151,7 +151,7 @@ export function slamUpdate(
   s.P = matMul(IKH, s.P)
 }
 
-/** Sum of position variances (robot + landmarks) — the "total uncertainty" readout. */
+/** Sum of position variances (robot + landmarks) - the "total uncertainty" readout. */
 export function traceP(s: Slam): number {
   let t = 0
   for (let i = 0; i < s.x.length; i++) if (i !== 2) t += s.P[i][i]

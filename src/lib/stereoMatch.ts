@@ -120,7 +120,7 @@ export function makeStereoPair(texture: number, noise: number, seed: number): St
     }
 
   // right view: the surface visible at RIGHT pixel x is the one whose left
-  // pixel is x + d — resolve with a z-buffer over left pixels
+  // pixel is x + d - resolve with a z-buffer over left pixels
   const rightD = new Float32Array(SM_W * SM_H).fill(-1)
   for (let y = 0; y < SM_H; y++)
     for (let x = 0; x < SM_W; x++) {
@@ -160,7 +160,7 @@ export type MatchMetric = 'sad' | 'ssd'
 /**
  * Winner-take-all block matching with the standard fast structure:
  * for each candidate disparity build the pixelwise difference image and
- * box-filter it with two running-sum passes — O(W·H·D) instead of the naive
+ * box-filter it with two running-sum passes - O(W·H·D) instead of the naive
  * O(W·H·D·win²).
  */
 export function blockMatch(
@@ -220,7 +220,7 @@ export function blockMatch(
   return { disp, ms: performance.now() - t0 }
 }
 
-/** Full cost curve cost(d) for one pixel — powers the click-a-pixel probe. */
+/** Full cost curve cost(d) for one pixel - powers the click-a-pixel probe. */
 export function costCurve(s: StereoScene, x: number, y: number, win: number, metric: MatchMetric): number[] {
   const half = Math.floor(win / 2)
   const out: number[] = []

@@ -82,13 +82,13 @@ const T = {
     kicker: 'Vision · Module 5',
     title: 'Hand-Eye Calibration',
     intro:
-      'A calibrated camera can measure poses — but in its own frame. A robot moves in its base frame. Before "the part is at pixel (412, 210)" can become "move the gripper to x = 0.31 m", one missing transform must be found: that is hand-eye calibration.',
+      'A calibrated camera can measure poses - but in its own frame. A robot moves in its base frame. Before "the part is at pixel (412, 210)" can become "move the gripper to x = 0.31 m", one missing transform must be found: that is hand-eye calibration.',
     setupTitle: 'Two ways to mount a camera',
     setup1: 'Everything depends on where the camera is fixed:',
     setupCards: [
       {
         name: 'Eye-in-hand',
-        desc: 'The camera rides on the robot flange. The unknown X is the gripper→camera transform. It is rigid — it never changes, no matter how the robot moves.',
+        desc: 'The camera rides on the robot flange. The unknown X is the gripper→camera transform. It is rigid - it never changes, no matter how the robot moves.',
       },
       {
         name: 'Eye-to-hand',
@@ -96,12 +96,12 @@ const T = {
       },
     ],
     setup2:
-      'In both cases the calibration data is the same: a set of robot poses A (from the robot controller — forward kinematics) paired with board poses B (from the camera, via the PnP / board-pose estimation of module 2).',
+      'In both cases the calibration data is the same: a set of robot poses A (from the robot controller - forward kinematics) paired with board poses B (from the camera, via the PnP / board-pose estimation of module 2).',
     labTitle: 'Interactive: the kinematic loop',
-    lab1: 'Move the robot joints and watch the frames: base (b), gripper (g), camera (c) and calibration board (t). The dashed links show the transform chain. The key observation — the whole trick of hand-eye calibration — is which transforms change and which stay fixed.',
+    lab1: 'Move the robot joints and watch the frames: base (b), gripper (g), camera (c) and calibration board (t). The dashed links show the transform chain. The key observation - the whole trick of hand-eye calibration - is which transforms change and which stay fixed.',
     labObs: [
-      'A = ᵇT_g (base→gripper) changes with every joint — the robot reports it.',
-      'B = ᶜT_t (camera→board) changes too — the camera measures it.',
+      'A = ᵇT_g (base→gripper) changes with every joint - the robot reports it.',
+      'B = ᶜT_t (camera→board) changes too - the camera measures it.',
       'X (the mount) and the board’s pose in the world never change.',
       'Therefore A·X·B is the same, no matter where the robot stands: the loop closes.',
     ],
@@ -115,20 +115,20 @@ const T = {
     waveHint: 'Let the robot move by itself and watch the chain below: B spins, A·X·B does not.',
     ghostTitle: 'The X-detector: a wrong hand-eye reveals itself through motion',
     ghostText:
-      'The red ghost frame is where the system believes the board to be — computed through the chain A·X̃·B with a deliberately perturbed mount X̃. At ε = 0 the ghost sits exactly on the real board, for every robot pose: a correct X closes the loop always. Now perturb ε and move the joints (or let the robot wave): the ghost drifts, and it drifts differently for every pose. This inconsistency across poses is exactly the signal a hand-eye solver exploits — and the reason it needs diverse motions.',
+      'The red ghost frame is where the system believes the board to be - computed through the chain A·X̃·B with a deliberately perturbed mount X̃. At ε = 0 the ghost sits exactly on the real board, for every robot pose: a correct X closes the loop always. Now perturb ε and move the joints (or let the robot wave): the ghost drifts, and it drifts differently for every pose. This inconsistency across poses is exactly the signal a hand-eye solver exploits - and the reason it needs diverse motions.',
     ghostEps: 'perturbation ε of X',
     ghostErr: 'ghost vs. real board',
-    ghostOnlyInhand: 'The ghost demo runs in the eye-in-hand configuration — switch above.',
+    ghostOnlyInhand: 'The ghost demo runs in the eye-in-hand configuration - switch above.',
     camView: 'Camera view (board-pose measurement B)',
-    notVisible: 'Board not (fully) in view — move the robot until the camera sees it.',
+    notVisible: 'Board not (fully) in view - move the robot until the camera sees it.',
     chainTitle: 'Live transform chain',
-    chainConst: 'constant — the loop closes',
+    chainConst: 'constant - the loop closes',
     chainB: 'changes with the robot pose',
     tBase: 'base→board via A·X·B',
     tCamBoard: 'camera→board ‖t_B‖',
-    capTitle: 'Pose capture — verifying AX = XB',
+    capTitle: 'Pose capture - verifying AX = XB',
     capText:
-      'Capture the current pose pair (A, B), then move the robot and capture another. For the two most recent captures, the relative motions Ã = A₂⁻¹A₁ and B̃ = B₂B₁⁻¹ satisfy the hand-eye equation — the residual ‖ÃX − XB̃‖ is zero up to floating point. With real, noisy measurements this residual is exactly what a solver minimizes over many pairs.',
+      'Capture the current pose pair (A, B), then move the robot and capture another. For the two most recent captures, the relative motions Ã = A₂⁻¹A₁ and B̃ = B₂B₁⁻¹ satisfy the hand-eye equation - the residual ‖ÃX − XB̃‖ is zero up to floating point. With real, noisy measurements this residual is exactly what a solver minimizes over many pairs.',
     capBtn: 'Capture pose pair',
     capReset: 'Reset',
     capCount: 'captured pairs',
@@ -136,23 +136,23 @@ const T = {
     capNeed: 'capture at least 2 poses',
     mathTitle: 'The math: AX = XB',
     math1: 'Write the loop for two robot poses i and j (eye-in-hand). The board never moves, so:',
-    math2: 'Rearranging pulls the two unknowns to the middle — and everything measurable to known relative motions:',
-    math3: 'One motion pair constrains X but does not fix it; two motions with non-parallel rotation axes determine X uniquely. Classical solvers split the problem: first the rotation (Tsai–Lenz, Park–Martin, quaternion methods), then the translation from a linear system — or solve both jointly with dual quaternions (Daniilidis) or nonlinear optimization.',
+    math2: 'Rearranging pulls the two unknowns to the middle - and everything measurable to known relative motions:',
+    math3: 'One motion pair constrains X but does not fix it; two motions with non-parallel rotation axes determine X uniquely. Classical solvers split the problem: first the rotation (Tsai-Lenz, Park-Martin, quaternion methods), then the translation from a linear system - or solve both jointly with dual quaternions (Daniilidis) or nonlinear optimization.',
     axzbTitle: 'The robot-world variant: AX = ZB',
     axzb1: 'Instead of relative motions, one can keep the absolute poses and introduce the second constant transform explicitly as an unknown Z. For eye-to-hand (board on the gripper, camera fixed) the loop from base to board can be closed two ways:',
-    axzb2: 'This is the robot-world hand-eye problem: it solves both unknowns simultaneously — the mount X and the camera’s (or board’s) place in the world Z. OpenCV ships both: cv2.calibrateHandEye for AX = XB and cv2.calibrateRobotWorldHandEye for AX = ZB.',
+    axzb2: 'This is the robot-world hand-eye problem: it solves both unknowns simultaneously - the mount X and the camera’s (or board’s) place in the world Z. OpenCV ships both: cv2.calibrateHandEye for AX = XB and cv2.calibrateRobotWorldHandEye for AX = ZB.',
     practTitle: 'Practice: getting a good hand-eye calibration',
     practList: [
-      'Degenerate motion sets exist: if all rotation axes of your movements are parallel, a whole family of X explains the data equally well — translation along that axis stays undetermined. The ghost demo above shows the flip side: only diverse motion exposes a wrong X.',
+      'Degenerate motion sets exist: if all rotation axes of your movements are parallel, a whole family of X explains the data equally well - translation along that axis stays undetermined. The ghost demo above shows the flip side: only diverse motion exposes a wrong X.',
       'Rotate! Pure translations contribute nothing to the rotation part of X. Use large, diverse rotations (≥ 30°) about different axes.',
-      'Collect 15–30 pose pairs with the board well spread in the camera image.',
-      'The robot poses must be accurate — flex, backlash and un-synchronized capture times corrupt A.',
+      'Collect 15-30 pose pairs with the board well spread in the camera image.',
+      'The robot poses must be accurate - flex, backlash and un-synchronized capture times corrupt A.',
       'The board-pose estimates must be good: calibrate intrinsics first (module 2), then hold them fixed.',
       'Validate: move to an unused pose, predict the board position via A·X·B, compare with the measurement.',
     ],
     appTitle: '🏭 In the real world: will the robot hit the pick?',
     appIntro:
-      'A bin-picking cell must place the gripper within ±5 mm of the part, or the fingers jam against the bin wall. The camera measures the part perfectly — but the measurement travels through your hand-eye transform X before it reaches the robot. Every error in X lands directly on the pick point, and the rotational part gets multiplied by the working distance: at 800 mm from the flange, a mere 0.5° of rotation error already displaces the pick by 7 mm. Budget the two error sources with the sliders and see whether the pick still succeeds — and why hand-eye calibration is redone after every gripper crash.',
+      'A bin-picking cell must place the gripper within ±5 mm of the part, or the fingers jam against the bin wall. The camera measures the part perfectly - but the measurement travels through your hand-eye transform X before it reaches the robot. Every error in X lands directly on the pick point, and the rotational part gets multiplied by the working distance: at 800 mm from the flange, a mere 0.5° of rotation error already displaces the pick by 7 mm. Budget the two error sources with the sliders and see whether the pick still succeeds - and why hand-eye calibration is redone after every gripper crash.',
     appRot: 'rotation error of X',
     appTrans: 'translation error of X',
     appDist: 'working distance (flange → part)',
@@ -162,19 +162,19 @@ const T = {
     appFail: 'PICK FAILS',
     appTol: 'tolerance ±5 mm',
     appWhere:
-      'The same budget maths governs welding robots (torch tip vs. seam), surgical robots (instrument vs. anatomy), wafer handlers and drone landing on markers — any system where a sensor in one frame steers an actuator in another.',
+      'The same budget maths governs welding robots (torch tip vs. seam), surgical robots (instrument vs. anatomy), wafer handlers and drone landing on markers - any system where a sensor in one frame steers an actuator in another.',
   },
   de: {
     kicker: 'Vision · Modul 5',
     title: 'Hand-Auge-Kalibrierung',
     intro:
-      'Eine kalibrierte Kamera kann Posen messen — aber in ihrem eigenen System. Ein Roboter bewegt sich im Basissystem. Bevor aus „das Teil ist bei Pixel (412, 210)“ ein „fahre den Greifer nach x = 0,31 m“ werden kann, fehlt genau eine Transformation: Das ist die Hand-Auge-Kalibrierung.',
+      'Eine kalibrierte Kamera kann Posen messen - aber in ihrem eigenen System. Ein Roboter bewegt sich im Basissystem. Bevor aus „das Teil ist bei Pixel (412, 210)“ ein „fahre den Greifer nach x = 0,31 m“ werden kann, fehlt genau eine Transformation: Das ist die Hand-Auge-Kalibrierung.',
     setupTitle: 'Zwei Arten, eine Kamera zu montieren',
     setup1: 'Alles hängt davon ab, wo die Kamera befestigt ist:',
     setupCards: [
       {
         name: 'Eye-in-Hand',
-        desc: 'Die Kamera fährt auf dem Roboterflansch mit. Das unbekannte X ist die Transformation Greifer→Kamera. Sie ist starr — sie ändert sich nie, egal wie sich der Roboter bewegt.',
+        desc: 'Die Kamera fährt auf dem Roboterflansch mit. Das unbekannte X ist die Transformation Greifer→Kamera. Sie ist starr - sie ändert sich nie, egal wie sich der Roboter bewegt.',
       },
       {
         name: 'Eye-to-Hand',
@@ -182,12 +182,12 @@ const T = {
       },
     ],
     setup2:
-      'In beiden Fällen sind die Kalibrierdaten dieselben: eine Menge von Roboterposen A (aus der Robotersteuerung — Vorwärtskinematik), gepaart mit Brettposen B (aus der Kamera, über die PnP-/Brettposen-Schätzung aus Modul 2).',
+      'In beiden Fällen sind die Kalibrierdaten dieselben: eine Menge von Roboterposen A (aus der Robotersteuerung - Vorwärtskinematik), gepaart mit Brettposen B (aus der Kamera, über die PnP-/Brettposen-Schätzung aus Modul 2).',
     labTitle: 'Interaktiv: die kinematische Schleife',
-    lab1: 'Bewege die Robotergelenke und beobachte die Koordinatensysteme: Basis (b), Greifer (g), Kamera (c) und Kalibrierbrett (t). Die gestrichelten Verbindungen zeigen die Transformationskette. Die Schlüsselbeobachtung — der ganze Trick der Hand-Auge-Kalibrierung — ist, welche Transformationen sich ändern und welche fest bleiben.',
+    lab1: 'Bewege die Robotergelenke und beobachte die Koordinatensysteme: Basis (b), Greifer (g), Kamera (c) und Kalibrierbrett (t). Die gestrichelten Verbindungen zeigen die Transformationskette. Die Schlüsselbeobachtung - der ganze Trick der Hand-Auge-Kalibrierung - ist, welche Transformationen sich ändern und welche fest bleiben.',
     labObs: [
-      'A = ᵇT_g (Basis→Greifer) ändert sich mit jedem Gelenk — der Roboter meldet sie.',
-      'B = ᶜT_t (Kamera→Brett) ändert sich ebenfalls — die Kamera misst sie.',
+      'A = ᵇT_g (Basis→Greifer) ändert sich mit jedem Gelenk - der Roboter meldet sie.',
+      'B = ᶜT_t (Kamera→Brett) ändert sich ebenfalls - die Kamera misst sie.',
       'X (die Montage) und die Pose des Bretts in der Welt ändern sich nie.',
       'Also ist A·X·B immer gleich, egal wo der Roboter steht: Die Schleife schließt sich.',
     ],
@@ -201,20 +201,20 @@ const T = {
     waveHint: 'Lass den Roboter selbst fahren und beobachte die Kette unten: B rotiert, A·X·B nicht.',
     ghostTitle: 'Der X-Detektor: Ein falsches Hand-Auge verrät sich durch Bewegung',
     ghostText:
-      'Der rote Geisterrahmen zeigt, wo das System das Brett vermutet — berechnet über die Kette A·X̃·B mit einer absichtlich gestörten Montage X̃. Bei ε = 0 sitzt der Geist exakt auf dem echten Brett, für jede Roboterpose: Ein korrektes X schließt die Schleife immer. Störe nun ε und bewege die Gelenke (oder lass den Roboter winken): Der Geist driftet — und zwar für jede Pose anders. Genau diese Inkonsistenz über die Posen ist das Signal, das ein Hand-Auge-Löser ausnutzt — und der Grund, warum er vielfältige Bewegungen braucht.',
+      'Der rote Geisterrahmen zeigt, wo das System das Brett vermutet - berechnet über die Kette A·X̃·B mit einer absichtlich gestörten Montage X̃. Bei ε = 0 sitzt der Geist exakt auf dem echten Brett, für jede Roboterpose: Ein korrektes X schließt die Schleife immer. Störe nun ε und bewege die Gelenke (oder lass den Roboter winken): Der Geist driftet - und zwar für jede Pose anders. Genau diese Inkonsistenz über die Posen ist das Signal, das ein Hand-Auge-Löser ausnutzt - und der Grund, warum er vielfältige Bewegungen braucht.',
     ghostEps: 'Störung ε von X',
     ghostErr: 'Geist vs. echtes Brett',
-    ghostOnlyInhand: 'Die Geist-Demo läuft in der Eye-in-Hand-Konfiguration — oben umschalten.',
+    ghostOnlyInhand: 'Die Geist-Demo läuft in der Eye-in-Hand-Konfiguration - oben umschalten.',
     camView: 'Kamerabild (Brettposen-Messung B)',
-    notVisible: 'Brett nicht (vollständig) im Bild — bewege den Roboter, bis die Kamera es sieht.',
+    notVisible: 'Brett nicht (vollständig) im Bild - bewege den Roboter, bis die Kamera es sieht.',
     chainTitle: 'Transformationskette, live',
-    chainConst: 'konstant — die Schleife schließt sich',
+    chainConst: 'konstant - die Schleife schließt sich',
     chainB: 'ändert sich mit der Roboterpose',
     tBase: 'Basis→Brett über A·X·B',
     tCamBoard: 'Kamera→Brett ‖t_B‖',
-    capTitle: 'Posen aufnehmen — AX = XB überprüfen',
+    capTitle: 'Posen aufnehmen - AX = XB überprüfen',
     capText:
-      'Nimm das aktuelle Posenpaar (A, B) auf, bewege den Roboter und nimm ein weiteres auf. Für die zwei letzten Aufnahmen erfüllen die Relativbewegungen Ã = A₂⁻¹A₁ und B̃ = B₂B₁⁻¹ die Hand-Auge-Gleichung — das Residuum ‖ÃX − XB̃‖ ist bis auf Gleitkommagenauigkeit null. Mit echten, verrauschten Messungen ist genau dieses Residuum das, was ein Löser über viele Paare minimiert.',
+      'Nimm das aktuelle Posenpaar (A, B) auf, bewege den Roboter und nimm ein weiteres auf. Für die zwei letzten Aufnahmen erfüllen die Relativbewegungen Ã = A₂⁻¹A₁ und B̃ = B₂B₁⁻¹ die Hand-Auge-Gleichung - das Residuum ‖ÃX − XB̃‖ ist bis auf Gleitkommagenauigkeit null. Mit echten, verrauschten Messungen ist genau dieses Residuum das, was ein Löser über viele Paare minimiert.',
     capBtn: 'Posenpaar aufnehmen',
     capReset: 'Zurücksetzen',
     capCount: 'aufgenommene Paare',
@@ -222,23 +222,23 @@ const T = {
     capNeed: 'mindestens 2 Posen aufnehmen',
     mathTitle: 'Die Mathematik: AX = XB',
     math1: 'Schreibe die Schleife für zwei Roboterposen i und j (Eye-in-Hand). Das Brett bewegt sich nie, also:',
-    math2: 'Umstellen bringt die Unbekannten in die Mitte — und alles Messbare in bekannte Relativbewegungen:',
-    math3: 'Ein Bewegungspaar schränkt X ein, legt es aber nicht fest; zwei Bewegungen mit nicht-parallelen Rotationsachsen bestimmen X eindeutig. Klassische Löser zerlegen das Problem: erst die Rotation (Tsai–Lenz, Park–Martin, Quaternion-Methoden), dann die Translation aus einem linearen System — oder beides gemeinsam mit dualen Quaternionen (Daniilidis) bzw. nichtlinearer Optimierung.',
+    math2: 'Umstellen bringt die Unbekannten in die Mitte - und alles Messbare in bekannte Relativbewegungen:',
+    math3: 'Ein Bewegungspaar schränkt X ein, legt es aber nicht fest; zwei Bewegungen mit nicht-parallelen Rotationsachsen bestimmen X eindeutig. Klassische Löser zerlegen das Problem: erst die Rotation (Tsai-Lenz, Park-Martin, Quaternion-Methoden), dann die Translation aus einem linearen System - oder beides gemeinsam mit dualen Quaternionen (Daniilidis) bzw. nichtlinearer Optimierung.',
     axzbTitle: 'Die Robot-World-Variante: AX = ZB',
     axzb1: 'Statt Relativbewegungen kann man die Absolutposen behalten und die zweite konstante Transformation explizit als Unbekannte Z einführen. Für Eye-to-Hand (Brett am Greifer, Kamera fest) lässt sich die Schleife von der Basis zum Brett auf zwei Wegen schließen:',
-    axzb2: 'Das ist das Robot-World-Hand-Auge-Problem: Es löst beide Unbekannte gleichzeitig — die Montage X und den Ort der Kamera (bzw. des Bretts) in der Welt Z. OpenCV bietet beides: cv2.calibrateHandEye für AX = XB und cv2.calibrateRobotWorldHandEye für AX = ZB.',
+    axzb2: 'Das ist das Robot-World-Hand-Auge-Problem: Es löst beide Unbekannte gleichzeitig - die Montage X und den Ort der Kamera (bzw. des Bretts) in der Welt Z. OpenCV bietet beides: cv2.calibrateHandEye für AX = XB und cv2.calibrateRobotWorldHandEye für AX = ZB.',
     practTitle: 'Praxis: eine gute Hand-Auge-Kalibrierung',
     practList: [
-      'Es gibt degenerierte Bewegungsmengen: Sind alle Rotationsachsen der Bewegungen parallel, erklärt eine ganze Familie von X die Daten gleich gut — die Translation entlang dieser Achse bleibt unbestimmt. Die Geist-Demo oben zeigt die Kehrseite: Nur vielfältige Bewegung entlarvt ein falsches X.',
+      'Es gibt degenerierte Bewegungsmengen: Sind alle Rotationsachsen der Bewegungen parallel, erklärt eine ganze Familie von X die Daten gleich gut - die Translation entlang dieser Achse bleibt unbestimmt. Die Geist-Demo oben zeigt die Kehrseite: Nur vielfältige Bewegung entlarvt ein falsches X.',
       'Rotieren! Reine Translationen tragen nichts zum Rotationsanteil von X bei. Nutze große, vielfältige Rotationen (≥ 30°) um verschiedene Achsen.',
-      '15–30 Posenpaare sammeln, mit dem Brett gut über das Kamerabild verteilt.',
-      'Die Roboterposen müssen stimmen — Nachgiebigkeit, Spiel und unsynchronisierte Aufnahmezeitpunkte verfälschen A.',
+      '15-30 Posenpaare sammeln, mit dem Brett gut über das Kamerabild verteilt.',
+      'Die Roboterposen müssen stimmen - Nachgiebigkeit, Spiel und unsynchronisierte Aufnahmezeitpunkte verfälschen A.',
       'Die Brettposen-Schätzungen müssen gut sein: erst die Intrinsik kalibrieren (Modul 2), dann festhalten.',
       'Validieren: eine unbenutzte Pose anfahren, die Brettposition über A·X·B vorhersagen und mit der Messung vergleichen.',
     ],
     appTitle: '🏭 In der echten Welt: trifft der Roboter den Griff?',
     appIntro:
-      'Eine Bin-Picking-Zelle muss den Greifer auf ±5 mm genau am Teil platzieren, sonst verklemmen die Finger an der Kistenwand. Die Kamera misst das Teil perfekt — aber die Messung läuft durch deine Hand-Auge-Transformation X, bevor sie den Roboter erreicht. Jeder Fehler in X landet direkt auf dem Griffpunkt, und der Rotationsanteil wird mit dem Arbeitsabstand multipliziert: Bei 800 mm vom Flansch verschieben schon 0,5° Rotationsfehler den Griff um 7 mm. Budgetiere die beiden Fehlerquellen mit den Slidern und sieh, ob der Griff noch gelingt — und warum die Hand-Auge-Kalibrierung nach jedem Greifer-Crash wiederholt wird.',
+      'Eine Bin-Picking-Zelle muss den Greifer auf ±5 mm genau am Teil platzieren, sonst verklemmen die Finger an der Kistenwand. Die Kamera misst das Teil perfekt - aber die Messung läuft durch deine Hand-Auge-Transformation X, bevor sie den Roboter erreicht. Jeder Fehler in X landet direkt auf dem Griffpunkt, und der Rotationsanteil wird mit dem Arbeitsabstand multipliziert: Bei 800 mm vom Flansch verschieben schon 0,5° Rotationsfehler den Griff um 7 mm. Budgetiere die beiden Fehlerquellen mit den Slidern und sieh, ob der Griff noch gelingt - und warum die Hand-Auge-Kalibrierung nach jedem Greifer-Crash wiederholt wird.',
     appRot: 'Rotationsfehler von X',
     appTrans: 'Translationsfehler von X',
     appDist: 'Arbeitsabstand (Flansch → Teil)',
@@ -248,7 +248,7 @@ const T = {
     appFail: 'GRIFF SCHLÄGT FEHL',
     appTol: 'Toleranz ±5 mm',
     appWhere:
-      'Dieselbe Budgetrechnung gilt für Schweißroboter (Brennerspitze vs. Naht), OP-Roboter (Instrument vs. Anatomie), Wafer-Handler und Drohnenlandungen auf Markern — für jedes System, in dem ein Sensor in einem Koordinatensystem einen Aktor in einem anderen steuert.',
+      'Dieselbe Budgetrechnung gilt für Schweißroboter (Brennerspitze vs. Naht), OP-Roboter (Instrument vs. Anatomie), Wafer-Handler und Drohnenlandungen auf Markern - für jedes System, in dem ein Sensor in einem Koordinatensystem einen Aktor in einem anderen steuert.',
   },
 }
 
@@ -581,11 +581,11 @@ export function HandEyePage() {
         <div className="card-pad mt-4">
           <h3 className="mb-3 text-sm font-bold tracking-wide text-muted uppercase">{t.chainTitle}</h3>
           <div className="grid gap-3 md:grid-cols-3">
-            <Readout label={t.tCamBoard} value={fmt(normTB, 3)} unit={`m — ${t.chainB}`} accent="#a78bfa" />
+            <Readout label={t.tCamBoard} value={fmt(normTB, 3)} unit={`m - ${t.chainB}`} accent="#a78bfa" />
             <Readout
               label={t.tBase}
               value={`(${fmt(bb[0], 3)}, ${fmt(bb[1], 3)}, ${fmt(bb[2], 3)})`}
-              unit={mode === 'inhand' ? `m — ${t.chainConst}` : 'm'}
+              unit={mode === 'inhand' ? `m - ${t.chainConst}` : 'm'}
               accent="#4ade80"
             />
             <Readout
@@ -595,7 +595,7 @@ export function HandEyePage() {
                   ? `(${fmt(m4t(X_MOUNT)[0], 2)}, ${fmt(m4t(X_MOUNT)[1], 2)}, ${fmt(m4t(X_MOUNT)[2], 2)})`
                   : `(${fmt(m4t(XB_MOUNT)[0], 2)}, ${fmt(m4t(XB_MOUNT)[1], 2)}, ${fmt(m4t(XB_MOUNT)[2], 2)})`
               }
-              unit="m — const"
+              unit="m - const"
               accent="#fbbf24"
             />
           </div>
@@ -651,7 +651,7 @@ export function HandEyePage() {
           <Readout label={t.capCount} value={`${captures.length}`} />
           <Readout
             label={t.capResidual}
-            value={residual === null ? '—' : residual.toExponential(1)}
+            value={residual === null ? '-' : residual.toExponential(1)}
             unit={residual === null ? t.capNeed : ''}
             accent="#4ade80"
           />

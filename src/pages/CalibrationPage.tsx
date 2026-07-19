@@ -41,30 +41,30 @@ const T = {
     kicker: 'Vision · Module 2',
     title: 'Camera Calibration',
     intro:
-      'Module 1 assumed we know K. In reality every camera–lens combination is unique: focal length, principal point and lens distortion must be measured. Calibration estimates them from images of a known pattern — usually a checkerboard.',
-    whyTitle: 'What calibration estimates — and why it matters',
+      'Module 1 assumed we know K. In reality every camera-lens combination is unique: focal length, principal point and lens distortion must be measured. Calibration estimates them from images of a known pattern - usually a checkerboard.',
+    whyTitle: 'What calibration estimates - and why it matters',
     why1: 'Calibration recovers two groups of parameters from a handful of checkerboard photos:',
     whyList: [
-      'Intrinsics K (fx, fy, cx, cy) — needed to turn pixels into metric viewing rays. Without them, no measurement, no 3D reconstruction, no augmented reality.',
-      'Distortion coefficients (k1, k2, k3, p1, p2) — real lenses bend straight lines. Any geometric algorithm downstream assumes these bends have been removed.',
-      'As a by-product, the pose [R|t] of the board in every image — proof that the model explains the observations.',
+      'Intrinsics K (fx, fy, cx, cy) - needed to turn pixels into metric viewing rays. Without them, no measurement, no 3D reconstruction, no augmented reality.',
+      'Distortion coefficients (k1, k2, k3, p1, p2) - real lenses bend straight lines. Any geometric algorithm downstream assumes these bends have been removed.',
+      'As a by-product, the pose [R|t] of the board in every image - proof that the model explains the observations.',
     ],
     why2:
       'The quality metric is the reprojection error: project the known board corners through the estimated model and measure the pixel distance to the detected corners.',
     distTitle: 'Interactive: lens distortion',
     dist1:
-      'The pinhole model maps straight lines to straight lines. Real lenses do not. The standard Brown–Conrady model describes the deviation in normalized image coordinates — radial terms (k1, k2, k3) that grow with distance from the center, plus tangential terms (p1, p2) from lens–sensor misalignment:',
+      'The pinhole model maps straight lines to straight lines. Real lenses do not. The standard Brown-Conrady model describes the deviation in normalized image coordinates - radial terms (k1, k2, k3) that grow with distance from the center, plus tangential terms (p1, p2) from lens-sensor misalignment:',
     dist2:
       'Drag the sliders and watch a perfect grid deform. Barrel distortion (k1 < 0) is typical for wide-angle lenses, pincushion (k1 > 0) for telephoto. If k1 and k2 have opposite signs you get the wavy “mustache” shape.',
     presets: 'Presets',
     presetNames: ['none', 'barrel', 'pincushion', 'mustache', 'tangential'],
     distGrid: 'Distorted view of a perfectly straight grid',
-    undistGrid: 'Undistorted image — note the bulging border',
+    undistGrid: 'Undistorted image - note the bulging border',
     undistToggle: ['distorted image', 'after undistortion'],
     undistText:
-      'The switch shows the cure: undistortion warps the image with the inverse mapping, so lines become straight again. The price is visible at the amber border — the image bulges outward (or inward) and no longer fills a rectangle, which is why undistorted images are usually cropped (OpenCV: getOptimalNewCameraMatrix with its alpha parameter).',
+      'The switch shows the cure: undistortion warps the image with the inverse mapping, so lines become straight again. The price is visible at the amber border - the image bulges outward (or inward) and no longer fills a rectangle, which is why undistorted images are usually cropped (OpenCV: getOptimalNewCameraMatrix with its alpha parameter).',
     tipStraight:
-      'Quick field test for any calibration: photograph a door frame or building edge, undistort the image, and look at the line. Any remaining curvature is uncorrected distortion — human eyes are extremely good at spotting it.',
+      'Quick field test for any calibration: photograph a door frame or building edge, undistort the image, and look at the line. Any remaining curvature is uncorrected distortion - human eyes are extremely good at spotting it.',
     zhangTitle: "Zhang's method in a nutshell",
     zhang1:
       'The classic algorithm (Zhang, 2000) needs only a flat pattern with precisely known geometry, viewed from several orientations. The key insight: because all board points lie in a plane, each image is related to the board by a 3×3 homography H, and each H constrains the intrinsics:',
@@ -73,15 +73,15 @@ const T = {
       'Estimate a homography H per view from the known board coordinates ↔ detected pixels.',
       'Each H gives two linear constraints on the image of the absolute conic ω = K⁻ᵀK⁻¹; with ≥ 3 views, solve for K in closed form.',
       'Recover each view’s [R|t] from H and K.',
-      'Refine everything — K, distortion, all poses — jointly by minimizing the reprojection error (bundle adjustment, Levenberg–Marquardt).',
+      'Refine everything - K, distortion, all poses - jointly by minimizing the reprojection error (bundle adjustment, Levenberg-Marquardt).',
     ],
     zhang2:
       'The closed-form solution only provides the starting point; the numbers you actually use come from the final nonlinear refinement.',
-    zhangLink: 'How does that minimization actually work — and why Levenberg–Marquardt?',
+    zhangLink: 'How does that minimization actually work - and why Levenberg-Marquardt?',
     zhangLinkBtn: 'Module 3: Numerical Optimization →',
     zhangLabTitle: 'Zhang, live on synthetic views',
     zhangLab1:
-      'Theory is cheap — here is the closed form actually running. Six virtual checkerboard views are generated with a hidden ground-truth camera (fx = fy = 560, cx = 320, cy = 240); per view a homography is estimated from the corners, and Zhang’s linear system recovers K. Watch it need at least 3 views — and watch it collapse when all views are frontal, no matter how many there are: exactly the degeneracy the tilt lab below makes visceral.',
+      'Theory is cheap - here is the closed form actually running. Six virtual checkerboard views are generated with a hidden ground-truth camera (fx = fy = 560, cx = 320, cy = 240); per view a homography is estimated from the corners, and Zhang’s linear system recovers K. Watch it need at least 3 views - and watch it collapse when all views are frontal, no matter how many there are: exactly the degeneracy the tilt lab below makes visceral.',
     zhangViews: 'views used',
     zhangNoise: 'corner noise σ',
     zhangSet: 'view poses',
@@ -94,24 +94,24 @@ const T = {
     zhangCond: 'conditioning',
     zhangOk: 'CONSTRAINED',
     zhangBad: 'UNDER-CONSTRAINED',
-    zhangBadHint: 'needs ≥ 3 views with real tilt — the linear system has no unique solution',
+    zhangBadHint: 'needs ≥ 3 views with real tilt - the linear system has no unique solution',
     zhangDerivTitle: 'Zhang’s method, step by step',
     zhangDeriv: [
       { tex: String.raw`H_i = K\,[\mathbf{r}_1\;\mathbf{r}_2\;\mathbf{t}]_i`, note: 'Each board view is a plane, so module 1’s homography applies: H mixes the intrinsics with the first two rotation columns of that view.' },
-      { tex: String.raw`\mathbf{r}_1^{\mathsf T}\mathbf{r}_2 = 0, \qquad \mathbf{r}_1^{\mathsf T}\mathbf{r}_1 = \mathbf{r}_2^{\mathsf T}\mathbf{r}_2`, note: 'R is orthonormal — two facts per view that do not depend on where the board stood. This is the entire leverage of the method.' },
-      { tex: String.raw`\omega = K^{-\mathsf T}K^{-1} \quad\Rightarrow\quad \mathbf{h}_1^{\mathsf T}\omega\,\mathbf{h}_2 = 0, \;\; \mathbf{h}_1^{\mathsf T}\omega\,\mathbf{h}_1 = \mathbf{h}_2^{\mathsf T}\omega\,\mathbf{h}_2`, note: 'Substituting rᵢ = K⁻¹hᵢ turns both facts into constraints on ω, the “image of the absolute conic” — a symmetric 3×3 that contains only intrinsics.' },
-      { tex: String.raw`\mathbf{v}_{12}^{\mathsf T}\mathbf{b} = 0, \qquad (\mathbf{v}_{11}-\mathbf{v}_{22})^{\mathsf T}\mathbf{b} = 0`, note: 'ω has 6 free entries b = (B₁₁,B₁₂,B₂₂,B₁₃,B₂₃,B₃₃). Each view contributes two LINEAR equations in b — nonlinear geometry became linear algebra.' },
-      { tex: String.raw`V\mathbf{b} = 0, \quad \geq 3 \text{ views} \;\Rightarrow\; \mathbf{b} = \text{smallest eigenvector of } V^{\mathsf T}V`, note: 'Two equations per view, five unknowns up to scale: three genuinely different views make the system solvable — the same null-vector trick as the DLT.' },
-      { tex: String.raw`\omega \;\xrightarrow{\text{closed form}}\; f_x, f_y, s, c_x, c_y`, note: 'K falls out of b with a few divisions and square roots (Zhang 2000, App. B). Frontal-only views make those square roots meaningless — the badge in the lab.' },
-      { tex: String.raw`\min_{K, d, \{R_i, \mathbf{t}_i\}} \sum \| \mathbf{x}_{ij} - \pi(K, d, R_i, \mathbf{t}_i, \mathbf{X}_j) \|^2`, note: 'The closed form is only the launchpad: the reported calibration comes from joint nonlinear refinement over everything — module 3’s Levenberg–Marquardt.' },
+      { tex: String.raw`\mathbf{r}_1^{\mathsf T}\mathbf{r}_2 = 0, \qquad \mathbf{r}_1^{\mathsf T}\mathbf{r}_1 = \mathbf{r}_2^{\mathsf T}\mathbf{r}_2`, note: 'R is orthonormal - two facts per view that do not depend on where the board stood. This is the entire leverage of the method.' },
+      { tex: String.raw`\omega = K^{-\mathsf T}K^{-1} \quad\Rightarrow\quad \mathbf{h}_1^{\mathsf T}\omega\,\mathbf{h}_2 = 0, \;\; \mathbf{h}_1^{\mathsf T}\omega\,\mathbf{h}_1 = \mathbf{h}_2^{\mathsf T}\omega\,\mathbf{h}_2`, note: 'Substituting rᵢ = K⁻¹hᵢ turns both facts into constraints on ω, the “image of the absolute conic” - a symmetric 3×3 that contains only intrinsics.' },
+      { tex: String.raw`\mathbf{v}_{12}^{\mathsf T}\mathbf{b} = 0, \qquad (\mathbf{v}_{11}-\mathbf{v}_{22})^{\mathsf T}\mathbf{b} = 0`, note: 'ω has 6 free entries b = (B₁₁,B₁₂,B₂₂,B₁₃,B₂₃,B₃₃). Each view contributes two LINEAR equations in b - nonlinear geometry became linear algebra.' },
+      { tex: String.raw`V\mathbf{b} = 0, \quad \geq 3 \text{ views} \;\Rightarrow\; \mathbf{b} = \text{smallest eigenvector of } V^{\mathsf T}V`, note: 'Two equations per view, five unknowns up to scale: three genuinely different views make the system solvable - the same null-vector trick as the DLT.' },
+      { tex: String.raw`\omega \;\xrightarrow{\text{closed form}}\; f_x, f_y, s, c_x, c_y`, note: 'K falls out of b with a few divisions and square roots (Zhang 2000, App. B). Frontal-only views make those square roots meaningless - the badge in the lab.' },
+      { tex: String.raw`\min_{K, d, \{R_i, \mathbf{t}_i\}} \sum \| \mathbf{x}_{ij} - \pi(K, d, R_i, \mathbf{t}_i, \mathbf{X}_j) \|^2`, note: 'The closed form is only the launchpad: the reported calibration comes from joint nonlinear refinement over everything - module 3’s Levenberg-Marquardt.' },
     ],
     fishTitle: 'When tan θ explodes: fisheye lenses',
     fish1:
-      'The pinhole model hides a bomb: the image radius grows with tan θ, and tan θ → ∞ as a ray approaches 90° off-axis. No finite sensor can hold a 180° pinhole image — wide-angle optics need a different projection law. Fisheye lenses use (approximately) the equidistant model r = f·θ: image height LINEAR in the angle. The curve plot shows the two laws racing; the dot panels show a hemisphere of directions (rings of constant θ) under each model — watch the pinhole panel run out of sensor while the fisheye calmly keeps stacking rings.',
+      'The pinhole model hides a bomb: the image radius grows with tan θ, and tan θ → ∞ as a ray approaches 90° off-axis. No finite sensor can hold a 180° pinhole image - wide-angle optics need a different projection law. Fisheye lenses use (approximately) the equidistant model r = f·θ: image height LINEAR in the angle. The curve plot shows the two laws racing; the dot panels show a hemisphere of directions (rings of constant θ) under each model - watch the pinhole panel run out of sensor while the fisheye calmly keeps stacking rings.',
     fish2:
-      'The price of the fisheye law: straight world lines are no longer straight in the image (only rays through the center are), and the Brown–Conrady polynomial above cannot express the difference — fisheye calibration uses its own model (OpenCV: cv2.fisheye, a polynomial in θ). Choosing the wrong model family is one of the classic ways calibrations silently fail.',
+      'The price of the fisheye law: straight world lines are no longer straight in the image (only rays through the center are), and the Brown-Conrady polynomial above cannot express the difference - fisheye calibration uses its own model (OpenCV: cv2.fisheye, a polynomial in θ). Choosing the wrong model family is one of the classic ways calibrations silently fail.',
     fishFov: 'lens field of view',
-    fishCurve: 'image radius r(θ) — pinhole vs. equidistant, sensor half-width marked',
+    fishCurve: 'image radius r(θ) - pinhole vs. equidistant, sensor half-width marked',
     fishPin: 'pinhole r = f·tanθ',
     fishEqui: 'equidistant r = f·θ',
     fishPinNeed: 'sensor needed (pinhole)',
@@ -120,14 +120,14 @@ const T = {
     fishDerivTitle: 'Projection laws in one family',
     fishDeriv: [
       { tex: String.raw`r_{\text{pinhole}} = f\tan\theta \;\xrightarrow{\theta\to90^\circ}\; \infty`, note: 'Perspective projection: preserves straight lines, but the sensor cost per degree explodes toward the edge.' },
-      { tex: String.raw`r_{\text{equidistant}} = f\,\theta`, note: 'Every degree of view costs the same millimeters of sensor — the natural choice for surveillance domes, robot navigation, automotive surround view.' },
-      { tex: String.raw`r = f\sin\theta \quad\big|\quad r = 2f\sin(\tfrac{\theta}{2}) \quad\big|\quad r = 2f\tan(\tfrac{\theta}{2})`, note: 'Orthographic, equisolid-angle and stereographic siblings — real lenses approximate one of these, and calibration fits a polynomial in θ on top (cv2.fisheye).' },
+      { tex: String.raw`r_{\text{equidistant}} = f\,\theta`, note: 'Every degree of view costs the same millimeters of sensor - the natural choice for surveillance domes, robot navigation, automotive surround view.' },
+      { tex: String.raw`r = f\sin\theta \quad\big|\quad r = 2f\sin(\tfrac{\theta}{2}) \quad\big|\quad r = 2f\tan(\tfrac{\theta}{2})`, note: 'Orthographic, equisolid-angle and stereographic siblings - real lenses approximate one of these, and calibration fits a polynomial in θ on top (cv2.fisheye).' },
     ],
     uncTitle: 'How sure is the calibration?',
     unc1:
-      'A calibration is a measurement, and module Metrology·1 taught the rule: a measurement without an uncertainty is not a result. Here the module-3 solver is run on 40 independently re-noised datasets — each cyan dot is one full calibration’s answer for (f, k1). On top, the amber 2σ ellipse is computed WITHOUT any repetition, analytically from a single run: Cov(θ) ≈ σ²(JᵀJ)⁻¹, the GUM-style linear propagation. The two views agree — and the tilted ellipse exposes a secret: f and k1 are correlated, because extra barrel distortion can partially imitate a shorter focal length.',
+      'A calibration is a measurement, and module Metrology·1 taught the rule: a measurement without an uncertainty is not a result. Here the module-3 solver is run on 40 independently re-noised datasets - each cyan dot is one full calibration’s answer for (f, k1). On top, the amber 2σ ellipse is computed WITHOUT any repetition, analytically from a single run: Cov(θ) ≈ σ²(JᵀJ)⁻¹, the GUM-style linear propagation. The two views agree - and the tilted ellipse exposes a secret: f and k1 are correlated, because extra barrel distortion can partially imitate a shorter focal length.',
     unc2:
-      'Slide the number of views: the ellipse shrinks like 1/√n — the statistical payoff of the capture checklist. This JᵀJ⁻¹ trick is not calibration-specific: it prices the uncertainty of every least-squares fit on this site, from the thermistor lab to bundle adjustment.',
+      'Slide the number of views: the ellipse shrinks like 1/√n - the statistical payoff of the capture checklist. This JᵀJ⁻¹ trick is not calibration-specific: it prices the uncertainty of every least-squares fit on this site, from the thermistor lab to bundle adjustment.',
     uncNoise: 'corner noise σ',
     uncViews: 'views used',
     uncPlot: '40 Monte-Carlo calibrations (cyan) vs. analytic 2σ ellipse (amber) · green ✕ = truth',
@@ -135,7 +135,7 @@ const T = {
     uncSigmaK1: 'σ(k1)',
     uncRho: 'correlation ρ(f, k1)',
     capTitle: 'Interactive: capture good calibration views',
-    cap1: 'This is a virtual calibration session. Pose the checkerboard in front of the camera and capture views. The checklist tells you when your dataset would produce a trustworthy calibration — try to make it fully green.',
+    cap1: 'This is a virtual calibration session. Pose the checkerboard in front of the camera and capture views. The checklist tells you when your dataset would produce a trustworthy calibration - try to make it fully green.',
     capWhy:
       'Why these rules? Corner coverage constrains the distortion polynomial where it is largest (image borders). Tilted views constrain the focal length (a frontal board is nearly scale-ambiguous). Many views average out detection noise.',
     capScene: 'Virtual camera view',
@@ -149,7 +149,7 @@ const T = {
     capBtn: 'Capture view',
     capRandom: 'Random pose',
     capReset: 'Reset session',
-    capNotVisible: 'Board partially outside the image — corners could not be detected.',
+    capNotVisible: 'Board partially outside the image - corners could not be detected.',
     capViews: 'views',
     capCoverage: 'coverage',
     capTilted: 'tilted views',
@@ -161,39 +161,39 @@ const T = {
       'borders & corners of the image covered (≥ 60 %)',
     ],
     capDistNote:
-      'One more realism detail: this virtual lens has mild barrel distortion (k1 = −0.15). Watch the green board outline near the image corners — it bows. Real detections curve exactly like this, and the calibration must explain that bending.',
+      'One more realism detail: this virtual lens has mild barrel distortion (k1 = −0.15). Watch the green board outline near the image corners - it bows. Real detections curve exactly like this, and the calibration must explain that bending.',
     tiltTitle: 'Interactive: why tilted views reveal the focal length',
     tiltIntro:
-      'The deepest of the capture rules, isolated. Both panels show the same board, and in both the board distance is automatically adjusted as you change f, so the board keeps its image size (the dolly zoom of module 1). Frontal board: the corner pattern stays exactly identical for every f — from such views alone, f is unknowable. Tilted board: near and far edge sit at different depths, one distance cannot compensate both, and the pattern measurably deforms. Foreshortening is the signature that betrays f. Faint dots show the reference at f = 560; red whiskers show how far each corner moved (drawn ×8 to be visible).',
+      'The deepest of the capture rules, isolated. Both panels show the same board, and in both the board distance is automatically adjusted as you change f, so the board keeps its image size (the dolly zoom of module 1). Frontal board: the corner pattern stays exactly identical for every f - from such views alone, f is unknowable. Tilted board: near and far edge sit at different depths, one distance cannot compensate both, and the pattern measurably deforms. Foreshortening is the signature that betrays f. Faint dots show the reference at f = 560; red whiskers show how far each corner moved (drawn ×8 to be visible).',
     tiltF: 'focal length f',
-    tiltFrontal: 'frontal board — distance compensated',
-    tiltTilted: 'board tilted 40° — distance compensated',
+    tiltFrontal: 'frontal board - distance compensated',
+    tiltTilted: 'board tilted 40° - distance compensated',
     tiltShift: 'mean corner shift',
     tiltNote:
-      'This is why the checklist demands tilted views: a dataset of only frontal boards leaves f and the board distances mutually unconstrained — the optimizer of module 3 would face a perfectly flat valley and return an arbitrary answer.',
+      'This is why the checklist demands tilted views: a dataset of only frontal boards leaves f and the board distances mutually unconstrained - the optimizer of module 3 would face a perfectly flat valley and return an arbitrary answer.',
     reprojTitle: 'Interactive: reprojection error',
     reproj1:
       'After optimization, the calibration reports its residual: the RMS distance between detected corners (cyan) and corners reprojected through the model (amber). Error vectors are drawn ×15. Two effects mix in practice:',
     reprojList: [
-      'Detection noise — random, irreducible; sub-pixel corner detectors reach ~0.1 px.',
-      'Model error — systematic, e.g. a wrong focal length pushes corners radially outward/inward. If arrows form a pattern instead of random directions, your model (or dataset) is bad.',
+      'Detection noise - random, irreducible; sub-pixel corner detectors reach ~0.1 px.',
+      'Model error - systematic, e.g. a wrong focal length pushes corners radially outward/inward. If arrows form a pattern instead of random directions, your model (or dataset) is bad.',
     ],
     noiseLbl: 'detection noise σ',
     modelLbl: 'focal length error',
     rms: 'RMS error',
     reproj2:
-      'Rule of thumb: a good calibration of a normal camera lands well below 0.5 px RMS — but a low RMS with a badly covered dataset proves nothing: the model can overfit where you did look, and be wrong where you did not.',
+      'Rule of thumb: a good calibration of a normal camera lands well below 0.5 px RMS - but a low RMS with a badly covered dataset proves nothing: the model can overfit where you did look, and be wrong where you did not.',
     tipsTitle: 'Practice: doing it with OpenCV',
     tipsList: [
-      'Print the board on stiff, flat material — a bent board violates the planarity assumption.',
+      'Print the board on stiff, flat material - a bent board violates the planarity assumption.',
       'Fill the whole image over the session, tilt up to ~45°, avoid motion blur (short exposure).',
-      'Fix the focus (and zoom!) — changing either changes K.',
+      'Fix the focus (and zoom!) - changing either changes K.',
       'Check the residual pattern per image, not only the global RMS; drop bad frames.',
       'For wide-angle / fisheye lenses use the appropriate model (cv2.fisheye or a rational model).',
     ],
     appTitle: '🏭 In the real world: measuring a part in millimeters',
     appIntro:
-      'A camera above a conveyor measures every bolt that passes: length spec 42.00 ± 0.10 mm. The pixels-to-millimeters scale comes entirely from the calibration (f and working distance). Now let the calibration silently age — the lens was bumped, the camera mount warmed up — and watch a perfectly good bolt fail inspection, or worse, a bad one pass. This is why measurement cameras are recalibrated on a schedule, and why a calibration certificate has an expiry date.',
+      'A camera above a conveyor measures every bolt that passes: length spec 42.00 ± 0.10 mm. The pixels-to-millimeters scale comes entirely from the calibration (f and working distance). Now let the calibration silently age - the lens was bumped, the camera mount warmed up - and watch a perfectly good bolt fail inspection, or worse, a bad one pass. This is why measurement cameras are recalibrated on a schedule, and why a calibration certificate has an expiry date.',
     appDecal: 'calibration drift (effective f)',
     appNoiseA: 'edge-detection noise',
     appMeasured: 'measured length',
@@ -202,36 +202,36 @@ const T = {
     appPass: 'PASS',
     appFail: 'FAIL',
     appWhere:
-      'Identical setups gauge brake discs, pizza diameters, lumber widths and pill sizes — every "vision gauge" on every production line is a calibrated camera doing pixels-to-millimeters.',
+      'Identical setups gauge brake discs, pizza diameters, lumber widths and pill sizes - every "vision gauge" on every production line is a calibrated camera doing pixels-to-millimeters.',
   },
   de: {
     kicker: 'Vision · Modul 2',
     title: 'Kamerakalibrierung',
     intro:
-      'Modul 1 hat K als bekannt vorausgesetzt. In Wirklichkeit ist jede Kamera-Objektiv-Kombination einzigartig: Brennweite, Hauptpunkt und Verzeichnung müssen gemessen werden. Die Kalibrierung schätzt sie aus Bildern eines bekannten Musters — meist eines Schachbretts.',
-    whyTitle: 'Was die Kalibrierung schätzt — und warum es wichtig ist',
+      'Modul 1 hat K als bekannt vorausgesetzt. In Wirklichkeit ist jede Kamera-Objektiv-Kombination einzigartig: Brennweite, Hauptpunkt und Verzeichnung müssen gemessen werden. Die Kalibrierung schätzt sie aus Bildern eines bekannten Musters - meist eines Schachbretts.',
+    whyTitle: 'Was die Kalibrierung schätzt - und warum es wichtig ist',
     why1: 'Die Kalibrierung rekonstruiert aus einer Handvoll Schachbrettfotos zwei Gruppen von Parametern:',
     whyList: [
-      'Intrinsik K (fx, fy, cx, cy) — nötig, um Pixel in metrische Sehstrahlen zu verwandeln. Ohne sie keine Messung, keine 3D-Rekonstruktion, kein Augmented Reality.',
-      'Verzeichnungskoeffizienten (k1, k2, k3, p1, p2) — echte Objektive krümmen Geraden. Jeder geometrische Algorithmus danach setzt voraus, dass diese Krümmung entfernt wurde.',
-      'Als Nebenprodukt die Pose [R|t] des Bretts in jedem Bild — der Beleg, dass das Modell die Beobachtungen erklärt.',
+      'Intrinsik K (fx, fy, cx, cy) - nötig, um Pixel in metrische Sehstrahlen zu verwandeln. Ohne sie keine Messung, keine 3D-Rekonstruktion, kein Augmented Reality.',
+      'Verzeichnungskoeffizienten (k1, k2, k3, p1, p2) - echte Objektive krümmen Geraden. Jeder geometrische Algorithmus danach setzt voraus, dass diese Krümmung entfernt wurde.',
+      'Als Nebenprodukt die Pose [R|t] des Bretts in jedem Bild - der Beleg, dass das Modell die Beobachtungen erklärt.',
     ],
     why2:
       'Das Qualitätsmaß ist der Reprojektionsfehler: Man projiziert die bekannten Brettecken durch das geschätzte Modell und misst den Pixelabstand zu den detektierten Ecken.',
     distTitle: 'Interaktiv: Objektivverzeichnung',
     dist1:
-      'Das Lochkameramodell bildet Geraden auf Geraden ab. Echte Objektive nicht. Das Standard-Modell nach Brown–Conrady beschreibt die Abweichung in normierten Bildkoordinaten — radiale Terme (k1, k2, k3), die mit dem Abstand vom Zentrum wachsen, plus tangentiale Terme (p1, p2) durch Dejustage von Linse und Sensor:',
+      'Das Lochkameramodell bildet Geraden auf Geraden ab. Echte Objektive nicht. Das Standard-Modell nach Brown-Conrady beschreibt die Abweichung in normierten Bildkoordinaten - radiale Terme (k1, k2, k3), die mit dem Abstand vom Zentrum wachsen, plus tangentiale Terme (p1, p2) durch Dejustage von Linse und Sensor:',
     dist2:
       'Bewege die Slider und beobachte, wie sich ein perfektes Gitter verformt. Tonnenverzeichnung (k1 < 0) ist typisch für Weitwinkel, Kissenverzeichnung (k1 > 0) für Tele. Haben k1 und k2 entgegengesetzte Vorzeichen, entsteht die wellige „Schnurrbart“-Form.',
     presets: 'Voreinstellungen',
     presetNames: ['keine', 'Tonne', 'Kissen', 'Schnurrbart', 'tangential'],
     distGrid: 'Verzerrte Ansicht eines perfekt geraden Gitters',
-    undistGrid: 'Entzerrtes Bild — beachte den gewölbten Rand',
+    undistGrid: 'Entzerrtes Bild - beachte den gewölbten Rand',
     undistToggle: ['verzerrtes Bild', 'nach Entzerrung'],
     undistText:
-      'Der Schalter zeigt die Kur: Die Entzerrung verformt das Bild mit der inversen Abbildung, sodass Linien wieder gerade werden. Der Preis ist am bernsteinfarbenen Rand sichtbar — das Bild wölbt sich nach außen (oder innen) und füllt kein Rechteck mehr; deshalb werden entzerrte Bilder meist beschnitten (OpenCV: getOptimalNewCameraMatrix mit dem Alpha-Parameter).',
+      'Der Schalter zeigt die Kur: Die Entzerrung verformt das Bild mit der inversen Abbildung, sodass Linien wieder gerade werden. Der Preis ist am bernsteinfarbenen Rand sichtbar - das Bild wölbt sich nach außen (oder innen) und füllt kein Rechteck mehr; deshalb werden entzerrte Bilder meist beschnitten (OpenCV: getOptimalNewCameraMatrix mit dem Alpha-Parameter).',
     tipStraight:
-      'Schneller Feldtest für jede Kalibrierung: Türrahmen oder Gebäudekante fotografieren, Bild entzerren und die Linie ansehen. Jede verbleibende Krümmung ist unkorrigierte Verzeichnung — menschliche Augen erkennen so etwas extrem gut.',
+      'Schneller Feldtest für jede Kalibrierung: Türrahmen oder Gebäudekante fotografieren, Bild entzerren und die Linie ansehen. Jede verbleibende Krümmung ist unkorrigierte Verzeichnung - menschliche Augen erkennen so etwas extrem gut.',
     zhangTitle: 'Zhangs Methode in Kürze',
     zhang1:
       'Der klassische Algorithmus (Zhang, 2000) braucht nur ein ebenes Muster mit exakt bekannter Geometrie, aus mehreren Richtungen betrachtet. Die Kernidee: Weil alle Brettpunkte in einer Ebene liegen, ist jedes Bild über eine 3×3-Homographie H mit dem Brett verknüpft, und jede H liefert Bedingungen an die Intrinsik:',
@@ -240,15 +240,15 @@ const T = {
       'Pro Ansicht eine Homographie H aus bekannten Brettkoordinaten ↔ detektierten Pixeln schätzen.',
       'Jede H liefert zwei lineare Bedingungen an ω = K⁻ᵀK⁻¹; mit ≥ 3 Ansichten lässt sich K geschlossen lösen.',
       'Aus H und K die Pose [R|t] jeder Ansicht rekonstruieren.',
-      'Alles gemeinsam verfeinern — K, Verzeichnung, alle Posen — durch Minimierung des Reprojektionsfehlers (Bündelausgleich, Levenberg–Marquardt).',
+      'Alles gemeinsam verfeinern - K, Verzeichnung, alle Posen - durch Minimierung des Reprojektionsfehlers (Bündelausgleich, Levenberg-Marquardt).',
     ],
     zhang2:
       'Die geschlossene Lösung liefert nur den Startwert; die Zahlen, mit denen man wirklich arbeitet, stammen aus der finalen nichtlinearen Optimierung.',
-    zhangLink: 'Wie funktioniert diese Minimierung eigentlich — und warum Levenberg–Marquardt?',
+    zhangLink: 'Wie funktioniert diese Minimierung eigentlich - und warum Levenberg-Marquardt?',
     zhangLinkBtn: 'Modul 3: Numerische Optimierung →',
     zhangLabTitle: 'Zhang, live auf synthetischen Ansichten',
     zhangLab1:
-      'Theorie ist billig — hier läuft die geschlossene Lösung wirklich. Sechs virtuelle Schachbrettansichten werden mit einer versteckten Ground-Truth-Kamera erzeugt (fx = fy = 560, cx = 320, cy = 240); pro Ansicht wird eine Homographie aus den Ecken geschätzt, und Zhangs lineares System rekonstruiert K. Sieh zu, wie es mindestens 3 Ansichten braucht — und wie es kollabiert, wenn alle Ansichten frontal sind, egal wie viele: exakt die Degeneration, die das Kipp-Labor unten fühlbar macht.',
+      'Theorie ist billig - hier läuft die geschlossene Lösung wirklich. Sechs virtuelle Schachbrettansichten werden mit einer versteckten Ground-Truth-Kamera erzeugt (fx = fy = 560, cx = 320, cy = 240); pro Ansicht wird eine Homographie aus den Ecken geschätzt, und Zhangs lineares System rekonstruiert K. Sieh zu, wie es mindestens 3 Ansichten braucht - und wie es kollabiert, wenn alle Ansichten frontal sind, egal wie viele: exakt die Degeneration, die das Kipp-Labor unten fühlbar macht.',
     zhangViews: 'verwendete Ansichten',
     zhangNoise: 'Eckenrauschen σ',
     zhangSet: 'Ansichtsposen',
@@ -261,24 +261,24 @@ const T = {
     zhangCond: 'Konditionierung',
     zhangOk: 'BESTIMMT',
     zhangBad: 'UNTERBESTIMMT',
-    zhangBadHint: 'braucht ≥ 3 Ansichten mit echter Kippung — das lineare System hat keine eindeutige Lösung',
+    zhangBadHint: 'braucht ≥ 3 Ansichten mit echter Kippung - das lineare System hat keine eindeutige Lösung',
     zhangDerivTitle: 'Zhangs Methode, Schritt für Schritt',
     zhangDeriv: [
       { tex: String.raw`H_i = K\,[\mathbf{r}_1\;\mathbf{r}_2\;\mathbf{t}]_i`, note: 'Jede Brettansicht ist eine Ebene, also greift die Homographie aus Modul 1: H mischt die Intrinsik mit den ersten beiden Rotationsspalten dieser Ansicht.' },
-      { tex: String.raw`\mathbf{r}_1^{\mathsf T}\mathbf{r}_2 = 0, \qquad \mathbf{r}_1^{\mathsf T}\mathbf{r}_1 = \mathbf{r}_2^{\mathsf T}\mathbf{r}_2`, note: 'R ist orthonormal — zwei Fakten pro Ansicht, die nicht davon abhängen, wo das Brett stand. Das ist der gesamte Hebel der Methode.' },
-      { tex: String.raw`\omega = K^{-\mathsf T}K^{-1} \quad\Rightarrow\quad \mathbf{h}_1^{\mathsf T}\omega\,\mathbf{h}_2 = 0, \;\; \mathbf{h}_1^{\mathsf T}\omega\,\mathbf{h}_1 = \mathbf{h}_2^{\mathsf T}\omega\,\mathbf{h}_2`, note: 'Einsetzen von rᵢ = K⁻¹hᵢ verwandelt beide Fakten in Bedingungen an ω, das „Bild des absoluten Kegelschnitts“ — eine symmetrische 3×3, die nur Intrinsik enthält.' },
-      { tex: String.raw`\mathbf{v}_{12}^{\mathsf T}\mathbf{b} = 0, \qquad (\mathbf{v}_{11}-\mathbf{v}_{22})^{\mathsf T}\mathbf{b} = 0`, note: 'ω hat 6 freie Einträge b = (B₁₁,B₁₂,B₂₂,B₁₃,B₂₃,B₃₃). Jede Ansicht liefert zwei LINEARE Gleichungen in b — nichtlineare Geometrie wurde lineare Algebra.' },
-      { tex: String.raw`V\mathbf{b} = 0, \quad \geq 3 \text{ Ansichten} \;\Rightarrow\; \mathbf{b} = \text{kleinster Eigenvektor von } V^{\mathsf T}V`, note: 'Zwei Gleichungen pro Ansicht, fünf Unbekannte bis auf Skalierung: drei wirklich verschiedene Ansichten machen das System lösbar — derselbe Nullvektor-Trick wie bei der DLT.' },
-      { tex: String.raw`\omega \;\xrightarrow{\text{geschlossene Form}}\; f_x, f_y, s, c_x, c_y`, note: 'K fällt mit ein paar Divisionen und Quadratwurzeln aus b heraus (Zhang 2000, App. B). Nur-frontale Ansichten machen diese Wurzeln bedeutungslos — das Badge im Labor.' },
-      { tex: String.raw`\min_{K, d, \{R_i, \mathbf{t}_i\}} \sum \| \mathbf{x}_{ij} - \pi(K, d, R_i, \mathbf{t}_i, \mathbf{X}_j) \|^2`, note: 'Die geschlossene Form ist nur die Startrampe: Die berichtete Kalibrierung stammt aus der gemeinsamen nichtlinearen Verfeinerung über alles — Modul 3s Levenberg–Marquardt.' },
+      { tex: String.raw`\mathbf{r}_1^{\mathsf T}\mathbf{r}_2 = 0, \qquad \mathbf{r}_1^{\mathsf T}\mathbf{r}_1 = \mathbf{r}_2^{\mathsf T}\mathbf{r}_2`, note: 'R ist orthonormal - zwei Fakten pro Ansicht, die nicht davon abhängen, wo das Brett stand. Das ist der gesamte Hebel der Methode.' },
+      { tex: String.raw`\omega = K^{-\mathsf T}K^{-1} \quad\Rightarrow\quad \mathbf{h}_1^{\mathsf T}\omega\,\mathbf{h}_2 = 0, \;\; \mathbf{h}_1^{\mathsf T}\omega\,\mathbf{h}_1 = \mathbf{h}_2^{\mathsf T}\omega\,\mathbf{h}_2`, note: 'Einsetzen von rᵢ = K⁻¹hᵢ verwandelt beide Fakten in Bedingungen an ω, das „Bild des absoluten Kegelschnitts“ - eine symmetrische 3×3, die nur Intrinsik enthält.' },
+      { tex: String.raw`\mathbf{v}_{12}^{\mathsf T}\mathbf{b} = 0, \qquad (\mathbf{v}_{11}-\mathbf{v}_{22})^{\mathsf T}\mathbf{b} = 0`, note: 'ω hat 6 freie Einträge b = (B₁₁,B₁₂,B₂₂,B₁₃,B₂₃,B₃₃). Jede Ansicht liefert zwei LINEARE Gleichungen in b - nichtlineare Geometrie wurde lineare Algebra.' },
+      { tex: String.raw`V\mathbf{b} = 0, \quad \geq 3 \text{ Ansichten} \;\Rightarrow\; \mathbf{b} = \text{kleinster Eigenvektor von } V^{\mathsf T}V`, note: 'Zwei Gleichungen pro Ansicht, fünf Unbekannte bis auf Skalierung: drei wirklich verschiedene Ansichten machen das System lösbar - derselbe Nullvektor-Trick wie bei der DLT.' },
+      { tex: String.raw`\omega \;\xrightarrow{\text{geschlossene Form}}\; f_x, f_y, s, c_x, c_y`, note: 'K fällt mit ein paar Divisionen und Quadratwurzeln aus b heraus (Zhang 2000, App. B). Nur-frontale Ansichten machen diese Wurzeln bedeutungslos - das Badge im Labor.' },
+      { tex: String.raw`\min_{K, d, \{R_i, \mathbf{t}_i\}} \sum \| \mathbf{x}_{ij} - \pi(K, d, R_i, \mathbf{t}_i, \mathbf{X}_j) \|^2`, note: 'Die geschlossene Form ist nur die Startrampe: Die berichtete Kalibrierung stammt aus der gemeinsamen nichtlinearen Verfeinerung über alles - Modul 3s Levenberg-Marquardt.' },
     ],
     fishTitle: 'Wenn tan θ explodiert: Fisheye-Objektive',
     fish1:
-      'Das Lochkameramodell versteckt eine Bombe: Der Bildradius wächst mit tan θ, und tan θ → ∞, wenn ein Strahl sich 90° zur Achse nähert. Kein endlicher Sensor kann ein 180°-Lochkamerabild fassen — Weitwinkeloptik braucht ein anderes Projektionsgesetz. Fisheye-Objektive nutzen (näherungsweise) das äquidistante Modell r = f·θ: Bildhöhe LINEAR im Winkel. Der Kurvenplot zeigt die beiden Gesetze im Wettrennen; die Punktepanels zeigen eine Hemisphäre von Richtungen (Ringe konstanten θs) unter jedem Modell — sieh zu, wie dem Lochkamera-Panel der Sensor ausgeht, während das Fisheye ruhig weiter Ringe stapelt.',
+      'Das Lochkameramodell versteckt eine Bombe: Der Bildradius wächst mit tan θ, und tan θ → ∞, wenn ein Strahl sich 90° zur Achse nähert. Kein endlicher Sensor kann ein 180°-Lochkamerabild fassen - Weitwinkeloptik braucht ein anderes Projektionsgesetz. Fisheye-Objektive nutzen (näherungsweise) das äquidistante Modell r = f·θ: Bildhöhe LINEAR im Winkel. Der Kurvenplot zeigt die beiden Gesetze im Wettrennen; die Punktepanels zeigen eine Hemisphäre von Richtungen (Ringe konstanten θs) unter jedem Modell - sieh zu, wie dem Lochkamera-Panel der Sensor ausgeht, während das Fisheye ruhig weiter Ringe stapelt.',
     fish2:
-      'Der Preis des Fisheye-Gesetzes: Gerade Weltlinien sind im Bild nicht mehr gerade (nur Strahlen durchs Zentrum), und das Brown–Conrady-Polynom oben kann den Unterschied nicht ausdrücken — Fisheye-Kalibrierung nutzt ihr eigenes Modell (OpenCV: cv2.fisheye, ein Polynom in θ). Die falsche Modellfamilie zu wählen ist einer der Klassiker, mit denen Kalibrierungen leise scheitern.',
+      'Der Preis des Fisheye-Gesetzes: Gerade Weltlinien sind im Bild nicht mehr gerade (nur Strahlen durchs Zentrum), und das Brown-Conrady-Polynom oben kann den Unterschied nicht ausdrücken - Fisheye-Kalibrierung nutzt ihr eigenes Modell (OpenCV: cv2.fisheye, ein Polynom in θ). Die falsche Modellfamilie zu wählen ist einer der Klassiker, mit denen Kalibrierungen leise scheitern.',
     fishFov: 'Sichtfeld des Objektivs',
-    fishCurve: 'Bildradius r(θ) — Lochkamera vs. äquidistant, halbe Sensorbreite markiert',
+    fishCurve: 'Bildradius r(θ) - Lochkamera vs. äquidistant, halbe Sensorbreite markiert',
     fishPin: 'Lochkamera r = f·tanθ',
     fishEqui: 'äquidistant r = f·θ',
     fishPinNeed: 'benötigter Sensor (Lochkamera)',
@@ -287,14 +287,14 @@ const T = {
     fishDerivTitle: 'Projektionsgesetze als Familie',
     fishDeriv: [
       { tex: String.raw`r_{\text{Lochkamera}} = f\tan\theta \;\xrightarrow{\theta\to90^\circ}\; \infty`, note: 'Perspektivische Projektion: erhält Geraden, aber die Sensorkosten pro Grad explodieren zum Rand hin.' },
-      { tex: String.raw`r_{\text{äquidistant}} = f\,\theta`, note: 'Jedes Grad Sichtfeld kostet dieselben Millimeter Sensor — die natürliche Wahl für Überwachungskuppeln, Roboternavigation, Automotive-Rundumsicht.' },
-      { tex: String.raw`r = f\sin\theta \quad\big|\quad r = 2f\sin(\tfrac{\theta}{2}) \quad\big|\quad r = 2f\tan(\tfrac{\theta}{2})`, note: 'Die Geschwister: orthographisch, flächentreu und stereographisch — echte Objektive nähern eines davon an, und die Kalibrierung fittet obendrauf ein Polynom in θ (cv2.fisheye).' },
+      { tex: String.raw`r_{\text{äquidistant}} = f\,\theta`, note: 'Jedes Grad Sichtfeld kostet dieselben Millimeter Sensor - die natürliche Wahl für Überwachungskuppeln, Roboternavigation, Automotive-Rundumsicht.' },
+      { tex: String.raw`r = f\sin\theta \quad\big|\quad r = 2f\sin(\tfrac{\theta}{2}) \quad\big|\quad r = 2f\tan(\tfrac{\theta}{2})`, note: 'Die Geschwister: orthographisch, flächentreu und stereographisch - echte Objektive nähern eines davon an, und die Kalibrierung fittet obendrauf ein Polynom in θ (cv2.fisheye).' },
     ],
     uncTitle: 'Wie sicher ist die Kalibrierung?',
     unc1:
-      'Eine Kalibrierung ist eine Messung, und Modul Messtechnik·1 hat die Regel gelehrt: Eine Messung ohne Unsicherheit ist kein Ergebnis. Hier läuft der Löser aus Modul 3 auf 40 unabhängig neu verrauschten Datensätzen — jeder cyanfarbene Punkt ist die Antwort einer kompletten Kalibrierung für (f, k1). Darüber liegt die bernsteinfarbene 2σ-Ellipse, berechnet OHNE jede Wiederholung, analytisch aus einem einzigen Lauf: Cov(θ) ≈ σ²(JᵀJ)⁻¹, die lineare GUM-Fortpflanzung. Beide Sichten stimmen überein — und die gekippte Ellipse verrät ein Geheimnis: f und k1 sind korreliert, weil zusätzliche Tonnenverzeichnung eine kürzere Brennweite teilweise imitieren kann.',
+      'Eine Kalibrierung ist eine Messung, und Modul Messtechnik·1 hat die Regel gelehrt: Eine Messung ohne Unsicherheit ist kein Ergebnis. Hier läuft der Löser aus Modul 3 auf 40 unabhängig neu verrauschten Datensätzen - jeder cyanfarbene Punkt ist die Antwort einer kompletten Kalibrierung für (f, k1). Darüber liegt die bernsteinfarbene 2σ-Ellipse, berechnet OHNE jede Wiederholung, analytisch aus einem einzigen Lauf: Cov(θ) ≈ σ²(JᵀJ)⁻¹, die lineare GUM-Fortpflanzung. Beide Sichten stimmen überein - und die gekippte Ellipse verrät ein Geheimnis: f und k1 sind korreliert, weil zusätzliche Tonnenverzeichnung eine kürzere Brennweite teilweise imitieren kann.',
     unc2:
-      'Schiebe die Anzahl der Ansichten: Die Ellipse schrumpft wie 1/√n — der statistische Lohn der Aufnahme-Checkliste. Der JᵀJ⁻¹-Trick ist nicht kalibrierspezifisch: Er bepreist die Unsicherheit jedes Kleinste-Quadrate-Fits auf dieser Seite, vom Thermistor-Labor bis zum Bündelausgleich.',
+      'Schiebe die Anzahl der Ansichten: Die Ellipse schrumpft wie 1/√n - der statistische Lohn der Aufnahme-Checkliste. Der JᵀJ⁻¹-Trick ist nicht kalibrierspezifisch: Er bepreist die Unsicherheit jedes Kleinste-Quadrate-Fits auf dieser Seite, vom Thermistor-Labor bis zum Bündelausgleich.',
     uncNoise: 'Eckenrauschen σ',
     uncViews: 'verwendete Ansichten',
     uncPlot: '40 Monte-Carlo-Kalibrierungen (cyan) vs. analytische 2σ-Ellipse (bernstein) · grünes ✕ = Wahrheit',
@@ -302,7 +302,7 @@ const T = {
     uncSigmaK1: 'σ(k1)',
     uncRho: 'Korrelation ρ(f, k1)',
     capTitle: 'Interaktiv: gute Kalibrieransichten aufnehmen',
-    cap1: 'Eine virtuelle Kalibriersitzung: Positioniere das Schachbrett vor der Kamera und nimm Ansichten auf. Die Checkliste zeigt, wann der Datensatz eine vertrauenswürdige Kalibrierung ergäbe — versuche, alles grün zu bekommen.',
+    cap1: 'Eine virtuelle Kalibriersitzung: Positioniere das Schachbrett vor der Kamera und nimm Ansichten auf. Die Checkliste zeigt, wann der Datensatz eine vertrauenswürdige Kalibrierung ergäbe - versuche, alles grün zu bekommen.',
     capWhy:
       'Warum diese Regeln? Abdeckung bis in die Ecken verankert das Verzeichnungspolynom dort, wo es am größten ist (Bildrand). Gekippte Ansichten bestimmen die Brennweite (ein frontales Brett ist nahezu skalenmehrdeutig). Viele Ansichten mitteln das Detektionsrauschen heraus.',
     capScene: 'Virtuelle Kameraansicht',
@@ -316,7 +316,7 @@ const T = {
     capBtn: 'Ansicht aufnehmen',
     capRandom: 'Zufällige Pose',
     capReset: 'Sitzung zurücksetzen',
-    capNotVisible: 'Brett teilweise außerhalb des Bildes — Ecken nicht detektierbar.',
+    capNotVisible: 'Brett teilweise außerhalb des Bildes - Ecken nicht detektierbar.',
     capViews: 'Ansichten',
     capCoverage: 'Abdeckung',
     capTilted: 'gekippte Ansichten',
@@ -328,39 +328,39 @@ const T = {
       'Ränder & Ecken des Bildes abgedeckt (≥ 60 %)',
     ],
     capDistNote:
-      'Noch ein Realismus-Detail: Dieses virtuelle Objektiv hat leichte Tonnenverzeichnung (k1 = −0,15). Beobachte den grünen Brettumriss nahe der Bildecken — er wölbt sich. Echte Detektionen krümmen sich genauso, und die Kalibrierung muss diese Biegung erklären.',
+      'Noch ein Realismus-Detail: Dieses virtuelle Objektiv hat leichte Tonnenverzeichnung (k1 = −0,15). Beobachte den grünen Brettumriss nahe der Bildecken - er wölbt sich. Echte Detektionen krümmen sich genauso, und die Kalibrierung muss diese Biegung erklären.',
     tiltTitle: 'Interaktiv: Warum gekippte Ansichten die Brennweite verraten',
     tiltIntro:
-      'Die tiefste der Aufnahmeregeln, isoliert. Beide Panels zeigen dasselbe Brett, und in beiden wird der Brettabstand beim Ändern von f automatisch nachgeführt, sodass das Brett seine Bildgröße behält (der Dolly-Zoom aus Modul 1). Frontales Brett: Das Eckenmuster bleibt für jedes f exakt identisch — aus solchen Ansichten allein ist f unbestimmbar. Gekipptes Brett: Nahe und ferne Kante liegen auf verschiedenen Tiefen, ein Abstand kann nicht beide kompensieren, das Muster verformt sich messbar. Die perspektivische Verkürzung ist die Signatur, die f verrät. Blasse Punkte zeigen die Referenz bei f = 560; rote Fäden, wie weit jede Ecke gewandert ist (×8 gezeichnet, damit es sichtbar wird).',
+      'Die tiefste der Aufnahmeregeln, isoliert. Beide Panels zeigen dasselbe Brett, und in beiden wird der Brettabstand beim Ändern von f automatisch nachgeführt, sodass das Brett seine Bildgröße behält (der Dolly-Zoom aus Modul 1). Frontales Brett: Das Eckenmuster bleibt für jedes f exakt identisch - aus solchen Ansichten allein ist f unbestimmbar. Gekipptes Brett: Nahe und ferne Kante liegen auf verschiedenen Tiefen, ein Abstand kann nicht beide kompensieren, das Muster verformt sich messbar. Die perspektivische Verkürzung ist die Signatur, die f verrät. Blasse Punkte zeigen die Referenz bei f = 560; rote Fäden, wie weit jede Ecke gewandert ist (×8 gezeichnet, damit es sichtbar wird).',
     tiltF: 'Brennweite f',
-    tiltFrontal: 'frontales Brett — Abstand kompensiert',
-    tiltTilted: 'Brett um 40° gekippt — Abstand kompensiert',
+    tiltFrontal: 'frontales Brett - Abstand kompensiert',
+    tiltTilted: 'Brett um 40° gekippt - Abstand kompensiert',
     tiltShift: 'mittlere Eckenverschiebung',
     tiltNote:
-      'Deshalb verlangt die Checkliste gekippte Ansichten: Ein Datensatz aus nur frontalen Brettern lässt f und die Brettabstände gegenseitig unbestimmt — der Optimierer aus Modul 3 sähe ein völlig flaches Tal und lieferte eine beliebige Antwort.',
+      'Deshalb verlangt die Checkliste gekippte Ansichten: Ein Datensatz aus nur frontalen Brettern lässt f und die Brettabstände gegenseitig unbestimmt - der Optimierer aus Modul 3 sähe ein völlig flaches Tal und lieferte eine beliebige Antwort.',
     reprojTitle: 'Interaktiv: Reprojektionsfehler',
     reproj1:
       'Nach der Optimierung meldet die Kalibrierung ihr Residuum: den RMS-Abstand zwischen detektierten Ecken (cyan) und durch das Modell reprojizierten Ecken (bernstein). Fehlervektoren sind ×15 gezeichnet. In der Praxis mischen sich zwei Effekte:',
     reprojList: [
-      'Detektionsrauschen — zufällig, nicht vermeidbar; Subpixel-Detektoren erreichen ~0,1 px.',
-      'Modellfehler — systematisch, z. B. schiebt eine falsche Brennweite die Ecken radial nach außen/innen. Bilden die Pfeile ein Muster statt zufälliger Richtungen, ist Modell (oder Datensatz) schlecht.',
+      'Detektionsrauschen - zufällig, nicht vermeidbar; Subpixel-Detektoren erreichen ~0,1 px.',
+      'Modellfehler - systematisch, z. B. schiebt eine falsche Brennweite die Ecken radial nach außen/innen. Bilden die Pfeile ein Muster statt zufälliger Richtungen, ist Modell (oder Datensatz) schlecht.',
     ],
     noiseLbl: 'Detektionsrauschen σ',
     modelLbl: 'Brennweitenfehler',
     rms: 'RMS-Fehler',
     reproj2:
-      'Faustregel: Eine gute Kalibrierung einer normalen Kamera liegt deutlich unter 0,5 px RMS — aber ein niedriger RMS mit schlecht abgedecktem Datensatz beweist nichts: Das Modell kann dort überangepasst sein, wo man hingeschaut hat, und falsch, wo nicht.',
+      'Faustregel: Eine gute Kalibrierung einer normalen Kamera liegt deutlich unter 0,5 px RMS - aber ein niedriger RMS mit schlecht abgedecktem Datensatz beweist nichts: Das Modell kann dort überangepasst sein, wo man hingeschaut hat, und falsch, wo nicht.',
     tipsTitle: 'Praxis: Umsetzung mit OpenCV',
     tipsList: [
-      'Das Brett auf steifes, ebenes Material drucken — ein gewölbtes Brett verletzt die Ebenheitsannahme.',
+      'Das Brett auf steifes, ebenes Material drucken - ein gewölbtes Brett verletzt die Ebenheitsannahme.',
       'Über die Sitzung das ganze Bild füllen, bis ~45° kippen, Bewegungsunschärfe vermeiden (kurze Belichtung).',
-      'Fokus (und Zoom!) fixieren — beides ändert K.',
+      'Fokus (und Zoom!) fixieren - beides ändert K.',
       'Das Residuenmuster pro Bild prüfen, nicht nur den globalen RMS; schlechte Aufnahmen verwerfen.',
       'Für Weitwinkel/Fisheye das passende Modell verwenden (cv2.fisheye oder rationales Modell).',
     ],
     appTitle: '🏭 In der echten Welt: ein Teil in Millimetern vermessen',
     appIntro:
-      'Eine Kamera über einem Förderband vermisst jede vorbeilaufende Schraube: Längenspezifikation 42,00 ± 0,10 mm. Der Pixel-zu-Millimeter-Maßstab kommt vollständig aus der Kalibrierung (f und Arbeitsabstand). Lass die Kalibrierung nun stillschweigend altern — das Objektiv wurde angestoßen, die Halterung hat sich erwärmt — und sieh zu, wie eine einwandfreie Schraube durchfällt oder, schlimmer, eine schlechte durchgeht. Deshalb werden Messkameras nach Plan rekalibriert, und deshalb hat ein Kalibrierschein ein Ablaufdatum.',
+      'Eine Kamera über einem Förderband vermisst jede vorbeilaufende Schraube: Längenspezifikation 42,00 ± 0,10 mm. Der Pixel-zu-Millimeter-Maßstab kommt vollständig aus der Kalibrierung (f und Arbeitsabstand). Lass die Kalibrierung nun stillschweigend altern - das Objektiv wurde angestoßen, die Halterung hat sich erwärmt - und sieh zu, wie eine einwandfreie Schraube durchfällt oder, schlimmer, eine schlechte durchgeht. Deshalb werden Messkameras nach Plan rekalibriert, und deshalb hat ein Kalibrierschein ein Ablaufdatum.',
     appDecal: 'Kalibrierdrift (effektives f)',
     appNoiseA: 'Kantendetektions-Rauschen',
     appMeasured: 'gemessene Länge',
@@ -369,7 +369,7 @@ const T = {
     appPass: 'GUT',
     appFail: 'AUSSCHUSS',
     appWhere:
-      'Identische Aufbauten vermessen Bremsscheiben, Pizzadurchmesser, Brettbreiten und Tablettengrößen — jede „Vision-Lehre“ auf jeder Produktionslinie ist eine kalibrierte Kamera, die Pixel in Millimeter übersetzt.',
+      'Identische Aufbauten vermessen Bremsscheiben, Pizzadurchmesser, Brettbreiten und Tablettengrößen - jede „Vision-Lehre“ auf jeder Produktionslinie ist eine kalibrierte Kamera, die Pixel in Millimeter übersetzt.',
   },
 }
 
@@ -423,7 +423,7 @@ function DistortionPlayground() {
       const [x, y] = undistortNormalized((u - cx) / f, (v - cy) / f, d)
       return [cx + f * x, cy + f * y]
     }
-    // 'dist': how the sensor records a straight grid. 'undist': the corrected image —
+    // 'dist': how the sensor records a straight grid. 'undist': the corrected image -
     // the recorded (distorted) lines become straight again, the image frame warps instead.
     const map =
       view === 'dist' ? mapDist : (u: number, v: number) => mapUndist(...mapDist(u, v))
@@ -501,7 +501,7 @@ function DistortionPlayground() {
 // ---------------------------------------------------------------- capture lab
 
 const CAP_K: Intrinsics = { fx: 560, fy: 560, s: 0, cx: 320, cy: 240 }
-// the virtual lens of the capture lab has mild barrel distortion — board edges bow near the borders
+// the virtual lens of the capture lab has mild barrel distortion - board edges bow near the borders
 const CAP_DIST: Distortion = { k1: -0.15, k2: 0, k3: 0, p1: 0, p2: 0 }
 
 function capProject(p: V3): { u: number; v: number; z: number } {
@@ -731,7 +731,7 @@ function TiltLab() {
   const meanShift = (cur: typeof frontRef, ref: typeof frontRef) =>
     cur.reduce((s, p, i) => s + Math.hypot(p.u - ref[i].u, p.v - ref[i].v), 0) / cur.length
 
-  // corner displacements are a few pixels at most — draw them magnified so they are visible
+  // corner displacements are a few pixels at most - draw them magnified so they are visible
   const MAG = 8
   const panel = (
     title: string,
@@ -968,14 +968,14 @@ function ZhangLab() {
         <div className="grid grid-cols-2 gap-3">
           <Readout
             label={t.zhangFx}
-            value={good ? fmt(res.k.fx, 1) : '—'}
+            value={good ? fmt(res.k.fx, 1) : '-'}
             accent={good && Math.abs(res.k.fx - 560) < 5 ? '#4ade80' : undefined}
           />
-          <Readout label={t.zhangC} value={good ? `${fmt(res.k.cx, 0)} / ${fmt(res.k.cy, 0)}` : '—'} />
+          <Readout label={t.zhangC} value={good ? `${fmt(res.k.cx, 0)} / ${fmt(res.k.cy, 0)}` : '-'} />
         </div>
         <Readout
           label={t.zhangCond}
-          value={!good ? '—' : res.conditioning > 1e6 ? '> 10⁶' : fmt(res.conditioning, 0)}
+          value={!good ? '-' : res.conditioning > 1e6 ? '> 10⁶' : fmt(res.conditioning, 0)}
           accent={good ? '#4ade80' : '#f87171'}
         />
       </div>
