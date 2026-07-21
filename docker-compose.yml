@@ -3,5 +3,5 @@ services:
     build: .
     image: engineers-pocketknife:latest
     ports:
-      - "8080:80"
+      - "8017:80"
     restart: unless-stopped
